@@ -1,0 +1,216 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Website;
+use Illuminate\Http\Request;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class WebsiteController extends Controller
+{
+    use AuthorizesRequests;
+    /**
+     * Display a listing of websites.
+     */
+    public function index(): Response
+    {
+        $websites = auth()->user()->websites()
+            ->withCount(['articles', 'categories'])
+            ->latest()
+            ->get();
+
+        return Inertia::render('SuperAdmin/Websites/Index', [
+            'websites' => $websites
+        ]);
+    }
+
+    /**
+     * Show the form for creating a new website.
+     */
+    public function create(): Response
+    {
+        return Inertia::render('SuperAdmin/Websites/Create');
+    }
+
+    /**
+     * Store a newly created website in storage.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'slug' => 'nullable|string|max:255|unique:websites',
+            'subdomain' => 'nullable|string|max:255|unique:websites',
+            'description' => 'nullable|string',
+            'logo' => 'nullable|string',
+            'favicon' => 'nullable|string',
+            'domain' => 'nullable|string|unique:websites',
+            'theme' => 'nullable|string',
+            'social_media' => 'nullable|array',
+        ], [
+            'slug.unique' => 'This website URL is already taken. Please choose a different one.',
+            'subdomain.unique' => 'This subdomain is already taken. Please choose a different one.',
+            'domain.unique' => 'This domain is already in use by another website.',
+        ]);
+
+        $validated['user_id'] = auth()->id();
+        $validated['theme'] = $validated['theme'] ?? 'solushcooks';
+        
+        // Generate unique slug if not provided
+        if (empty($validated['slug'])) {
+            $validated['slug'] = $this->generateUniqueSlug($validated['name']);
+        }
+        
+        // Generate unique subdomain if not provided
+        if (empty($validated['subdomain'])) {
+            $validated['subdomain'] = $this->generateUniqueSubdomain($validated['slug']);
+        }
+        
+        // Create default theme settings
+        $validated['theme_settings'] = [
+            'primary_color' => '#1e293b',
+            'secondary_color' => '#10b981',
+            'header_text' => $validated['name'],
+            'newsletter_enabled' => true,
+            'comments_enabled' => true,
+        ];
+
+        $website = Website::create($validated);
+
+        // Create default categories
+        $this->createDefaultCategories($website);
+
+        return redirect()->route('superadmin.websites.show', $website)
+            ->with('success', 'Website created successfully!');
+    }
+
+    /**
+     * Display the specified website.
+     */
+    public function show(Website $website): Response
+    {
+        $this->authorize('view', $website);
+
+        $website->load([
+            'articles' => function ($query) {
+                $query->latest()->take(10);
+            },
+            'categories' => function ($query) {
+                $query->orderBy('order');
+            }
+        ]);
+
+        return Inertia::render('SuperAdmin/Websites/Show', [
+            'website' => $website
+        ]);
+    }
+
+    /**
+     * Show the form for editing the specified website.
+     */
+    public function edit(Website $website): Response
+    {
+        $this->authorize('update', $website);
+
+        return Inertia::render('SuperAdmin/Websites/Edit', [
+            'website' => $website
+        ]);
+    }
+
+    /**
+     * Update the specified website in storage.
+     */
+    public function update(Request $request, Website $website)
+    {
+        $this->authorize('update', $website);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'slug' => 'nullable|string|max:255|unique:websites,slug,' . $website->id,
+            'description' => 'nullable|string',
+            'logo' => 'nullable|string',
+            'favicon' => 'nullable|string',
+            'domain' => 'nullable|string|unique:websites,domain,' . $website->id,
+            'theme' => 'nullable|string',
+            'theme_settings' => 'nullable|array',
+            'social_media' => 'nullable|array',
+            'is_active' => 'boolean',
+        ]);
+
+        $website->update($validated);
+
+        return redirect()->route('superadmin.websites.show', $website)
+            ->with('success', 'Website updated successfully!');
+    }
+
+    /**
+     * Remove the specified website from storage.
+     */
+    public function destroy(Website $website)
+    {
+        $this->authorize('delete', $website);
+
+        $website->delete();
+
+        return redirect()->route('superadmin.websites.index')
+            ->with('success', 'Website deleted successfully!');
+    }
+
+    /**
+     * Create default categories for a new website.
+     */
+    private function createDefaultCategories(Website $website): void
+    {
+        $defaultCategories = [
+            ['name' => 'Comfort Classics', 'order' => 1],
+            ['name' => 'Party Appetizers', 'order' => 2],
+            ['name' => 'Breakfast & Brunch', 'order' => 3],
+            ['name' => 'Desserts Baking', 'order' => 4],
+            ['name' => 'Healthy Recipes', 'order' => 5],
+            ['name' => 'Quick Dinners', 'order' => 6],
+        ];
+
+        foreach ($defaultCategories as $category) {
+            $website->categories()->create($category);
+        }
+    }
+
+    /**
+     * Generate a unique slug for the website.
+     */
+    private function generateUniqueSlug(string $name): string
+    {
+        $slug = \Illuminate\Support\Str::slug($name);
+        $originalSlug = $slug;
+        $counter = 1;
+
+        // Keep checking until we find a unique slug
+        while (Website::where('slug', $slug)->exists()) {
+            $slug = $originalSlug . '-' . $counter;
+            $counter++;
+        }
+
+        return $slug;
+    }
+
+    /**
+     * Generate a unique subdomain for the website.
+     */
+    private function generateUniqueSubdomain(string $slug): string
+    {
+        $subdomain = $slug;
+        $originalSubdomain = $subdomain;
+        $counter = 1;
+
+        // Keep checking until we find a unique subdomain
+        while (Website::where('subdomain', $subdomain)->exists()) {
+            $subdomain = $originalSubdomain . '-' . $counter;
+            $counter++;
+        }
+
+        return $subdomain;
+    }
+}
+
