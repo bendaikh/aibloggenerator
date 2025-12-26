@@ -11,10 +11,10 @@
                 </div>
 
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    <Link
+                    <a
                         v-for="category in website.categories"
                         :key="category.id"
-                        :href="route('website.category', { website: website.slug, category: category.slug })"
+                        :href="category.url"
                         class="group relative overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-all duration-300"
                     >
                         <div class="aspect-square relative">
@@ -30,7 +30,7 @@
                                 {{ category.name }}
                             </h3>
                         </div>
-                    </Link>
+                    </a>
                 </div>
             </div>
         </section>
@@ -65,19 +65,19 @@
                         <h2 class="text-4xl font-bold text-gray-900 mb-2">What's New</h2>
                         <p class="text-gray-600">The newest breakfast ideas, dinners and desserts. These easy recipes are pretty much guaranteed winners!</p>
                     </div>
-                    <Link :href="route('website.show', website.slug)" class="text-teal-500 hover:text-teal-600 font-semibold flex items-center">
+                    <a :href="website.url" class="text-teal-500 hover:text-teal-600 font-semibold flex items-center">
                         Browse All The Latest
                         <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                         </svg>
-                    </Link>
+                    </a>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <Link
+                    <a
                         v-for="article in latestArticles"
                         :key="article.id"
-                        :href="route('article.show', { website: website.slug, article: article.slug })"
+                        :href="article.url"
                         class="group"
                     >
                         <div class="overflow-hidden rounded-lg mb-4">
@@ -92,7 +92,7 @@
                         <h3 class="text-xl font-bold text-gray-900 group-hover:text-teal-500 transition">
                             {{ article.title }}
                         </h3>
-                    </Link>
+                    </a>
                 </div>
             </div>
         </section>
@@ -106,10 +106,10 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <Link
+                    <a
                         v-for="article in featuredArticles"
                         :key="article.id"
-                        :href="route('article.show', { website: website.slug, article: article.slug })"
+                        :href="article.url"
                         class="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group"
                     >
                         <div class="flex flex-col md:flex-row">
@@ -132,7 +132,7 @@
                                 <p v-if="article.excerpt" class="text-gray-600">{{ article.excerpt }}</p>
                             </div>
                         </div>
-                    </Link>
+                    </a>
                 </div>
             </div>
         </section>

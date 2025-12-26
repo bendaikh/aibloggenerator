@@ -27,6 +27,8 @@ class Article extends Model
         'published_at',
     ];
 
+    protected $appends = ['url'];
+
     protected $casts = [
         'meta_tags' => 'array',
         'views' => 'integer',
@@ -106,10 +108,7 @@ class Article extends Model
      */
     public function getUrlAttribute(): string
     {
-        return route('article.show', [
-            'website' => $this->website->slug,
-            'article' => $this->slug
-        ]);
+        return $this->website->getUrlForPath('article/' . $this->slug);
     }
 }
 

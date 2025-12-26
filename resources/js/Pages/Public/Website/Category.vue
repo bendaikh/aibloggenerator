@@ -14,10 +14,10 @@
 
                 <!-- Articles Grid -->
                 <div v-if="articles.data.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-                    <Link
+                    <a
                         v-for="article in articles.data"
                         :key="article.id"
-                        :href="route('article.show', { website: website.slug, article: article.slug })"
+                        :href="article.url"
                         class="group bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
                     >
                         <div class="overflow-hidden">
@@ -44,7 +44,7 @@
                                 <span>{{ article.views }} views</span>
                             </div>
                         </div>
-                    </Link>
+                    </a>
                 </div>
 
                 <!-- Empty State -->

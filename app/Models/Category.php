@@ -22,6 +22,8 @@ class Category extends Model
         'is_active',
     ];
 
+    protected $appends = ['url'];
+
     protected $casts = [
         'is_active' => 'boolean',
         'order' => 'integer',
@@ -63,6 +65,14 @@ class Category extends Model
             ->where('status', 'published')
             ->where('published_at', '<=', now())
             ->orderBy('published_at', 'desc');
+    }
+
+    /**
+     * Get the public URL for the category.
+     */
+    public function getUrlAttribute(): string
+    {
+        return $this->website->getUrlForPath('category/' . $this->slug);
     }
 }
 

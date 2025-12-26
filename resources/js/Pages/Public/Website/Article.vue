@@ -8,13 +8,13 @@
                     <!-- Article Header -->
                     <header class="mb-8">
                         <div class="mb-4">
-                            <Link
+                            <a
                                 v-if="article.category"
-                                :href="route('website.category', { website: website.slug, category: article.category.slug })"
+                                :href="article.category.url"
                                 class="inline-block text-teal-500 hover:text-teal-600 font-semibold text-sm uppercase tracking-wide"
                             >
                                 {{ article.category.name }}
-                            </Link>
+                            </a>
                         </div>
                         <h1 class="text-5xl font-bold text-gray-900 mb-6">{{ article.title }}</h1>
                         
@@ -85,10 +85,10 @@
                     <div v-if="relatedArticles.length > 0" class="mb-12">
                         <h2 class="text-3xl font-bold text-gray-900 mb-8">You Might Also Like</h2>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <Link
+                            <a
                                 v-for="related in relatedArticles"
                                 :key="related.id"
-                                :href="route('article.show', { website: website.slug, article: related.slug })"
+                                :href="related.url"
                                 class="group"
                             >
                                 <div class="overflow-hidden rounded-lg mb-4">
@@ -103,7 +103,7 @@
                                 <h3 class="text-lg font-bold text-gray-900 group-hover:text-teal-500 transition">
                                     {{ related.title }}
                                 </h3>
-                            </Link>
+                            </a>
                         </div>
                     </div>
                 </div>

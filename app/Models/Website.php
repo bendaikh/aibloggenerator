@@ -28,6 +28,8 @@ class Website extends Model
         'published_at',
     ];
 
+    protected $appends = ['url'];
+
     protected $casts = [
         'theme_settings' => 'array',
         'social_media' => 'array',
@@ -97,7 +99,23 @@ class Website extends Model
         
         // Return subdomain URL
         $baseDomain = config('app.base_domain', 'localhost');
-        return 'http://' . $this->subdomain . '.' . $baseDomain;
+        $scheme = config('app.env') === 'production' ? 'https://' : 'http://';
+        
+        // If we're in a request, use the current scheme
+        if (request()) {
+            $scheme = request()->isSecure() ? 'https://' : 'http://';
+        }
+        
+        return $scheme . $this->subdomain . '.' . $baseDomain;
+    }
+
+    /**
+     * Get a URL for a specific path on this website.
+     */
+    public function getUrlForPath(string $path): string
+    {
+        $baseUrl = $this->url;
+        return rtrim($baseUrl, '/') . '/' . ltrim($path, '/');
     }
 }
 

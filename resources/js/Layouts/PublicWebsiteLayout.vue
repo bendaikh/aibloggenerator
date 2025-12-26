@@ -24,19 +24,19 @@
             <div class="container mx-auto px-4">
                 <!-- Logo -->
                 <div class="py-6 text-center">
-                    <Link :href="route('website.show', website.slug)" class="inline-block">
+                    <a :href="website.url" class="inline-block">
                         <img v-if="website.logo" :src="website.logo" :alt="website.name" class="h-16 mx-auto" />
                         <h1 v-else class="text-4xl font-bold text-gray-900">{{ website.name }}</h1>
-                    </Link>
+                    </a>
                 </div>
 
                 <!-- Navigation -->
                 <nav class="border-t border-gray-200">
                     <ul class="flex justify-center items-center space-x-8 py-4">
                         <li>
-                            <Link :href="route('website.show', website.slug)" class="text-gray-700 hover:text-teal-500 font-medium transition">
+                            <a :href="website.url" class="text-gray-700 hover:text-teal-500 font-medium transition">
                                 Home
-                            </Link>
+                            </a>
                         </li>
                         <li class="relative group">
                             <button class="text-gray-700 hover:text-teal-500 font-medium transition flex items-center">
@@ -47,14 +47,14 @@
                             </button>
                             <div class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                                 <div class="py-2">
-                                    <Link
+                                    <a
                                         v-for="category in website.categories"
                                         :key="category.id"
-                                        :href="route('website.category', { website: website.slug, category: category.slug })"
+                                        :href="category.url"
                                         class="block px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-500"
                                     >
                                         {{ category.name }}
-                                    </Link>
+                                    </a>
                                 </div>
                             </div>
                         </li>
@@ -122,11 +122,11 @@
                     <div>
                         <h3 class="text-lg font-semibold mb-4">BROWSE</h3>
                         <ul class="space-y-2">
-                            <li><Link :href="route('website.show', website.slug)" class="text-gray-400 hover:text-white transition">Home</Link></li>
+                            <li><a :href="website.url" class="text-gray-400 hover:text-white transition">Home</a></li>
                             <li v-for="category in website.categories?.slice(0, 5)" :key="category.id">
-                                <Link :href="route('website.category', { website: website.slug, category: category.slug })" class="text-gray-400 hover:text-white transition">
+                                <a :href="category.url" class="text-gray-400 hover:text-white transition">
                                     {{ category.name }}
-                                </Link>
+                                </a>
                             </li>
                         </ul>
                     </div>

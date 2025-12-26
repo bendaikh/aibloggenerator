@@ -20,7 +20,7 @@
                         </div>
                         <div class="flex gap-3">
                             <a
-                                :href="route('website.show', website.slug)"
+                                :href="website.url"
                                 target="_blank"
                                 class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                             >
