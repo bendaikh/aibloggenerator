@@ -3,6 +3,8 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WebsiteController;
 use App\Http\Controllers\ArticleController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\PageController;
 use App\Http\Controllers\PublicWebsiteController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -57,18 +59,25 @@ Route::middleware(['auth', 'verified'])->prefix('superadmin')->group(function ()
         'destroy' => 'superadmin.articles.destroy',
     ]);
 
-    // Content Management
-    Route::get('/pages', function () {
-        return Inertia::render('SuperAdmin/Pages');
-    })->name('superadmin.pages');
+    // Content Management - Categories
+    Route::resource('categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy'])->names([
+        'index' => 'superadmin.categories.index',
+        'store' => 'superadmin.categories.store',
+        'update' => 'superadmin.categories.update',
+        'destroy' => 'superadmin.categories.destroy',
+    ]);
+
+    // Content Management - Pages
+    Route::resource('pages', PageController::class)->only(['index', 'store', 'update', 'destroy'])->names([
+        'index' => 'superadmin.pages.index',
+        'store' => 'superadmin.pages.store',
+        'update' => 'superadmin.pages.update',
+        'destroy' => 'superadmin.pages.destroy',
+    ]);
 
     Route::get('/authors', function () {
         return Inertia::render('SuperAdmin/Authors');
     })->name('superadmin.authors');
-
-    Route::get('/categories', function () {
-        return Inertia::render('SuperAdmin/Categories');
-    })->name('superadmin.categories');
 
     // Appearance
     Route::get('/appearance', function () {
@@ -105,6 +114,7 @@ Route::middleware(['auth', 'verified'])->prefix('superadmin')->group(function ()
 Route::get('/site/{website}', [PublicWebsiteController::class, 'show'])->name('website.show');
 Route::get('/site/{website}/category/{category}', [PublicWebsiteController::class, 'showCategory'])->name('website.category');
 Route::get('/site/{website}/article/{article}', [PublicWebsiteController::class, 'showArticle'])->name('article.show');
+Route::get('/site/{website}/page/{page}', [PublicWebsiteController::class, 'showPage'])->name('website.page');
 
 // --- Subdomain Routes (For production subdomains like example.websaasmanager.com) ---
 // These only work when accessing via a subdomain
@@ -112,6 +122,7 @@ Route::domain('{subdomain}.' . $baseDomain)->middleware('identify.website')->gro
     Route::get('/', [PublicWebsiteController::class, 'showByDomain'])->name('website.home');
     Route::get('/category/{category}', [PublicWebsiteController::class, 'showCategoryByDomain'])->name('website.category.subdomain');
     Route::get('/article/{article}', [PublicWebsiteController::class, 'showArticleByDomain'])->name('article.show.subdomain');
+    Route::get('/page/{page}', [PublicWebsiteController::class, 'showPageByDomain'])->name('website.page.subdomain');
 });
 
 require __DIR__.'/auth.php';

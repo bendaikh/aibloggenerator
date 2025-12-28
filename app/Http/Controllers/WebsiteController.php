@@ -79,11 +79,8 @@ class WebsiteController extends Controller
 
         $website = Website::create($validated);
 
-        // Create default categories
-        $this->createDefaultCategories($website);
-
         return redirect()->route('superadmin.websites.show', $website)
-            ->with('success', 'Website created successfully!');
+            ->with('success', 'Website created successfully! You can now add categories and pages.');
     }
 
     /**
@@ -156,25 +153,6 @@ class WebsiteController extends Controller
 
         return redirect()->route('superadmin.websites.index')
             ->with('success', 'Website deleted successfully!');
-    }
-
-    /**
-     * Create default categories for a new website.
-     */
-    private function createDefaultCategories(Website $website): void
-    {
-        $defaultCategories = [
-            ['name' => 'Comfort Classics', 'order' => 1],
-            ['name' => 'Party Appetizers', 'order' => 2],
-            ['name' => 'Breakfast & Brunch', 'order' => 3],
-            ['name' => 'Desserts Baking', 'order' => 4],
-            ['name' => 'Healthy Recipes', 'order' => 5],
-            ['name' => 'Quick Dinners', 'order' => 6],
-        ];
-
-        foreach ($defaultCategories as $category) {
-            $website->categories()->create($category);
-        }
     }
 
     /**

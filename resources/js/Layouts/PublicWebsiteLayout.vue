@@ -36,6 +36,8 @@
 
                     <!-- Main Navigation -->
                     <nav class="hidden md:flex items-center space-x-8">
+                        <a :href="website.url" class="text-gray-700 hover:text-emerald-500 font-medium transition">Home</a>
+                        
                         <div class="relative group">
                             <button class="text-gray-700 hover:text-emerald-500 font-medium transition flex items-center py-2">
                                 Categories
@@ -56,10 +58,16 @@
                                 </div>
                             </div>
                         </div>
-                        <a :href="website.url" class="text-gray-700 hover:text-emerald-500 font-medium transition">Home</a>
-                        <a href="#recipes" class="text-gray-700 hover:text-emerald-500 font-medium transition">Recipes</a>
-                        <a href="#about" class="text-gray-700 hover:text-emerald-500 font-medium transition">About</a>
-                        <a href="#contact" class="text-gray-700 hover:text-emerald-500 font-medium transition">Contact</a>
+                        
+                        <!-- Dynamic Pages from Content Management -->
+                        <a
+                            v-for="page in website.pages"
+                            :key="page.id"
+                            :href="page.url"
+                            class="text-gray-700 hover:text-emerald-500 font-medium transition"
+                        >
+                            {{ page.title }}
+                        </a>
                     </nav>
 
                     <!-- Right Icons -->

@@ -155,10 +155,10 @@ const isActivePrefix = (prefix) => {
                                 Articles
                             </Link>
                             <Link 
-                                :href="route('superadmin.pages')" 
+                                :href="route('superadmin.pages.index')" 
                                 :class="[
                                     'block px-3 py-2 rounded-lg text-sm transition-colors',
-                                    isActive('superadmin.pages') ? 'text-white bg-[#252525]' : 'text-gray-400 hover:text-white hover:bg-[#1a1a1a]'
+                                    isActivePrefix('superadmin.pages') ? 'text-white bg-[#252525]' : 'text-gray-400 hover:text-white hover:bg-[#1a1a1a]'
                                 ]"
                             >
                                 Pages
@@ -173,10 +173,10 @@ const isActivePrefix = (prefix) => {
                                 Authors
                             </Link>
                             <Link 
-                                :href="route('superadmin.categories')" 
+                                :href="route('superadmin.categories.index')" 
                                 :class="[
                                     'block px-3 py-2 rounded-lg text-sm transition-colors',
-                                    isActive('superadmin.categories') ? 'text-white bg-[#252525]' : 'text-gray-400 hover:text-white hover:bg-[#1a1a1a]'
+                                    isActivePrefix('superadmin.categories') ? 'text-white bg-[#252525]' : 'text-gray-400 hover:text-white hover:bg-[#1a1a1a]'
                                 ]"
                             >
                                 Categories

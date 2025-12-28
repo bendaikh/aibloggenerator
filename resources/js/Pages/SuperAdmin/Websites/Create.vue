@@ -194,7 +194,7 @@
                     <h3 class="text-lg font-semibold text-blue-900 mb-2">📝 What happens next?</h3>
                     <ul class="list-disc list-inside text-blue-800 space-y-2">
                         <li>Your website will be created with the Solushcooks theme</li>
-                        <li>Default categories will be automatically generated (Comfort Classics, Party Appetizers, etc.)</li>
+                        <li>You can add categories from the Content Management section</li>
                         <li>You can start adding articles immediately after creation</li>
                         <li>Articles (both AI-generated and manual) will be published to this website</li>
                     </ul>

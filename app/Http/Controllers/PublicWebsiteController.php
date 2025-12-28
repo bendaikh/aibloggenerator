@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Website;
 use App\Models\Article;
+use App\Models\Page;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -34,6 +35,16 @@ class PublicWebsiteController extends Controller
         if (!$website) {
             abort(404, 'Website not found');
         }
+
+        // Load categories and pages for navigation
+        $website->load([
+            'categories' => function ($query) {
+                $query->where('is_active', true)->orderBy('order');
+            },
+            'pages' => function ($query) {
+                $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
+            }
+        ]);
 
         $article = $website->articles()
             ->where('slug', $articleSlug)
@@ -70,6 +81,16 @@ class PublicWebsiteController extends Controller
             abort(404, 'Website not found');
         }
 
+        // Load categories and pages for navigation
+        $website->load([
+            'categories' => function ($query) {
+                $query->where('is_active', true)->orderBy('order');
+            },
+            'pages' => function ($query) {
+                $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
+            }
+        ]);
+
         $category = $website->categories()
             ->where('slug', $categorySlug)
             ->where('is_active', true)
@@ -83,6 +104,38 @@ class PublicWebsiteController extends Controller
             'website' => $website,
             'category' => $category,
             'articles' => $articles,
+        ]);
+    }
+
+    /**
+     * Display a page (subdomain/custom domain).
+     */
+    public function showPageByDomain(Request $request, string $pageSlug): Response
+    {
+        $website = $request->get('website');
+        
+        if (!$website) {
+            abort(404, 'Website not found');
+        }
+
+        // Load categories and pages for navigation
+        $website->load([
+            'categories' => function ($query) {
+                $query->where('is_active', true)->orderBy('order');
+            },
+            'pages' => function ($query) {
+                $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
+            }
+        ]);
+
+        $page = $website->pages()
+            ->where('slug', $pageSlug)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        return Inertia::render('Public/Website/Page', [
+            'website' => $website,
+            'page' => $page,
         ]);
     }
 
@@ -106,6 +159,16 @@ class PublicWebsiteController extends Controller
         $website = Website::where('slug', $websiteSlug)
             ->where('is_active', true)
             ->firstOrFail();
+
+        // Load categories and pages for navigation
+        $website->load([
+            'categories' => function ($query) {
+                $query->where('is_active', true)->orderBy('order');
+            },
+            'pages' => function ($query) {
+                $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
+            }
+        ]);
 
         $article = $website->articles()
             ->where('slug', $articleSlug)
@@ -140,6 +203,16 @@ class PublicWebsiteController extends Controller
             ->where('is_active', true)
             ->firstOrFail();
 
+        // Load categories and pages for navigation
+        $website->load([
+            'categories' => function ($query) {
+                $query->where('is_active', true)->orderBy('order');
+            },
+            'pages' => function ($query) {
+                $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
+            }
+        ]);
+
         $category = $website->categories()
             ->where('slug', $categorySlug)
             ->where('is_active', true)
@@ -157,6 +230,36 @@ class PublicWebsiteController extends Controller
     }
 
     /**
+     * Display a page (legacy route).
+     */
+    public function showPage(string $websiteSlug, string $pageSlug): Response
+    {
+        $website = Website::where('slug', $websiteSlug)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        // Load categories and pages for navigation
+        $website->load([
+            'categories' => function ($query) {
+                $query->where('is_active', true)->orderBy('order');
+            },
+            'pages' => function ($query) {
+                $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
+            }
+        ]);
+
+        $page = $website->pages()
+            ->where('slug', $pageSlug)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        return Inertia::render('Public/Website/Page', [
+            'website' => $website,
+            'page' => $page,
+        ]);
+    }
+
+    /**
      * Render the home page for a website.
      */
     private function renderHome(Website $website): Response
@@ -164,6 +267,11 @@ class PublicWebsiteController extends Controller
         $website->load([
             'categories' => function ($query) {
                 $query->where('is_active', true)
+                    ->orderBy('order');
+            },
+            'pages' => function ($query) {
+                $query->where('is_active', true)
+                    ->where('show_in_menu', true)
                     ->orderBy('order');
             }
         ]);

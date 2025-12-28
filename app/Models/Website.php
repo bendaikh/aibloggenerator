@@ -78,6 +78,14 @@ class Website extends Model
     }
 
     /**
+     * Get the pages for the website.
+     */
+    public function pages(): HasMany
+    {
+        return $this->hasMany(Page::class);
+    }
+
+    /**
      * Get published articles.
      */
     public function publishedArticles(): HasMany
