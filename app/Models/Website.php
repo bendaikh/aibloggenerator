@@ -93,25 +93,13 @@ class Website extends Model
      */
     public function getUrlAttribute(): string
     {
+        // If a custom domain is set, use it
         if ($this->domain) {
             return 'https://' . $this->domain;
         }
         
-        // If in local environment or if base_domain is localhost, use path-based URL
-        if (config('app.env') === 'local' || config('app.base_domain') === 'localhost') {
-            return url('/site/' . $this->slug);
-        }
-        
-        // Return subdomain URL for production
-        $baseDomain = config('app.base_domain', 'localhost');
-        $scheme = config('app.env') === 'production' ? 'https://' : 'http://';
-        
-        // If we're in a request, use the current scheme
-        if (request()) {
-            $scheme = request()->isSecure() ? 'https://' : 'http://';
-        }
-        
-        return $scheme . $this->subdomain . '.' . $baseDomain;
+        // Always use path-based URL (/site/slug) - works on both local and production
+        return url('/site/' . $this->slug);
     }
 
     /**

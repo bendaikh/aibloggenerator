@@ -32,25 +32,23 @@
                             <p v-if="form.errors.name" class="mt-2 text-sm text-red-600">{{ form.errors.name }}</p>
                         </div>
 
-                        <!-- Website Subdomain -->
+                        <!-- Website Slug (URL) -->
                         <div class="mb-6">
-                            <label for="subdomain" class="block text-sm font-medium text-gray-700 mb-2">
-                                Website Subdomain
+                            <label for="slug" class="block text-sm font-medium text-gray-700 mb-2">
+                                Website URL Slug
                             </label>
                             <div class="flex items-center">
+                                <span class="text-gray-500 mr-2">{{ $page.props.app.url }}/site/</span>
                                 <input
-                                    id="subdomain"
+                                    id="slug"
                                     v-model="form.subdomain"
                                     type="text"
                                     class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                     placeholder="Auto-generated from name"
                                 />
-                                <span v-if="$page.props.app.base_domain !== 'localhost'" class="text-gray-500 ml-2">.{{ $page.props.app.base_domain }}</span>
                             </div>
                             <p class="mt-1 text-sm text-gray-500">
-                                Leave empty to auto-generate. Must be unique. 
-                                <span v-if="$page.props.app.base_domain !== 'localhost'">Will be used as: http://yoursubdomain.{{ $page.props.app.base_domain }}</span>
-                                <span v-else>Will be used as: {{ $page.props.app.url }}/site/your-slug</span>
+                                Leave empty to auto-generate from the website name. Must be unique.
                             </p>
                             <p v-if="form.errors.subdomain" class="mt-2 text-sm text-red-600">{{ form.errors.subdomain }}</p>
                         </div>
