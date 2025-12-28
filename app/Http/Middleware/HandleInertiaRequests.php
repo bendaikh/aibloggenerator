@@ -36,6 +36,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'app' => [
                 'name' => config('app.name'),
+                'url' => config('app.url'),
                 'base_domain' => config('app.base_domain'),
             ],
         ];

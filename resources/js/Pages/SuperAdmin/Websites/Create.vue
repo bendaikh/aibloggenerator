@@ -45,9 +45,13 @@
                                     class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                     placeholder="Auto-generated from name"
                                 />
-                                <span class="text-gray-500 ml-2">.{{ $page.props.app.base_domain }}</span>
+                                <span v-if="$page.props.app.base_domain !== 'localhost'" class="text-gray-500 ml-2">.{{ $page.props.app.base_domain }}</span>
                             </div>
-                            <p class="mt-1 text-sm text-gray-500">Leave empty to auto-generate. Must be unique. Will be used as: http://yoursubdomain.{{ $page.props.app.base_domain }}</p>
+                            <p class="mt-1 text-sm text-gray-500">
+                                Leave empty to auto-generate. Must be unique. 
+                                <span v-if="$page.props.app.base_domain !== 'localhost'">Will be used as: http://yoursubdomain.{{ $page.props.app.base_domain }}</span>
+                                <span v-else>Will be used as: {{ $page.props.app.url }}/site/your-slug</span>
+                            </p>
                             <p v-if="form.errors.subdomain" class="mt-2 text-sm text-red-600">{{ form.errors.subdomain }}</p>
                         </div>
 

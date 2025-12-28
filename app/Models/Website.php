@@ -97,7 +97,12 @@ class Website extends Model
             return 'https://' . $this->domain;
         }
         
-        // Return subdomain URL
+        // If in local environment or if base_domain is localhost, use path-based URL
+        if (config('app.env') === 'local' || config('app.base_domain') === 'localhost') {
+            return url('/site/' . $this->slug);
+        }
+        
+        // Return subdomain URL for production
         $baseDomain = config('app.base_domain', 'localhost');
         $scheme = config('app.env') === 'production' ? 'https://' : 'http://';
         
