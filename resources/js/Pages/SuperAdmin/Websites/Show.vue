@@ -38,6 +38,15 @@
                                 </svg>
                                 Edit Settings
                             </Link>
+                            <button
+                                @click="deleteWebsite(website)"
+                                class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                            >
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Delete Website
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -186,11 +195,21 @@
 </template>
 
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
 
 defineProps({
     website: Object
 });
+
+const deleteWebsite = (website) => {
+    if (confirm(`Are you sure you want to delete "${website.name}"? This action cannot be undone and will delete all associated articles and categories.`)) {
+        router.delete(route('superadmin.websites.destroy', website.id), {
+            onSuccess: () => {
+                router.visit(route('superadmin.websites.index'));
+            }
+        });
+    }
+};
 </script>
 
