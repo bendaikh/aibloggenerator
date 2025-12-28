@@ -20,10 +20,13 @@ class Article extends Model
         'excerpt',
         'content',
         'featured_image',
+        'meta_title',
+        'meta_description',
         'meta_tags',
         'status',
         'generation_type',
         'views',
+        'ai_generated',
         'published_at',
     ];
 
@@ -32,6 +35,7 @@ class Article extends Model
     protected $casts = [
         'meta_tags' => 'array',
         'views' => 'integer',
+        'ai_generated' => 'boolean',
         'published_at' => 'datetime',
     ];
 

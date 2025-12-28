@@ -22,6 +22,9 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'openai_api_key',
+        'ai_model',
+        'ai_default_tone',
     ];
 
     /**
@@ -64,6 +67,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'openai_api_key',
     ];
 
     /**
@@ -76,6 +80,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'openai_api_key' => 'encrypted',
         ];
     }
 }

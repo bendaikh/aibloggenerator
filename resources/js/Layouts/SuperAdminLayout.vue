@@ -155,6 +155,20 @@ const isActivePrefix = (prefix) => {
                                 Articles
                             </Link>
                             <Link 
+                                :href="route('superadmin.ai-articles.index')" 
+                                :class="[
+                                    'block px-3 py-2 rounded-lg text-sm transition-colors',
+                                    isActivePrefix('superadmin.ai-articles') ? 'text-white bg-[#252525]' : 'text-gray-400 hover:text-white hover:bg-[#1a1a1a]'
+                                ]"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                    AI Article Generator
+                                </div>
+                            </Link>
+                            <Link 
                                 :href="route('superadmin.pages.index')" 
                                 :class="[
                                     'block px-3 py-2 rounded-lg text-sm transition-colors',

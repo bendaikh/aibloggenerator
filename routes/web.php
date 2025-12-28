@@ -5,6 +5,8 @@ use App\Http\Controllers\WebsiteController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\AIArticleController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\PublicWebsiteController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -59,6 +61,10 @@ Route::middleware(['auth', 'verified'])->prefix('superadmin')->group(function ()
         'destroy' => 'superadmin.articles.destroy',
     ]);
 
+    // AI Article Generation
+    Route::get('/ai-articles', [AIArticleController::class, 'index'])->name('superadmin.ai-articles.index');
+    Route::post('/ai-articles/generate', [AIArticleController::class, 'generate'])->name('superadmin.ai-articles.generate');
+
     // Content Management - Categories
     Route::resource('categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy'])->names([
         'index' => 'superadmin.categories.index',
@@ -105,9 +111,9 @@ Route::middleware(['auth', 'verified'])->prefix('superadmin')->group(function ()
     })->name('superadmin.ads');
 
     // Website Settings
-    Route::get('/settings', function () {
-        return Inertia::render('SuperAdmin/Settings');
-    })->name('superadmin.settings');
+    Route::get('/settings', [SettingsController::class, 'index'])->name('superadmin.settings');
+    Route::post('/settings/ai', [SettingsController::class, 'updateAiSettings'])->name('superadmin.settings.ai.update');
+    Route::post('/settings/ai/test', [SettingsController::class, 'testAiConnection'])->name('superadmin.settings.ai.test');
 });
 
 // --- Public Website Routes (for /site/ URLs) ---
