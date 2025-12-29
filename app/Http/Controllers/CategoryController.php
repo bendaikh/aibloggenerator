@@ -5,44 +5,54 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Website;
 use Illuminate\Http\Request;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class CategoryController extends Controller
 {
+    use AuthorizesRequests;
+
+    /**
+     * Get common data for views (websites list and current website)
+     */
+    private function getCommonData(Website $website): array
+    {
+        return [
+            'currentWebsite' => $website,
+            'websites' => auth()->user()->websites()
+                ->withCount(['articles', 'categories'])
+                ->get(),
+        ];
+    }
+
     /**
      * Display a listing of the categories.
      */
-    public function index(): Response
+    public function index(Website $website): Response
     {
-        $user = auth()->user();
+        $this->authorize('view', $website);
         
-        // Get all categories for the user's websites
-        $categories = Category::whereHas('website', function ($query) use ($user) {
-            $query->where('user_id', $user->id);
-        })
-        ->with('website')
-        ->orderBy('created_at', 'desc')
-        ->get();
-
-        // Get user's websites for the create form
-        $websites = Website::where('user_id', $user->id)
-            ->orderBy('name')
+        // Get all categories for this website
+        $categories = Category::where('website_id', $website->id)
+            ->withCount('articles')
+            ->orderBy('created_at', 'desc')
             ->get();
 
-        return Inertia::render('SuperAdmin/Categories', [
-            'categories' => $categories,
-            'websites' => $websites
-        ]);
+        return Inertia::render('SuperAdmin/Categories', array_merge(
+            $this->getCommonData($website),
+            ['categories' => $categories]
+        ));
     }
 
     /**
      * Store a newly created category in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request, Website $website)
     {
+        $this->authorize('view', $website);
+
         $validated = $request->validate([
-            'website_id' => 'required|exists:websites,id',
             'name' => 'required|string|max:255',
             'slug' => 'nullable|string|max:255',
             'description' => 'nullable|string',
@@ -51,27 +61,25 @@ class CategoryController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        // Verify the website belongs to the authenticated user
-        $website = Website::findOrFail($validated['website_id']);
-        if ($website->user_id !== auth()->id()) {
-            abort(403, 'Unauthorized action.');
-        }
+        $validated['website_id'] = $website->id;
 
-        $category = Category::create($validated);
+        Category::create($validated);
 
-        return redirect()->route('superadmin.categories.index')
+        return redirect()->route('superadmin.categories.index', ['website' => $website->id])
             ->with('success', 'Category created successfully!');
     }
 
     /**
      * Update the specified category in storage.
      */
-    public function update(Request $request, Category $category)
+    public function update(Request $request, Website $website, Category $category)
     {
-        // Verify the category's website belongs to the authenticated user
-        if ($category->website->user_id !== auth()->id()) {
-            abort(403, 'Unauthorized action.');
+        // Verify the category belongs to this website
+        if ($category->website_id !== $website->id) {
+            abort(403, 'Category does not belong to this website.');
         }
+
+        $this->authorize('view', $website);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -84,24 +92,25 @@ class CategoryController extends Controller
 
         $category->update($validated);
 
-        return redirect()->route('superadmin.categories.index')
+        return redirect()->route('superadmin.categories.index', ['website' => $website->id])
             ->with('success', 'Category updated successfully!');
     }
 
     /**
      * Remove the specified category from storage.
      */
-    public function destroy(Category $category)
+    public function destroy(Website $website, Category $category)
     {
-        // Verify the category's website belongs to the authenticated user
-        if ($category->website->user_id !== auth()->id()) {
-            abort(403, 'Unauthorized action.');
+        // Verify the category belongs to this website
+        if ($category->website_id !== $website->id) {
+            abort(403, 'Category does not belong to this website.');
         }
+
+        $this->authorize('view', $website);
 
         $category->delete();
 
-        return redirect()->route('superadmin.categories.index')
+        return redirect()->route('superadmin.categories.index', ['website' => $website->id])
             ->with('success', 'Category deleted successfully!');
     }
 }
-

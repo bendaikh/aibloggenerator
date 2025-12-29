@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Website;
+use App\Models\Article;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Inertia\Inertia;
@@ -11,6 +12,41 @@ use Inertia\Response;
 class WebsiteController extends Controller
 {
     use AuthorizesRequests;
+
+    /**
+     * Website Dashboard - shows overview for a specific website
+     */
+    public function dashboard(Website $website): Response
+    {
+        $this->authorize('view', $website);
+
+        $websites = auth()->user()->websites()
+            ->withCount(['articles', 'categories'])
+            ->get();
+
+        // Get stats for this website
+        $stats = [
+            'totalArticles' => $website->articles()->count(),
+            'articlesGrowth' => 42.4, // Would calculate from real data
+            'publishedArticles' => $website->articles()->where('status', 'published')->count(),
+            'draftArticles' => $website->articles()->where('status', 'draft')->count(),
+            'aiUsage' => '6.5M',
+            'aiUsageGrowth' => 100,
+            'aiCost' => 5.5276,
+            'aiEvents' => 1074,
+            'adRevenue' => 0.34,
+            'revenueGrowth' => 100,
+            'adImpressions' => 545,
+            'impressionsGrowth' => 100
+        ];
+
+        return Inertia::render('SuperAdmin/Dashboard', [
+            'currentWebsite' => $website,
+            'websites' => $websites,
+            'stats' => $stats,
+        ]);
+    }
+
     /**
      * Display a listing of websites.
      */
@@ -79,7 +115,7 @@ class WebsiteController extends Controller
 
         $website = Website::create($validated);
 
-        return redirect()->route('superadmin.websites.show', $website)
+        return redirect()->route('superadmin.dashboard', $website)
             ->with('success', 'Website created successfully! You can now add categories and pages.');
     }
 
@@ -138,7 +174,7 @@ class WebsiteController extends Controller
 
         $website->update($validated);
 
-        return redirect()->route('superadmin.websites.show', $website)
+        return redirect()->route('superadmin.dashboard', $website)
             ->with('success', 'Website updated successfully!');
     }
 
@@ -151,7 +187,7 @@ class WebsiteController extends Controller
 
         $website->delete();
 
-        return redirect()->route('superadmin.websites.index')
+        return redirect()->route('organization.websites.index')
             ->with('success', 'Website deleted successfully!');
     }
 
@@ -191,4 +227,3 @@ class WebsiteController extends Controller
         return $subdomain;
     }
 }
-

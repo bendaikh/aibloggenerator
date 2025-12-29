@@ -1,24 +1,30 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
+
+const page = usePage();
 
 const props = defineProps({
+    currentWebsite: {
+        type: Object,
+        default: null
+    },
     stats: {
         type: Object,
         default: () => ({
-            totalArticles: 347,
-            articlesGrowth: 42.4,
-            publishedArticles: 347,
+            totalArticles: 0,
+            articlesGrowth: 0,
+            publishedArticles: 0,
             draftArticles: 0,
-            aiUsage: '6.5M',
-            aiUsageGrowth: 100,
-            aiCost: 5.5276,
-            aiEvents: 1074,
-            adRevenue: 0.34,
-            revenueGrowth: 100,
-            adImpressions: 545,
-            impressionsGrowth: 100
+            aiUsage: '0',
+            aiUsageGrowth: 0,
+            aiCost: 0,
+            aiEvents: 0,
+            adRevenue: 0,
+            revenueGrowth: 0,
+            adImpressions: 0,
+            impressionsGrowth: 0
         })
     },
     chartData: {

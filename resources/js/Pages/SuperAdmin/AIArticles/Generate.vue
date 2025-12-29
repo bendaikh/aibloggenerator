@@ -5,7 +5,7 @@
         <div class="p-8">
             <div class="mb-8">
                 <h1 class="text-3xl font-bold text-white mb-2">AI Article Generator</h1>
-                <p class="text-gray-400">Generate high-quality blog articles using AI (GPT-4)</p>
+                <p class="text-gray-400">Generate articles for {{ currentWebsite?.name }} using AI (GPT-4)</p>
             </div>
 
             <!-- API Key Warning -->
@@ -15,9 +15,9 @@
                         <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
-                        <span><strong>OpenAI API key not configured.</strong> Please add your API key in Settings to use AI generation.</span>
+                        <span><strong>OpenAI API key not configured.</strong> Please add your API key in Global Settings to use AI generation.</span>
                     </div>
-                    <Link :href="route('superadmin.settings')" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition-colors">
+                    <Link :href="route('organization.settings')" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition-colors">
                         Go to Settings
                     </Link>
                 </div>
@@ -46,46 +46,26 @@
             <!-- Generation Form -->
             <div class="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-8 mb-8">
                 <form @submit.prevent="submitForm" class="space-y-6">
-                    <!-- Website Selection -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">
-                                Website *
-                            </label>
-                            <select
-                                v-model="form.website_id"
-                                @change="onWebsiteChange"
-                                required
-                                class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:ring-2 focus:ring-emerald-500"
-                            >
-                                <option value="">Select a website</option>
-                                <option v-for="website in websites" :key="website.id" :value="website.id">
-                                    {{ website.name }}
-                                </option>
-                            </select>
-                            <p v-if="form.errors.website_id" class="mt-1 text-sm text-red-500">{{ form.errors.website_id }}</p>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">
-                                Category *
-                            </label>
-                            <select
-                                v-model="form.category_id"
-                                required
-                                :disabled="!form.website_id || !selectedWebsiteCategories.length"
-                                class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-                            >
-                                <option value="">Select a category</option>
-                                <option v-for="category in selectedWebsiteCategories" :key="category.id" :value="category.id">
-                                    {{ category.name }}
-                                </option>
-                            </select>
-                            <p v-if="form.errors.category_id" class="mt-1 text-sm text-red-500">{{ form.errors.category_id }}</p>
-                            <p v-if="form.website_id && !selectedWebsiteCategories.length" class="mt-1 text-sm text-yellow-500">
-                                No categories found. Please create categories for this website first.
-                            </p>
-                        </div>
+                    <!-- Category Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            Category *
+                        </label>
+                        <select
+                            v-model="form.category_id"
+                            required
+                            :disabled="!currentWebsite?.categories?.length"
+                            class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                        >
+                            <option value="">Select a category</option>
+                            <option v-for="category in currentWebsite?.categories" :key="category.id" :value="category.id">
+                                {{ category.name }}
+                            </option>
+                        </select>
+                        <p v-if="form.errors.category_id" class="mt-1 text-sm text-red-500">{{ form.errors.category_id }}</p>
+                        <p v-if="!currentWebsite?.categories?.length" class="mt-1 text-sm text-yellow-500">
+                            No categories found. Please create categories for this website first.
+                        </p>
                     </div>
 
                     <!-- Topic -->
@@ -189,15 +169,13 @@
                     <Link
                         v-for="article in recentArticles"
                         :key="article.id"
-                        :href="route('superadmin.articles.edit', article.id)"
+                        :href="route('superadmin.articles.edit', { website: currentWebsite?.id, article: article.id })"
                         class="bg-[#1a1a1a] rounded-lg border border-[#2a2a2a] p-4 hover:border-emerald-500 transition-colors"
                     >
                         <h3 class="text-white font-semibold mb-2 line-clamp-2">{{ article.title }}</h3>
                         <div class="flex items-center gap-2 text-sm text-gray-400">
                             <span class="px-2 py-1 bg-emerald-900 text-emerald-300 rounded text-xs">AI</span>
-                            <span>{{ article.website.name }}</span>
-                            <span>•</span>
-                            <span>{{ article.category.name }}</span>
+                            <span>{{ article.category?.name }}</span>
                         </div>
                         <div class="mt-2 text-xs text-gray-500">
                             {{ new Date(article.created_at).toLocaleDateString() }}
@@ -217,6 +195,10 @@ import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 const page = usePage();
 
 const props = defineProps({
+    currentWebsite: {
+        type: Object,
+        default: null
+    },
     websites: {
         type: Array,
         default: () => []
@@ -236,7 +218,6 @@ const props = defineProps({
 });
 
 const form = useForm({
-    website_id: '',
     category_id: '',
     topic: '',
     tone: props.defaultTone,
@@ -245,22 +226,11 @@ const form = useForm({
     auto_publish: false
 });
 
-const selectedWebsiteCategories = computed(() => {
-    if (!form.website_id) return [];
-    const website = props.websites.find(w => w.id === parseInt(form.website_id));
-    return website?.categories || [];
-});
-
-const onWebsiteChange = () => {
-    form.category_id = '';
-};
-
 const submitForm = () => {
-    form.post(route('superadmin.ai-articles.generate'), {
+    form.post(route('superadmin.ai-articles.generate', { website: props.currentWebsite?.id }), {
         onSuccess: () => {
             form.reset();
         }
     });
 };
 </script>
-

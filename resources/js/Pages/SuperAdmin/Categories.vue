@@ -6,7 +6,7 @@
             <div class="flex items-center justify-between mb-8">
                 <div>
                     <h1 class="text-3xl font-bold text-white">Categories</h1>
-                    <p class="text-gray-400 mt-1">Organize your articles by category</p>
+                    <p class="text-gray-400 mt-1">Organize articles for {{ currentWebsite?.name }}</p>
                 </div>
                 <button 
                     @click="openCreateModal"
@@ -37,7 +37,7 @@
                         </p>
                         <div class="flex items-center gap-2 mb-4">
                             <span class="text-xs px-2 py-1 rounded bg-gray-800 text-gray-300">
-                                {{ category.website.name }}
+                                {{ category.articles_count || 0 }} articles
                             </span>
                             <span :class="[
                                 'text-xs px-2 py-1 rounded',
@@ -83,24 +83,6 @@
                     </h2>
                 </div>
                 <form @submit.prevent="submitForm" class="p-6 space-y-6">
-                    <!-- Website Selection -->
-                    <div v-if="!editingCategory">
-                        <label class="block text-sm font-medium text-gray-300 mb-2">
-                            Website *
-                        </label>
-                        <select
-                            v-model="form.website_id"
-                            required
-                            class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:ring-2 focus:ring-emerald-500"
-                        >
-                            <option value="">Select a website</option>
-                            <option v-for="website in websites" :key="website.id" :value="website.id">
-                                {{ website.name }}
-                            </option>
-                        </select>
-                        <p v-if="form.errors.website_id" class="mt-1 text-sm text-red-500">{{ form.errors.website_id }}</p>
-                    </div>
-
                     <!-- Category Name -->
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">
@@ -209,14 +191,20 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref } from 'vue';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+
+const page = usePage();
 
 const props = defineProps({
     categories: {
         type: Array,
         default: () => []
+    },
+    currentWebsite: {
+        type: Object,
+        default: null
     },
     websites: {
         type: Array,
@@ -228,7 +216,6 @@ const showModal = ref(false);
 const editingCategory = ref(null);
 
 const form = useForm({
-    website_id: '',
     name: '',
     slug: '',
     description: '',
@@ -246,7 +233,6 @@ const openCreateModal = () => {
 
 const openEditModal = (category) => {
     editingCategory.value = category;
-    form.website_id = category.website_id;
     form.name = category.name;
     form.slug = category.slug;
     form.description = category.description || '';
@@ -266,13 +252,16 @@ const closeModal = () => {
 
 const submitForm = () => {
     if (editingCategory.value) {
-        form.put(route('superadmin.categories.update', editingCategory.value.id), {
+        form.put(route('superadmin.categories.update', { 
+            website: props.currentWebsite?.id, 
+            category: editingCategory.value.id 
+        }), {
             onSuccess: () => {
                 closeModal();
             }
         });
     } else {
-        form.post(route('superadmin.categories.store'), {
+        form.post(route('superadmin.categories.store', { website: props.currentWebsite?.id }), {
             onSuccess: () => {
                 closeModal();
             }
@@ -282,7 +271,10 @@ const submitForm = () => {
 
 const deleteCategory = (category) => {
     if (confirm(`Are you sure you want to delete "${category.name}"? This will also remove it from all articles.`)) {
-        router.delete(route('superadmin.categories.destroy', category.id), {
+        router.delete(route('superadmin.categories.destroy', { 
+            website: props.currentWebsite?.id, 
+            category: category.id 
+        }), {
             preserveScroll: true
         });
     }

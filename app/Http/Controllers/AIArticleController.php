@@ -6,6 +6,7 @@ use App\Models\Article;
 use App\Models\Website;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Str;
@@ -13,49 +14,64 @@ use Illuminate\Support\Facades\Log;
 
 class AIArticleController extends Controller
 {
+    use AuthorizesRequests;
+
+    /**
+     * Get common data for views (websites list and current website)
+     */
+    private function getCommonData(Website $website): array
+    {
+        return [
+            'currentWebsite' => $website,
+            'websites' => auth()->user()->websites()
+                ->withCount(['articles', 'categories'])
+                ->get(),
+        ];
+    }
+
     /**
      * Display the AI article generation form.
      */
-    public function index(): Response
+    public function index(Website $website): Response
     {
+        $this->authorize('view', $website);
+
         $user = auth()->user();
         
-        $websites = Website::where('user_id', $user->id)
-            ->with('categories')
-            ->orderBy('name')
+        $website->load('categories');
+
+        $recentArticles = Article::where('website_id', $website->id)
+            ->where('ai_generated', true)
+            ->with(['category'])
+            ->latest()
+            ->take(10)
             ->get();
 
-        $recentArticles = Article::whereHas('website', function ($query) use ($user) {
-            $query->where('user_id', $user->id);
-        })
-        ->where('ai_generated', true)
-        ->with(['website', 'category'])
-        ->latest()
-        ->take(10)
-        ->get();
-
-        return Inertia::render('SuperAdmin/AIArticles/Generate', [
-            'websites' => $websites,
-            'recentArticles' => $recentArticles,
-            'hasApiKey' => !empty($user->openai_api_key),
-            'defaultTone' => $user->ai_default_tone ?? 'conversational',
-        ]);
+        return Inertia::render('SuperAdmin/AIArticles/Generate', array_merge(
+            $this->getCommonData($website),
+            [
+                'recentArticles' => $recentArticles,
+                'hasApiKey' => !empty($user->openai_api_key),
+                'defaultTone' => $user->ai_default_tone ?? 'conversational',
+            ]
+        ));
     }
 
     /**
      * Generate an article using AI.
      */
-    public function generate(Request $request)
+    public function generate(Request $request, Website $website)
     {
+        $this->authorize('view', $website);
+
         $user = auth()->user();
 
         // Check if user has configured OpenAI
         if (empty($user->openai_api_key)) {
-            return back()->withErrors(['error' => 'Please configure your OpenAI API key in Settings first.']);
+            return back()->withErrors(['error' => 'Please configure your OpenAI API key in Global Settings first.']);
         }
 
         $validated = $request->validate([
-            'website_id' => 'required|exists:websites,id',
             'category_id' => 'required|exists:categories,id',
             'topic' => 'required|string|max:255',
             'tone' => 'nullable|string|in:professional,casual,friendly,formal,conversational',
@@ -63,12 +79,6 @@ class AIArticleController extends Controller
             'keywords' => 'nullable|string',
             'auto_publish' => 'boolean',
         ]);
-
-        // Verify ownership
-        $website = Website::findOrFail($validated['website_id']);
-        if ($website->user_id !== auth()->id()) {
-            abort(403, 'Unauthorized action.');
-        }
 
         $category = Category::findOrFail($validated['category_id']);
         if ($category->website_id !== $website->id) {
@@ -153,7 +163,7 @@ class AIArticleController extends Controller
 
             Log::info('Article created successfully', ['article_id' => $article->id]);
 
-            return redirect()->route('superadmin.articles.edit', $article)
+            return redirect()->route('superadmin.articles.edit', ['website' => $website->id, 'article' => $article->id])
                 ->with('success', 'AI article generated successfully! You can review and edit it before publishing.');
 
         } catch (\Exception $e) {
@@ -259,4 +269,3 @@ PROMPT;
         ];
     }
 }
-

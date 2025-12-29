@@ -7,6 +7,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\AIArticleController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PublicWebsiteController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -23,7 +24,7 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    return redirect()->route('superadmin.dashboard');
+    return redirect()->route('organization.dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -32,88 +33,117 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// SuperAdmin Routes
-Route::middleware(['auth', 'verified'])->prefix('superadmin')->group(function () {
+// Organization Routes (Global/All Websites)
+Route::middleware(['auth', 'verified'])->prefix('organization')->group(function () {
     // Dashboard
-    Route::get('/', function () {
-        return Inertia::render('SuperAdmin/Dashboard');
-    })->name('superadmin.dashboard');
+    Route::get('/', [OrganizationController::class, 'dashboard'])->name('organization.dashboard');
 
-    // Websites Management
-    Route::resource('websites', WebsiteController::class)->names([
-        'index' => 'superadmin.websites.index',
-        'create' => 'superadmin.websites.create',
-        'store' => 'superadmin.websites.store',
-        'show' => 'superadmin.websites.show',
-        'edit' => 'superadmin.websites.edit',
-        'update' => 'superadmin.websites.update',
-        'destroy' => 'superadmin.websites.destroy',
-    ]);
+    // Global Settings (AI Settings, etc.)
+    Route::get('/settings', [OrganizationController::class, 'settings'])->name('organization.settings');
+    Route::post('/settings', [OrganizationController::class, 'updateSettings'])->name('organization.settings.update');
+    Route::post('/settings/test', [OrganizationController::class, 'testAiConnection'])->name('organization.settings.test');
+
+    // Websites Management (at organization level)
+    Route::get('/websites', [OrganizationController::class, 'websitesIndex'])->name('organization.websites.index');
+    Route::get('/websites/create', [OrganizationController::class, 'websitesCreate'])->name('organization.websites.create');
+    Route::post('/websites', [OrganizationController::class, 'websitesStore'])->name('organization.websites.store');
+    Route::get('/websites/{website}/edit', [OrganizationController::class, 'websitesEdit'])->name('organization.websites.edit');
+    Route::put('/websites/{website}', [OrganizationController::class, 'websitesUpdate'])->name('organization.websites.update');
+    Route::delete('/websites/{website}', [OrganizationController::class, 'websitesDestroy'])->name('organization.websites.destroy');
+});
+
+// SuperAdmin Routes (Website-Specific)
+Route::middleware(['auth', 'verified'])->prefix('superadmin')->group(function () {
+    // Dashboard (requires website context)
+    Route::get('/{website}', [WebsiteController::class, 'dashboard'])->name('superadmin.dashboard');
 
     // Articles Management
-    Route::resource('articles', ArticleController::class)->names([
-        'index' => 'superadmin.articles.index',
-        'create' => 'superadmin.articles.create',
-        'store' => 'superadmin.articles.store',
-        'show' => 'superadmin.articles.show',
-        'edit' => 'superadmin.articles.edit',
-        'update' => 'superadmin.articles.update',
-        'destroy' => 'superadmin.articles.destroy',
-    ]);
+    Route::get('/{website}/articles', [ArticleController::class, 'index'])->name('superadmin.articles.index');
+    Route::get('/{website}/articles/create', [ArticleController::class, 'create'])->name('superadmin.articles.create');
+    Route::post('/{website}/articles', [ArticleController::class, 'store'])->name('superadmin.articles.store');
+    Route::get('/{website}/articles/{article}', [ArticleController::class, 'show'])->name('superadmin.articles.show');
+    Route::get('/{website}/articles/{article}/edit', [ArticleController::class, 'edit'])->name('superadmin.articles.edit');
+    Route::put('/{website}/articles/{article}', [ArticleController::class, 'update'])->name('superadmin.articles.update');
+    Route::delete('/{website}/articles/{article}', [ArticleController::class, 'destroy'])->name('superadmin.articles.destroy');
 
     // AI Article Generation
-    Route::get('/ai-articles', [AIArticleController::class, 'index'])->name('superadmin.ai-articles.index');
-    Route::post('/ai-articles/generate', [AIArticleController::class, 'generate'])->name('superadmin.ai-articles.generate');
+    Route::get('/{website}/ai-articles', [AIArticleController::class, 'index'])->name('superadmin.ai-articles.index');
+    Route::post('/{website}/ai-articles/generate', [AIArticleController::class, 'generate'])->name('superadmin.ai-articles.generate');
 
-    // Content Management - Categories
-    Route::resource('categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy'])->names([
-        'index' => 'superadmin.categories.index',
-        'store' => 'superadmin.categories.store',
-        'update' => 'superadmin.categories.update',
-        'destroy' => 'superadmin.categories.destroy',
-    ]);
+    // Categories Management
+    Route::get('/{website}/categories', [CategoryController::class, 'index'])->name('superadmin.categories.index');
+    Route::post('/{website}/categories', [CategoryController::class, 'store'])->name('superadmin.categories.store');
+    Route::put('/{website}/categories/{category}', [CategoryController::class, 'update'])->name('superadmin.categories.update');
+    Route::delete('/{website}/categories/{category}', [CategoryController::class, 'destroy'])->name('superadmin.categories.destroy');
 
-    // Content Management - Pages
-    Route::resource('pages', PageController::class)->only(['index', 'store', 'update', 'destroy'])->names([
-        'index' => 'superadmin.pages.index',
-        'store' => 'superadmin.pages.store',
-        'update' => 'superadmin.pages.update',
-        'destroy' => 'superadmin.pages.destroy',
-    ]);
+    // Pages Management
+    Route::get('/{website}/pages', [PageController::class, 'index'])->name('superadmin.pages.index');
+    Route::post('/{website}/pages', [PageController::class, 'store'])->name('superadmin.pages.store');
+    Route::put('/{website}/pages/{page}', [PageController::class, 'update'])->name('superadmin.pages.update');
+    Route::delete('/{website}/pages/{page}', [PageController::class, 'destroy'])->name('superadmin.pages.destroy');
 
-    Route::get('/authors', function () {
-        return Inertia::render('SuperAdmin/Authors');
+    // Authors
+    Route::get('/{website}/authors', function ($website) {
+        return Inertia::render('SuperAdmin/Authors', [
+            'currentWebsite' => \App\Models\Website::findOrFail($website),
+            'websites' => \App\Models\Website::where('user_id', auth()->id())->withCount(['articles', 'categories'])->get(),
+        ]);
     })->name('superadmin.authors');
 
     // Appearance
-    Route::get('/appearance', function () {
-        return Inertia::render('SuperAdmin/Appearance');
+    Route::get('/{website}/appearance', function ($website) {
+        return Inertia::render('SuperAdmin/Appearance', [
+            'currentWebsite' => \App\Models\Website::findOrFail($website),
+            'websites' => \App\Models\Website::where('user_id', auth()->id())->withCount(['articles', 'categories'])->get(),
+        ]);
     })->name('superadmin.appearance');
 
     // Social Media
-    Route::get('/social-media', function () {
-        return Inertia::render('SuperAdmin/SocialMedia');
+    Route::get('/{website}/social-media', function ($website) {
+        return Inertia::render('SuperAdmin/SocialMedia', [
+            'currentWebsite' => \App\Models\Website::findOrFail($website),
+            'websites' => \App\Models\Website::where('user_id', auth()->id())->withCount(['articles', 'categories'])->get(),
+        ]);
     })->name('superadmin.social-media');
 
     // Assets
-    Route::get('/assets', function () {
-        return Inertia::render('SuperAdmin/Assets');
+    Route::get('/{website}/assets', function ($website) {
+        return Inertia::render('SuperAdmin/Assets', [
+            'currentWebsite' => \App\Models\Website::findOrFail($website),
+            'websites' => \App\Models\Website::where('user_id', auth()->id())->withCount(['articles', 'categories'])->get(),
+        ]);
     })->name('superadmin.assets');
 
     // Deployment
-    Route::get('/deployment', function () {
-        return Inertia::render('SuperAdmin/Deployment');
+    Route::get('/{website}/deployment', function ($website) {
+        return Inertia::render('SuperAdmin/Deployment', [
+            'currentWebsite' => \App\Models\Website::findOrFail($website),
+            'websites' => \App\Models\Website::where('user_id', auth()->id())->withCount(['articles', 'categories'])->get(),
+        ]);
     })->name('superadmin.deployment');
 
     // Ads Management
-    Route::get('/ads', function () {
-        return Inertia::render('SuperAdmin/Ads');
+    Route::get('/{website}/ads', function ($website) {
+        return Inertia::render('SuperAdmin/Ads', [
+            'currentWebsite' => \App\Models\Website::findOrFail($website),
+            'websites' => \App\Models\Website::where('user_id', auth()->id())->withCount(['articles', 'categories'])->get(),
+        ]);
     })->name('superadmin.ads');
+});
 
-    // Website Settings
-    Route::get('/settings', [SettingsController::class, 'index'])->name('superadmin.settings');
-    Route::post('/settings/ai', [SettingsController::class, 'updateAiSettings'])->name('superadmin.settings.ai.update');
-    Route::post('/settings/ai/test', [SettingsController::class, 'testAiConnection'])->name('superadmin.settings.ai.test');
+// Legacy routes for backwards compatibility (redirect to organization)
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/superadmin', function () {
+        return redirect()->route('organization.dashboard');
+    });
+    
+    Route::get('/superadmin/websites', function () {
+        return redirect()->route('organization.websites.index');
+    })->name('superadmin.websites.index');
+
+    Route::get('/superadmin/settings', function () {
+        return redirect()->route('organization.settings');
+    })->name('superadmin.settings');
 });
 
 // --- Public Website Routes (for /site/ URLs) ---

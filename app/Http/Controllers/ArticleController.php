@@ -12,51 +12,61 @@ use Inertia\Response;
 class ArticleController extends Controller
 {
     use AuthorizesRequests;
+
+    /**
+     * Get common data for views (websites list and current website)
+     */
+    private function getCommonData(Website $website): array
+    {
+        return [
+            'currentWebsite' => $website,
+            'websites' => auth()->user()->websites()
+                ->withCount(['articles', 'categories'])
+                ->get(),
+        ];
+    }
+
     /**
      * Display a listing of articles for a website.
      */
-    public function index(Request $request): Response
+    public function index(Website $website): Response
     {
-        $websiteId = $request->get('website_id');
-        
-        $query = Article::with(['website', 'category', 'user'])
-            ->where('user_id', auth()->id());
+        $this->authorize('view', $website);
 
-        if ($websiteId) {
-            $query->where('website_id', $websiteId);
-        }
+        $articles = Article::with(['category', 'user'])
+            ->where('website_id', $website->id)
+            ->latest()
+            ->paginate(20);
 
-        $articles = $query->latest()->paginate(20);
-
-        $websites = auth()->user()->websites;
-
-        return Inertia::render('SuperAdmin/Articles/Index', [
-            'articles' => $articles,
-            'websites' => $websites
-        ]);
+        return Inertia::render('SuperAdmin/Articles/Index', array_merge(
+            $this->getCommonData($website),
+            ['articles' => $articles]
+        ));
     }
 
     /**
      * Show the form for creating a new article.
      */
-    public function create(Request $request): Response
+    public function create(Website $website): Response
     {
-        $websites = auth()->user()->websites()->with('categories')->get();
-        $websiteId = $request->get('website_id');
+        $this->authorize('view', $website);
 
-        return Inertia::render('SuperAdmin/Articles/Create', [
-            'websites' => $websites,
-            'preselectedWebsite' => $websiteId
-        ]);
+        $website->load('categories');
+
+        return Inertia::render('SuperAdmin/Articles/Create', array_merge(
+            $this->getCommonData($website),
+            ['preselectedWebsite' => $website->id]
+        ));
     }
 
     /**
      * Store a newly created article in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request, Website $website)
     {
+        $this->authorize('view', $website);
+
         $validated = $request->validate([
-            'website_id' => 'required|exists:websites,id',
             'category_id' => 'nullable|exists:categories,id',
             'title' => 'required|string|max:255',
             'slug' => 'nullable|string|max:255',
@@ -69,6 +79,7 @@ class ArticleController extends Controller
             'published_at' => 'nullable|date',
         ]);
 
+        $validated['website_id'] = $website->id;
         $validated['user_id'] = auth()->id();
 
         // Set published_at if status is published and no date is set
@@ -78,49 +89,49 @@ class ArticleController extends Controller
 
         $article = Article::create($validated);
 
-        return redirect()->route('superadmin.articles.show', $article)
+        return redirect()->route('superadmin.articles.show', ['website' => $website->id, 'article' => $article->id])
             ->with('success', 'Article created successfully!');
     }
 
     /**
      * Display the specified article.
      */
-    public function show(Article $article): Response
+    public function show(Website $website, Article $article): Response
     {
         $this->authorize('view', $article);
 
-        $article->load(['website', 'category', 'user']);
+        $article->load(['category', 'user']);
 
-        return Inertia::render('SuperAdmin/Articles/Show', [
-            'article' => $article
-        ]);
+        return Inertia::render('SuperAdmin/Articles/Show', array_merge(
+            $this->getCommonData($website),
+            ['article' => $article]
+        ));
     }
 
     /**
      * Show the form for editing the specified article.
      */
-    public function edit(Article $article): Response
+    public function edit(Website $website, Article $article): Response
     {
         $this->authorize('update', $article);
 
-        $websites = auth()->user()->websites()->with('categories')->get();
-        $article->load(['website', 'category']);
+        $website->load('categories');
+        $article->load(['category']);
 
-        return Inertia::render('SuperAdmin/Articles/Edit', [
-            'article' => $article,
-            'websites' => $websites
-        ]);
+        return Inertia::render('SuperAdmin/Articles/Edit', array_merge(
+            $this->getCommonData($website),
+            ['article' => $article]
+        ));
     }
 
     /**
      * Update the specified article in storage.
      */
-    public function update(Request $request, Article $article)
+    public function update(Request $request, Website $website, Article $article)
     {
         $this->authorize('update', $article);
 
         $validated = $request->validate([
-            'website_id' => 'required|exists:websites,id',
             'category_id' => 'nullable|exists:categories,id',
             'title' => 'required|string|max:255',
             'slug' => 'nullable|string|max:255',
@@ -134,21 +145,20 @@ class ArticleController extends Controller
 
         $article->update($validated);
 
-        return redirect()->route('superadmin.articles.show', $article)
+        return redirect()->route('superadmin.articles.show', ['website' => $website->id, 'article' => $article->id])
             ->with('success', 'Article updated successfully!');
     }
 
     /**
      * Remove the specified article from storage.
      */
-    public function destroy(Article $article)
+    public function destroy(Website $website, Article $article)
     {
         $this->authorize('delete', $article);
 
         $article->delete();
 
-        return redirect()->route('superadmin.articles.index')
+        return redirect()->route('superadmin.articles.index', ['website' => $website->id])
             ->with('success', 'Article deleted successfully!');
     }
 }
-

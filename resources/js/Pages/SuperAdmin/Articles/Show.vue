@@ -2,23 +2,26 @@
     <SuperAdminLayout>
         <Head :title="article.title" />
 
-        <div class="py-12">
-            <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+        <div class="p-8">
+            <div class="max-w-4xl">
                 <div class="mb-8">
-                    <Link :href="route('superadmin.articles.index')" class="text-teal-600 hover:text-teal-700 flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <Link 
+                        :href="route('superadmin.articles.index', { website: currentWebsite?.id })" 
+                        class="text-gray-400 hover:text-white flex items-center text-sm"
+                    >
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                         </svg>
                         Back to Articles
                     </Link>
                 </div>
 
-                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] overflow-hidden">
                     <!-- Featured Image -->
-                    <div v-if="article.featured_image" class="h-64 bg-gray-200">
+                    <div v-if="article.featured_image" class="h-64 bg-[#252525]">
                         <img :src="article.featured_image" :alt="article.title" class="w-full h-full object-cover" />
                     </div>
-                    <div v-else class="h-64 bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center">
+                    <div v-else class="h-64 bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
                         <span class="text-white text-6xl">📝</span>
                     </div>
 
@@ -29,16 +32,16 @@
                                 <div class="flex items-center gap-3 mb-2">
                                     <span :class="[
                                         'px-3 py-1 rounded-full text-xs font-semibold',
-                                        article.status === 'published' ? 'bg-green-100 text-green-800' : 
-                                        article.status === 'draft' ? 'bg-gray-100 text-gray-800' : 'bg-yellow-100 text-yellow-800'
+                                        article.status === 'published' ? 'bg-emerald-900/50 text-emerald-400' : 
+                                        article.status === 'draft' ? 'bg-gray-700 text-gray-300' : 'bg-yellow-900/50 text-yellow-400'
                                     ]">
                                         {{ article.status }}
                                     </span>
-                                    <span v-if="article.category" class="px-3 py-1 rounded-full text-xs font-semibold bg-teal-100 text-teal-800">
+                                    <span v-if="article.category" class="px-3 py-1 rounded-full text-xs font-semibold bg-[#252525] text-gray-300">
                                         {{ article.category.name }}
                                     </span>
                                 </div>
-                                <h1 class="text-3xl font-bold text-gray-900">{{ article.title }}</h1>
+                                <h1 class="text-3xl font-bold text-white">{{ article.title }}</h1>
                             </div>
                             <div class="flex gap-3">
                                 <a
@@ -53,8 +56,8 @@
                                     View Live
                                 </a>
                                 <Link
-                                    :href="route('superadmin.articles.edit', article.id)"
-                                    class="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
+                                    :href="route('superadmin.articles.edit', { website: currentWebsite?.id, article: article.id })"
+                                    class="inline-flex items-center px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition"
                                 >
                                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -65,13 +68,7 @@
                         </div>
 
                         <!-- Meta Info -->
-                        <div class="flex flex-wrap gap-6 text-sm text-gray-500 mb-8 pb-6 border-b border-gray-200">
-                            <div class="flex items-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                                </svg>
-                                {{ article.website?.name || 'N/A' }}
-                            </div>
+                        <div class="flex flex-wrap gap-6 text-sm text-gray-400 mb-8 pb-6 border-b border-[#2a2a2a]">
                             <div class="flex items-center">
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -94,12 +91,12 @@
                         </div>
 
                         <!-- Excerpt -->
-                        <div v-if="article.excerpt" class="mb-8 p-4 bg-gray-50 rounded-lg border-l-4 border-teal-500">
-                            <p class="text-gray-700 italic">{{ article.excerpt }}</p>
+                        <div v-if="article.excerpt" class="mb-8 p-4 bg-[#252525] rounded-lg border-l-4 border-emerald-500">
+                            <p class="text-gray-300 italic">{{ article.excerpt }}</p>
                         </div>
 
                         <!-- Content Preview -->
-                        <div class="prose max-w-none" v-html="article.content"></div>
+                        <div class="prose prose-invert max-w-none" v-html="article.content"></div>
                     </div>
                 </div>
             </div>
@@ -108,11 +105,15 @@
 </template>
 
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
 
+const page = usePage();
+
 defineProps({
-    article: Object
+    article: Object,
+    currentWebsite: Object,
+    websites: Array
 });
 
 const formatDate = (date) => {
@@ -123,4 +124,3 @@ const formatDate = (date) => {
     });
 };
 </script>
-
