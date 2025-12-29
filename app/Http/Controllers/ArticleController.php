@@ -52,10 +52,18 @@ class ArticleController extends Controller
         $this->authorize('view', $website);
 
         $website->load('categories');
+        
+        // Get user's AI settings
+        $user = auth()->user();
+        $hasApiKey = !empty($user->openai_api_key);
 
         return Inertia::render('SuperAdmin/Articles/Create', array_merge(
             $this->getCommonData($website),
-            ['preselectedWebsite' => $website->id]
+            [
+                'preselectedWebsite' => $website->id,
+                'hasApiKey' => $hasApiKey,
+                'defaultTone' => $user->ai_default_tone ?? 'conversational',
+            ]
         ));
     }
 

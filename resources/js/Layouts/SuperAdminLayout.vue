@@ -182,20 +182,6 @@ const switchWebsite = (website) => {
                                 Articles
                             </Link>
                             <Link 
-                                :href="currentWebsite ? route('superadmin.ai-articles.index', { website: currentWebsite.id }) : '#'" 
-                                :class="[
-                                    'block px-3 py-2 rounded-lg text-sm transition-colors',
-                                    isActivePrefix('superadmin.ai-articles') ? 'text-white bg-[#252525]' : 'text-gray-400 hover:text-white hover:bg-[#1a1a1a]'
-                                ]"
-                            >
-                                <div class="flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                    </svg>
-                                    AI Article Generator
-                                </div>
-                            </Link>
-                            <Link 
                                 :href="currentWebsite ? route('superadmin.pages.index', { website: currentWebsite.id }) : '#'" 
                                 :class="[
                                     'block px-3 py-2 rounded-lg text-sm transition-colors',
