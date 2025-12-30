@@ -181,32 +181,50 @@ class AIArticleController extends Controller
      */
     private function buildPrompt(string $topic, string $wordCount, string $tone, string $keywords, string $category): string
     {
-        $keywordsText = !empty($keywords) ? "\n- Include these keywords naturally: $keywords" : '';
+        $keywordsText = !empty($keywords) ? "\n- Naturally weave in these keywords: $keywords" : '';
         
         return <<<PROMPT
-Write a comprehensive, engaging blog article about: "{$topic}"
+You are a professional food blogger and recipe writer who creates authentic, engaging content that reads like it was written by a passionate home cook sharing their personal experience.
+
+Write a blog post about: "{$topic}"
+
+CRITICAL WRITING STYLE RULES - DO NOT VIOLATE THESE:
+1. DO NOT use section headers like "Introduction" or "Conclusion" - these scream AI-generated content
+2. DO NOT start with generic phrases like "Are you looking for..." or "In this article, we will..."
+3. DO NOT use phrases like "In conclusion", "To summarize", "Let's dive in", or "Without further ado"
+4. DO NOT follow a formulaic structure - let the content flow naturally like a real blogger would write
+5. DO NOT use overused AI phrases like "game-changer", "elevate", "delve into", or "embark on a journey"
+
+HOW TO WRITE THIS (follow this closely):
+- Start with a personal anecdote, a relatable moment, or jump straight into the topic with enthusiasm
+- Write like you're talking to a friend who asked for your recipe/advice
+- Share personal tips, failures, and lessons learned that make it authentic
+- Use casual transitions between sections, not formal headers for every paragraph
+- If it's a recipe, tell the story behind it before diving into ingredients
+- Use descriptive, sensory language (how things smell, taste, feel)
+- Include "Pro Tips" or "What You Must Know" boxes where relevant
+- For recipes: organize with clear Ingredients and Instructions sections (these can have headers)
+- End naturally - maybe with a call to try the recipe, a personal note, or asking readers to share their experience
 
 Requirements:
 - Length: {$wordCount} words
-- Tone: {$tone}
-- Category: {$category}
-- Make it SEO-optimized and reader-friendly
-- Use proper HTML formatting with headings (h2, h3), paragraphs, lists, and bold text where appropriate{$keywordsText}
-- Include an engaging introduction and conclusion
-- Use subheadings to break up the content
+- Tone: {$tone} (but always authentic and personal)
+- Category: {$category}{$keywordsText}
+- Use proper HTML formatting: <h2> for major sections (Ingredients, Instructions, Pro Tips), <h3> for subsections, <p>, <ul>, <ol>, <strong>, <em>, <blockquote> for tips/quotes
+- Make it SEO-friendly but human-first
 
-Format your response EXACTLY as follows:
+Format your response EXACTLY as follows (no markdown code blocks, just plain text):
 
-TITLE: [Catchy, SEO-friendly title]
+TITLE: [Write a specific, enticing title that promises value - not generic]
 
-EXCERPT: [2-3 sentence summary that entices readers]
+EXCERPT: [2-3 sentences that capture the essence and make readers want more - write it like a teaser, not a summary]
 
-META_TITLE: [SEO-optimized title for search engines, 50-60 characters]
+META_TITLE: [SEO title, 50-60 characters]
 
-META_DESCRIPTION: [SEO-optimized description for search engines, 150-160 characters]
+META_DESCRIPTION: [SEO description, 150-160 characters]
 
 CONTENT:
-[Full article content in HTML format with <h2>, <h3>, <p>, <ul>, <ol>, <strong>, <em> tags]
+[Full article in HTML - no ```html markers, just the HTML tags directly]
 PROMPT;
     }
 
@@ -246,6 +264,9 @@ PROMPT;
             $articleContent = trim($matches[1]);
         }
 
+        // Clean the article content - remove markdown code block markers
+        $articleContent = $this->cleanContent($articleContent);
+
         // Fallbacks
         if (empty($title)) {
             $title = 'Untitled Article';
@@ -267,5 +288,33 @@ PROMPT;
             'meta_description' => $metaDescription,
             'content' => $articleContent,
         ];
+    }
+
+    /**
+     * Clean the generated content by removing markdown code block markers and other AI artifacts.
+     */
+    private function cleanContent(string $content): string
+    {
+        // Remove markdown code block markers (```html, ```, ```xml, etc.)
+        $content = preg_replace('/^```(?:html|xml|markdown|md)?\s*\n?/i', '', $content);
+        $content = preg_replace('/\n?```\s*$/i', '', $content);
+        
+        // Remove any remaining triple backticks in the middle of content
+        $content = preg_replace('/```(?:html|xml|markdown|md)?/i', '', $content);
+        
+        // Remove common AI phrases that slip through
+        $aiPhrases = [
+            '/\b(In this article,? we will|In this blog post,? we will|Let\'s dive in|Without further ado|In conclusion,?|To summarize,?|To sum up,?|Let me explain)\b/i',
+        ];
+        
+        foreach ($aiPhrases as $pattern) {
+            $content = preg_replace($pattern, '', $content);
+        }
+        
+        // Clean up any double spaces or extra newlines created by removals
+        $content = preg_replace('/  +/', ' ', $content);
+        $content = preg_replace('/\n{3,}/', "\n\n", $content);
+        
+        return trim($content);
     }
 }
