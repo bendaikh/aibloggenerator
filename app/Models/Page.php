@@ -23,6 +23,7 @@ class Page extends Model
         'order',
         'is_active',
         'show_in_menu',
+        'is_default',
     ];
 
     protected $appends = ['url'];
@@ -30,6 +31,7 @@ class Page extends Model
     protected $casts = [
         'is_active' => 'boolean',
         'show_in_menu' => 'boolean',
+        'is_default' => 'boolean',
         'order' => 'integer',
     ];
 

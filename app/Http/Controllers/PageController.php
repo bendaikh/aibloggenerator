@@ -115,6 +115,12 @@ class PageController extends Controller
 
         $this->authorize('view', $website);
 
+        // Prevent deletion of default pages
+        if ($page->is_default) {
+            return redirect()->route('superadmin.pages.index', ['website' => $website->id])
+                ->with('error', 'Default pages cannot be deleted. You can only edit their content.');
+        }
+
         $page->delete();
 
         return redirect()->route('superadmin.pages.index', ['website' => $website->id])
