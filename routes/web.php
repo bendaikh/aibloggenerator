@@ -9,6 +9,7 @@ use App\Http\Controllers\AIArticleController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PublicWebsiteController;
+use App\Http\Controllers\SocialMediaController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -99,12 +100,9 @@ Route::middleware(['auth', 'verified'])->prefix('superadmin')->group(function ()
     })->name('superadmin.appearance');
 
     // Social Media
-    Route::get('/{website}/social-media', function ($website) {
-        return Inertia::render('SuperAdmin/SocialMedia', [
-            'currentWebsite' => \App\Models\Website::findOrFail($website),
-            'websites' => \App\Models\Website::where('user_id', auth()->id())->withCount(['articles', 'categories'])->get(),
-        ]);
-    })->name('superadmin.social-media');
+    Route::get('/{website}/social-media', [SocialMediaController::class, 'index'])->name('superadmin.social-media');
+    Route::post('/{website}/social-media', [SocialMediaController::class, 'update'])->name('superadmin.social-media.update');
+    Route::delete('/{website}/social-media/{platform}', [SocialMediaController::class, 'disconnect'])->name('superadmin.social-media.disconnect');
 
     // Assets
     Route::get('/{website}/assets', function ($website) {
