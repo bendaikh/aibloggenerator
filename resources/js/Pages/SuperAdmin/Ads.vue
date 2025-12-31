@@ -14,7 +14,7 @@ import { Head } from '@inertiajs/vue3';
             </div>
 
             <!-- Ad Networks -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 <!-- Google AdSense -->
                 <div class="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6">
                     <div class="flex items-center gap-4 mb-4">
@@ -67,6 +67,43 @@ import { Head } from '@inertiajs/vue3';
                         </div>
                         <button class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-lg font-medium transition-colors">
                             Save Configuration
+                        </button>
+                    </div>
+                </div>
+
+                <!-- HBAgency -->
+                <div class="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-white font-semibold">HBAgency</h3>
+                            <p class="text-gray-500 text-sm">Not configured</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-gray-400 text-sm block mb-2">Account ID</label>
+                            <input 
+                                type="text" 
+                                placeholder="Enter your HBAgency account ID"
+                                class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            />
+                        </div>
+                        <div>
+                            <label class="text-gray-400 text-sm block mb-2">API Key</label>
+                            <input 
+                                type="password" 
+                                placeholder="Enter your API key"
+                                class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            />
+                        </div>
+                        <button class="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg font-medium transition-colors">
+                            Connect HBAgency
                         </button>
                     </div>
                 </div>
