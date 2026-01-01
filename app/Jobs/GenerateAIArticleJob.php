@@ -1,212 +1,97 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Jobs;
 
 use App\Models\Article;
 use App\Models\Website;
 use App\Models\Category;
+use App\Models\User;
 use App\Models\ArticleGenerationJob;
-use App\Jobs\GenerateAIArticleJob;
-use Illuminate\Http\Request;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 
-class AIArticleController extends Controller
+class GenerateAIArticleJob implements ShouldQueue
 {
-    use AuthorizesRequests;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public $tries = 3;
+    public $timeout = 300; // 5 minutes
+
+    protected int $generationJobId;
+    protected int $websiteId;
+    protected int $userId;
+    protected string $topic;
+    protected string $tone;
+    protected string $length;
+    protected string $keywords;
+    protected bool $autoPublish;
+    protected ?int $categoryId;
 
     /**
-     * Get common data for views (websites list and current website)
+     * Create a new job instance.
      */
-    private function getCommonData(Website $website): array
-    {
-        return [
-            'currentWebsite' => $website,
-            'websites' => auth()->user()->websites()
-                ->withCount(['articles', 'categories'])
-                ->get(),
-        ];
+    public function __construct(
+        int $generationJobId,
+        int $websiteId,
+        int $userId,
+        string $topic,
+        string $tone = 'conversational',
+        string $length = 'medium',
+        string $keywords = '',
+        bool $autoPublish = false,
+        ?int $categoryId = null
+    ) {
+        $this->generationJobId = $generationJobId;
+        $this->websiteId = $websiteId;
+        $this->userId = $userId;
+        $this->topic = $topic;
+        $this->tone = $tone;
+        $this->length = $length;
+        $this->keywords = $keywords;
+        $this->autoPublish = $autoPublish;
+        $this->categoryId = $categoryId;
     }
 
     /**
-     * Display the AI article generation form.
+     * Execute the job.
      */
-    public function index(Website $website): Response
+    public function handle(): void
     {
-        $this->authorize('view', $website);
-
-        $user = auth()->user();
+        $generationJob = ArticleGenerationJob::find($this->generationJobId);
         
-        $website->load('categories');
-
-        $recentArticles = Article::where('website_id', $website->id)
-            ->where('ai_generated', true)
-            ->with(['category'])
-            ->latest()
-            ->take(10)
-            ->get();
-
-        return Inertia::render('SuperAdmin/AIArticles/Generate', array_merge(
-            $this->getCommonData($website),
-            [
-                'recentArticles' => $recentArticles,
-                'hasApiKey' => !empty($user->openai_api_key),
-                'defaultTone' => $user->ai_default_tone ?? 'conversational',
-            ]
-        ));
-    }
-
-    /**
-     * Get pending/active generation jobs for current user.
-     */
-    public function getGenerationJobs(Request $request)
-    {
-        $user = auth()->user();
-        
-        $jobs = ArticleGenerationJob::where('user_id', $user->id)
-            ->recent()
-            ->with(['website', 'article'])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($job) {
-                return [
-                    'id' => $job->id,
-                    'topic' => $job->topic,
-                    'status' => $job->status,
-                    'website_id' => $job->website_id,
-                    'website_name' => $job->website?->name,
-                    'article_id' => $job->article_id,
-                    'article_title' => $job->article?->title,
-                    'error_message' => $job->error_message,
-                    'created_at' => $job->created_at->diffForHumans(),
-                    'completed_at' => $job->completed_at?->diffForHumans(),
-                ];
-            });
-
-        $activeCount = $jobs->whereIn('status', ['pending', 'processing'])->count();
-
-        return response()->json([
-            'jobs' => $jobs,
-            'activeCount' => $activeCount,
-        ]);
-    }
-
-    /**
-     * Dismiss/clear a completed or failed job.
-     */
-    public function dismissJob(Request $request, $jobId)
-    {
-        $user = auth()->user();
-        
-        $job = ArticleGenerationJob::where('id', $jobId)
-            ->where('user_id', $user->id)
-            ->first();
-
-        if ($job) {
-            $job->delete();
+        if (!$generationJob) {
+            Log::error('GenerateAIArticleJob: Generation job not found', ['id' => $this->generationJobId]);
+            return;
         }
 
-        return response()->json(['success' => true]);
-    }
+        // Mark as processing
+        $generationJob->markAsProcessing();
 
-    /**
-     * Clear all completed jobs.
-     */
-    public function clearCompletedJobs(Request $request)
-    {
-        $user = auth()->user();
-        
-        ArticleGenerationJob::where('user_id', $user->id)
-            ->whereIn('status', ['completed', 'failed'])
-            ->delete();
+        $user = User::find($this->userId);
+        $website = Website::with('categories')->find($this->websiteId);
 
-        return response()->json(['success' => true]);
-    }
-
-    /**
-     * Generate an article using AI (now with background processing option).
-     */
-    public function generate(Request $request, Website $website)
-    {
-        $this->authorize('view', $website);
-
-        $user = auth()->user();
-
-        // Check if user has configured OpenAI
-        if (empty($user->openai_api_key)) {
-            return back()->withErrors(['error' => 'Please configure your OpenAI API key in Global Settings first.']);
-        }
-
-        $validated = $request->validate([
-            'category_id' => 'nullable|exists:categories,id',
-            'topic' => 'required|string|max:255',
-            'tone' => 'nullable|string|in:professional,casual,friendly,formal,conversational',
-            'length' => 'nullable|string|in:short,medium,long',
-            'keywords' => 'nullable|string',
-            'auto_publish' => 'boolean',
-            'auto_categorize' => 'boolean',
-            'background' => 'boolean', // New option for background processing
-        ]);
-
-        // Validate category if provided
-        if (!empty($validated['category_id'])) {
-            $category = Category::findOrFail($validated['category_id']);
-            if ($category->website_id !== $website->id) {
-                abort(403, 'Category does not belong to this website.');
-            }
-        }
-
-        $tone = $validated['tone'] ?? $user->ai_default_tone ?? 'conversational';
-        $keywords = $validated['keywords'] ?? '';
-        $backgroundProcess = $validated['background'] ?? true; // Default to background
-
-        // If background processing is enabled (default), dispatch job
-        if ($backgroundProcess) {
-            // Create the generation job record
-            $generationJob = ArticleGenerationJob::create([
-                'user_id' => auth()->id(),
-                'website_id' => $website->id,
-                'topic' => $validated['topic'],
-                'status' => 'pending',
+        if (!$user || !$website) {
+            $generationJob->markAsFailed('User or Website not found');
+            Log::error('GenerateAIArticleJob: User or Website not found', [
+                'user_id' => $this->userId,
+                'website_id' => $this->websiteId
             ]);
-
-            // Dispatch the job
-            GenerateAIArticleJob::dispatch(
-                $generationJob->id,
-                $website->id,
-                auth()->id(),
-                $validated['topic'],
-                $tone,
-                $validated['length'] ?? 'medium',
-                $keywords,
-                $validated['auto_publish'] ?? false,
-                ($validated['auto_categorize'] ?? true) ? null : ($validated['category_id'] ?? null)
-            );
-
-            return redirect()->route('superadmin.ai-articles.index', ['website' => $website->id])
-                ->with('success', 'Article generation started! Check the notification icon to track progress.');
+            return;
         }
 
-        // Synchronous processing (kept for backwards compatibility)
-        return $this->generateSynchronously($request, $website, $validated);
-    }
-
-    /**
-     * Synchronous article generation (original method)
-     */
-    private function generateSynchronously(Request $request, Website $website, array $validated)
-    {
-        $user = auth()->user();
-        $website->load('categories');
-        
-        $tone = $validated['tone'] ?? $user->ai_default_tone ?? 'conversational';
-        $keywords = $validated['keywords'] ?? '';
+        if (empty($user->openai_api_key)) {
+            $generationJob->markAsFailed('No API key configured');
+            Log::error('GenerateAIArticleJob: No API key configured for user', ['user_id' => $this->userId]);
+            return;
+        }
 
         // Determine word count based on length
-        $wordCount = match($validated['length'] ?? 'medium') {
+        $wordCount = match($this->length) {
             'short' => '500-700',
             'medium' => '1000-1500',
             'long' => '2000-3000',
@@ -214,31 +99,25 @@ class AIArticleController extends Controller
         };
 
         try {
-            Log::info('Starting synchronous AI article generation', ['topic' => $validated['topic']]);
+            Log::info('Starting background AI article generation', ['topic' => $this->topic]);
             
             $apiKey = $user->openai_api_key;
             $client = \OpenAI::client($apiKey);
             $model = $user->ai_model ?? 'gpt-4o';
 
-            // Determine category
+            // If no category specified, let AI determine the best category
             $category = null;
-            $autoCategorize = $validated['auto_categorize'] ?? true;
+            if ($this->categoryId) {
+                $category = Category::find($this->categoryId);
+            }
 
-            if (!empty($validated['category_id']) && !$autoCategorize) {
-                $category = Category::find($validated['category_id']);
-            } elseif ($website->categories->count() > 0) {
+            if (!$category && $website->categories->count() > 0) {
                 // AI determines the best category
-                $category = $this->determineBestCategory($client, $model, $website, $validated['topic']);
+                $category = $this->determineBestCategory($client, $model, $website);
             }
 
             // Build the prompt
-            $prompt = $this->buildPrompt(
-                $validated['topic'],
-                $wordCount,
-                $tone,
-                $keywords,
-                $category?->name ?? 'General'
-            );
+            $prompt = $this->buildPrompt($wordCount, $category?->name ?? 'General');
 
             // Call OpenAI API
             $result = $client->chat()->create([
@@ -251,27 +130,22 @@ class AIArticleController extends Controller
                 'temperature' => 0.7,
             ]);
 
-            Log::info('OpenAI response received');
-
             $generatedContent = $result->choices[0]->message->content ?? '';
 
             if (empty($generatedContent)) {
-                Log::error('Empty content received from OpenAI');
-                return back()->withErrors(['error' => 'Failed to generate article content. Please try again.']);
+                $generationJob->markAsFailed('Empty content received from OpenAI');
+                Log::error('GenerateAIArticleJob: Empty content received from OpenAI');
+                return;
             }
-
-            Log::info('Parsing generated content');
 
             // Parse the generated content
             $parsed = $this->parseGeneratedContent($generatedContent);
-
-            Log::info('Creating article', ['title' => $parsed['title']]);
 
             // Create the article
             $article = Article::create([
                 'website_id' => $website->id,
                 'category_id' => $category?->id,
-                'user_id' => auth()->id(),
+                'user_id' => $this->userId,
                 'title' => $parsed['title'],
                 'slug' => Str::slug($parsed['title']),
                 'content' => $parsed['content'],
@@ -279,31 +153,35 @@ class AIArticleController extends Controller
                 'featured_image' => null,
                 'meta_title' => $parsed['meta_title'],
                 'meta_description' => $parsed['meta_description'],
-                'status' => $validated['auto_publish'] ?? false ? 'published' : 'draft',
-                'published_at' => $validated['auto_publish'] ?? false ? now() : null,
+                'status' => $this->autoPublish ? 'published' : 'draft',
+                'published_at' => $this->autoPublish ? now() : null,
                 'ai_generated' => true,
                 'generation_type' => 'ai',
             ]);
 
-            Log::info('Article created successfully', ['article_id' => $article->id]);
+            // Mark job as completed
+            $generationJob->markAsCompleted($article->id);
 
-            return redirect()->route('superadmin.articles.edit', ['website' => $website->id, 'article' => $article->id])
-                ->with('success', 'AI article generated successfully! You can review and edit it before publishing.');
+            Log::info('Background AI article created successfully', [
+                'article_id' => $article->id,
+                'title' => $article->title,
+                'category' => $category?->name
+            ]);
 
         } catch (\Exception $e) {
-            Log::error('AI Article Generation Error', [
+            $generationJob->markAsFailed($e->getMessage());
+            Log::error('GenerateAIArticleJob Error', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
-            return back()->withErrors(['error' => 'Error generating article: ' . $e->getMessage()]);
+            throw $e;
         }
     }
 
     /**
      * Determine the best category for the article topic using AI
      */
-    private function determineBestCategory($client, string $model, Website $website, string $topic): ?Category
+    private function determineBestCategory($client, string $model, Website $website): ?Category
     {
         $categories = $website->categories->map(function ($cat) {
             return [
@@ -322,7 +200,7 @@ class AIArticleController extends Controller
         $prompt = <<<PROMPT
 Given the following article topic and available categories, determine which category is the BEST fit for this article.
 
-Article Topic: "{$topic}"
+Article Topic: "{$this->topic}"
 
 Available Categories:
 {$categoriesJson}
@@ -349,7 +227,7 @@ PROMPT;
                 $category = $website->categories->firstWhere('id', (int) $categoryId);
                 if ($category) {
                     Log::info('AI determined best category', [
-                        'topic' => $topic,
+                        'topic' => $this->topic,
                         'category' => $category->name
                     ]);
                     return $category;
@@ -366,14 +244,14 @@ PROMPT;
     /**
      * Build the AI prompt.
      */
-    private function buildPrompt(string $topic, string $wordCount, string $tone, string $keywords, string $category): string
+    private function buildPrompt(string $wordCount, string $category): string
     {
-        $keywordsText = !empty($keywords) ? "\n- Naturally weave in these keywords: $keywords" : '';
+        $keywordsText = !empty($this->keywords) ? "\n- Naturally weave in these keywords: {$this->keywords}" : '';
         
         return <<<PROMPT
 You are a professional food blogger and recipe writer who creates authentic, engaging content that reads like it was written by a passionate home cook sharing their personal experience.
 
-Write a blog post about: "{$topic}"
+Write a blog post about: "{$this->topic}"
 
 CRITICAL WRITING STYLE RULES - DO NOT VIOLATE THESE:
 1. DO NOT use section headers like "Introduction" or "Conclusion" - these scream AI-generated content
@@ -395,7 +273,7 @@ HOW TO WRITE THIS (follow this closely):
 
 Requirements:
 - Length: {$wordCount} words
-- Tone: {$tone} (but always authentic and personal)
+- Tone: {$this->tone} (but always authentic and personal)
 - Category: {$category}{$keywordsText}
 - Use proper HTML formatting: <h2> for major sections (Ingredients, Instructions, Pro Tips), <h3> for subsections, <p>, <ul>, <ol>, <strong>, <em>, <blockquote> for tips/quotes
 - Make it SEO-friendly but human-first
@@ -451,7 +329,7 @@ PROMPT;
             $articleContent = trim($matches[1]);
         }
 
-        // Clean the article content - remove markdown code block markers
+        // Clean the article content
         $articleContent = $this->cleanContent($articleContent);
 
         // Fallbacks
@@ -478,18 +356,16 @@ PROMPT;
     }
 
     /**
-     * Clean the generated content by removing markdown code block markers and other AI artifacts.
+     * Clean the generated content.
      */
     private function cleanContent(string $content): string
     {
-        // Remove markdown code block markers (```html, ```, ```xml, etc.)
+        // Remove markdown code block markers
         $content = preg_replace('/^```(?:html|xml|markdown|md)?\s*\n?/i', '', $content);
         $content = preg_replace('/\n?```\s*$/i', '', $content);
-        
-        // Remove any remaining triple backticks in the middle of content
         $content = preg_replace('/```(?:html|xml|markdown|md)?/i', '', $content);
         
-        // Remove common AI phrases that slip through
+        // Remove common AI phrases
         $aiPhrases = [
             '/\b(In this article,? we will|In this blog post,? we will|Let\'s dive in|Without further ado|In conclusion,?|To summarize,?|To sum up,?|Let me explain)\b/i',
         ];
@@ -498,7 +374,7 @@ PROMPT;
             $content = preg_replace($pattern, '', $content);
         }
         
-        // Clean up any double spaces or extra newlines created by removals
+        // Clean up extra spaces
         $content = preg_replace('/  +/', ' ', $content);
         $content = preg_replace('/\n{3,}/', "\n\n", $content);
         

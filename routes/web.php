@@ -10,6 +10,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PublicWebsiteController;
 use App\Http\Controllers\SocialMediaController;
+use App\Http\Controllers\ImageUploadController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -32,6 +33,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    
+    // Image Upload Routes
+    Route::post('/upload/image', [ImageUploadController::class, 'upload'])->name('upload.image');
+    Route::delete('/upload/image', [ImageUploadController::class, 'destroy'])->name('upload.image.destroy');
 });
 
 // Organization Routes (Global/All Websites)
@@ -70,6 +75,11 @@ Route::middleware(['auth', 'verified'])->prefix('superadmin')->group(function ()
     // AI Article Generation
     Route::get('/{website}/ai-articles', [AIArticleController::class, 'index'])->name('superadmin.ai-articles.index');
     Route::post('/{website}/ai-articles/generate', [AIArticleController::class, 'generate'])->name('superadmin.ai-articles.generate');
+    
+    // AI Generation Jobs API
+    Route::get('/api/generation-jobs', [AIArticleController::class, 'getGenerationJobs'])->name('api.generation-jobs');
+    Route::delete('/api/generation-jobs/{jobId}', [AIArticleController::class, 'dismissJob'])->name('api.generation-jobs.dismiss');
+    Route::delete('/api/generation-jobs', [AIArticleController::class, 'clearCompletedJobs'])->name('api.generation-jobs.clear');
 
     // Categories Management
     Route::get('/{website}/categories', [CategoryController::class, 'index'])->name('superadmin.categories.index');

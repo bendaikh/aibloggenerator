@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
+import AIJobsNotification from '@/Components/AIJobsNotification.vue';
 
 const props = defineProps({
     currentWebsite: {
@@ -319,6 +320,34 @@ const switchWebsite = (website) => {
 
         <!-- Main Content -->
         <main class="flex-1 ml-64">
+            <!-- Top Header Bar -->
+            <header class="sticky top-0 z-40 bg-[#0f0f0f]/95 backdrop-blur border-b border-[#2a2a2a]">
+                <div class="flex items-center justify-between px-8 py-3">
+                    <!-- Left: Page Context -->
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm">{{ currentWebsite?.name || 'Website' }}</span>
+                    </div>
+                    
+                    <!-- Right: Actions -->
+                    <div class="flex items-center gap-4">
+                        <!-- AI Jobs Notification -->
+                        <AIJobsNotification />
+                        
+                        <!-- Quick Actions -->
+                        <Link 
+                            v-if="currentWebsite"
+                            :href="route('superadmin.ai-articles.index', { website: currentWebsite.id })"
+                            class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white text-sm font-medium rounded-lg transition-all"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Generate AI Article
+                        </Link>
+                    </div>
+                </div>
+            </header>
+            
             <slot />
         </main>
     </div>

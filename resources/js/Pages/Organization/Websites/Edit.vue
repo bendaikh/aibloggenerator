@@ -2,10 +2,13 @@
 import { useForm } from '@inertiajs/vue3';
 import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 const props = defineProps({
     website: Object
 });
+
+const showDomainInstructions = ref(false);
 
 const form = useForm({
     name: props.website.name,
@@ -91,6 +94,128 @@ const submit = () => {
                         />
                         <p class="mt-1 text-xs text-gray-500">Add a custom domain after DNS configuration</p>
                         <p v-if="form.errors.domain" class="mt-1 text-sm text-red-500">{{ form.errors.domain }}</p>
+                        
+                        <!-- Toggle Instructions Button -->
+                        <button 
+                            type="button"
+                            @click="showDomainInstructions = !showDomainInstructions"
+                            class="mt-2 text-sm text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                        >
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showDomainInstructions }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                            {{ showDomainInstructions ? 'Hide' : 'Show' }} Domain Setup Instructions
+                        </button>
+                    </div>
+
+                    <!-- Custom Domain Instructions -->
+                    <div v-if="showDomainInstructions" class="bg-gradient-to-r from-blue-900/30 to-indigo-900/30 border border-blue-800/50 rounded-xl p-5">
+                        <div class="flex items-start gap-3 mb-4">
+                            <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="text-white font-semibold text-lg">How to Connect Your Custom Domain</h4>
+                                <p class="text-blue-200/70 text-sm">Follow these steps to point your domain to your website</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="bg-[#0a0a0a]/50 rounded-lg p-4">
+                                <h5 class="text-emerald-400 font-medium mb-2 flex items-center gap-2">
+                                    <span class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                                    Log into your domain registrar
+                                </h5>
+                                <p class="text-gray-300 text-sm">Access the DNS management panel at your domain registrar (GoDaddy, Namecheap, Cloudflare, etc.)</p>
+                            </div>
+
+                            <div class="bg-[#0a0a0a]/50 rounded-lg p-4">
+                                <h5 class="text-emerald-400 font-medium mb-2 flex items-center gap-2">
+                                    <span class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                                    Add a CNAME Record
+                                </h5>
+                                <div class="text-gray-300 text-sm space-y-2">
+                                    <p>Create a new CNAME record with these settings:</p>
+                                    <div class="bg-[#1a1a1a] rounded-lg p-3 font-mono text-xs">
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <span class="text-gray-500">Type:</span>
+                                            <span class="text-white">CNAME</span>
+                                            <span class="text-gray-500">Name/Host:</span>
+                                            <span class="text-white">www</span>
+                                            <span class="text-gray-500">Value/Target:</span>
+                                            <span class="text-emerald-400">websaasmanager.com</span>
+                                            <span class="text-gray-500">TTL:</span>
+                                            <span class="text-white">Auto or 3600</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-[#0a0a0a]/50 rounded-lg p-4">
+                                <h5 class="text-emerald-400 font-medium mb-2 flex items-center gap-2">
+                                    <span class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                                    For Root Domain (Optional)
+                                </h5>
+                                <div class="text-gray-300 text-sm space-y-2">
+                                    <p>To use your root domain (example.com without www), add an A Record:</p>
+                                    <div class="bg-[#1a1a1a] rounded-lg p-3 font-mono text-xs">
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <span class="text-gray-500">Type:</span>
+                                            <span class="text-white">A</span>
+                                            <span class="text-gray-500">Name/Host:</span>
+                                            <span class="text-white">@</span>
+                                            <span class="text-gray-500">Value/IP:</span>
+                                            <span class="text-emerald-400">YOUR_SERVER_IP</span>
+                                            <span class="text-gray-500">TTL:</span>
+                                            <span class="text-white">Auto or 3600</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-yellow-400 text-xs mt-2">⚠️ Contact support for the exact IP address if using root domain.</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-[#0a0a0a]/50 rounded-lg p-4">
+                                <h5 class="text-emerald-400 font-medium mb-2 flex items-center gap-2">
+                                    <span class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-bold">4</span>
+                                    Wait for DNS Propagation
+                                </h5>
+                                <p class="text-gray-300 text-sm">DNS changes can take up to 48 hours to propagate worldwide, but usually complete within 1-4 hours.</p>
+                            </div>
+
+                            <div class="bg-[#0a0a0a]/50 rounded-lg p-4">
+                                <h5 class="text-emerald-400 font-medium mb-2 flex items-center gap-2">
+                                    <span class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-bold">5</span>
+                                    Enter Your Domain Here
+                                </h5>
+                                <p class="text-gray-300 text-sm">Once DNS is configured, enter your domain in the field above (e.g., www.example.com or example.com)</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 p-3 bg-yellow-900/30 border border-yellow-800/50 rounded-lg">
+                            <p class="text-yellow-200 text-xs flex items-start gap-2">
+                                <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span><strong>Need help?</strong> If you're using Cloudflare, make sure the proxy status is set to "DNS only" (gray cloud) for the initial setup.</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Current Domain Status -->
+                    <div v-if="website.domain" class="bg-emerald-900/30 border border-emerald-800/50 rounded-lg p-4">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-emerald-200 text-sm">
+                                Custom domain <strong>{{ website.domain }}</strong> is configured
+                            </span>
+                        </div>
+                        <p class="text-emerald-300/70 text-xs mt-2">
+                            Your website is accessible at: <a :href="'https://' + website.domain" target="_blank" class="underline hover:text-white">https://{{ website.domain }}</a>
+                        </p>
                     </div>
 
                     <!-- Description -->
@@ -142,4 +267,3 @@ const submit = () => {
         </div>
     </OrganizationLayout>
 </template>
-

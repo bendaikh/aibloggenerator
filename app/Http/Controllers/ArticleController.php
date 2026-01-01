@@ -80,7 +80,7 @@ class ArticleController extends Controller
             'slug' => 'nullable|string|max:255',
             'excerpt' => 'nullable|string',
             'content' => 'required|string',
-            'featured_image' => 'nullable|string',
+            'featured_image' => 'nullable|string|max:1000',
             'meta_tags' => 'nullable|array',
             'status' => 'required|in:draft,published,scheduled',
             'generation_type' => 'required|in:manual,ai',

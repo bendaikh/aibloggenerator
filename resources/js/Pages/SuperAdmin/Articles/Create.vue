@@ -150,17 +150,14 @@
                                 <p v-if="manualForm.errors.slug" class="mt-2 text-sm text-red-500">{{ manualForm.errors.slug }}</p>
                             </div>
 
-                            <!-- Featured Image -->
+                            <!-- Featured Image Upload -->
                             <div class="mb-6">
-                                <label for="featured_image" class="block text-sm font-medium text-gray-300 mb-2">
-                                    Featured Image URL
-                                </label>
-                                <input
-                                    id="featured_image"
+                                <ImageUpload
                                     v-model="manualForm.featured_image"
-                                    type="text"
-                                    class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                    placeholder="https://example.com/image.jpg"
+                                    label="Featured Image"
+                                    type="article"
+                                    hint="Recommended size: 1200x630px for social sharing"
+                                    :allow-url="true"
                                 />
                                 <p v-if="manualForm.errors.featured_image" class="mt-2 text-sm text-red-500">{{ manualForm.errors.featured_image }}</p>
                             </div>
@@ -284,28 +281,6 @@
 
                     <div class="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-8">
                         <form @submit.prevent="submitAI" class="space-y-6">
-                            <!-- Category Selection -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-300 mb-2">
-                                    Category *
-                                </label>
-                                <select
-                                    v-model="aiForm.category_id"
-                                    required
-                                    :disabled="!currentWebsite?.categories?.length"
-                                    class="w-full px-4 py-2 bg-[#252525] border border-[#3a3a3a] rounded-lg text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-                                >
-                                    <option value="">Select a category</option>
-                                    <option v-for="category in currentWebsite?.categories" :key="category.id" :value="category.id">
-                                        {{ category.name }}
-                                    </option>
-                                </select>
-                                <p v-if="aiForm.errors.category_id" class="mt-1 text-sm text-red-500">{{ aiForm.errors.category_id }}</p>
-                                <p v-if="!currentWebsite?.categories?.length" class="mt-1 text-sm text-yellow-500">
-                                    No categories found. Please create categories for this website first.
-                                </p>
-                            </div>
-
                             <!-- Topic -->
                             <div>
                                 <label class="block text-sm font-medium text-gray-300 mb-2">
@@ -316,10 +291,25 @@
                                     type="text"
                                     required
                                     placeholder="e.g., 'Best Italian Pasta Recipes for Beginners'"
-                                    class="w-full px-4 py-2 bg-[#252525] border border-[#3a3a3a] rounded-lg text-white focus:ring-2 focus:ring-emerald-500"
+                                    class="w-full px-4 py-3 bg-[#252525] border border-[#3a3a3a] rounded-lg text-white focus:ring-2 focus:ring-emerald-500 text-lg"
                                 />
                                 <p v-if="aiForm.errors.topic" class="mt-1 text-sm text-red-500">{{ aiForm.errors.topic }}</p>
-                                <p class="mt-1 text-xs text-gray-500">Be specific for better results</p>
+                                <p class="mt-1 text-xs text-gray-500">Be specific for better results - AI will auto-categorize based on your topic</p>
+                            </div>
+
+                            <!-- Auto-Categorize Info -->
+                            <div class="bg-gradient-to-r from-purple-900/30 to-indigo-900/30 border border-purple-800/50 rounded-lg p-4">
+                                <div class="flex items-start gap-3">
+                                    <svg class="w-5 h-5 text-purple-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                    </svg>
+                                    <div>
+                                        <h4 class="text-purple-300 font-medium">Smart Categorization</h4>
+                                        <p class="text-sm text-purple-200/70 mt-1">
+                                            AI will automatically determine the best category for your article based on the topic and your available categories.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Settings Grid -->
@@ -380,6 +370,21 @@
                                 <p class="mt-1 text-xs text-gray-500">Separate keywords with commas</p>
                             </div>
 
+                            <!-- Background Processing Info -->
+                            <div class="bg-gradient-to-r from-emerald-900/30 to-teal-900/30 border border-emerald-800/50 rounded-lg p-4">
+                                <div class="flex items-start gap-3">
+                                    <svg class="w-5 h-5 text-emerald-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                    <div>
+                                        <h4 class="text-emerald-300 font-medium">Background Generation</h4>
+                                        <p class="text-sm text-emerald-200/70 mt-1">
+                                            Articles are generated in the background, so you can continue working or create multiple articles at once.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Submit Button -->
                             <div class="flex items-center justify-end gap-4 pt-4 border-t border-[#2a2a2a]">
                                 <button
@@ -401,7 +406,7 @@
                                     <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                                     </svg>
-                                    {{ aiForm.processing ? 'Generating...' : 'Generate Article' }}
+                                    {{ aiForm.processing ? 'Queueing...' : 'Generate Article' }}
                                 </button>
                             </div>
                         </form>
@@ -416,6 +421,7 @@
 import { ref } from 'vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
+import ImageUpload from '@/Components/ImageUpload.vue';
 
 const page = usePage();
 
@@ -455,7 +461,9 @@ const aiForm = useForm({
     tone: props.defaultTone,
     length: 'medium',
     keywords: '',
-    auto_publish: false
+    auto_publish: false,
+    auto_categorize: true,
+    background: true
 });
 
 const submitManual = () => {

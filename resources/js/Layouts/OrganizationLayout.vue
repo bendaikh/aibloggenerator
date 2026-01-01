@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
+import AIJobsNotification from '@/Components/AIJobsNotification.vue';
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user);
@@ -149,6 +150,22 @@ const isActivePrefix = (prefix) => {
 
         <!-- Main Content -->
         <main class="flex-1 ml-64">
+            <!-- Top Header Bar -->
+            <header class="sticky top-0 z-40 bg-[#0f0f0f]/95 backdrop-blur border-b border-[#2a2a2a]">
+                <div class="flex items-center justify-between px-8 py-3">
+                    <!-- Left: Page Context -->
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm">Organization Overview</span>
+                    </div>
+                    
+                    <!-- Right: Actions -->
+                    <div class="flex items-center gap-4">
+                        <!-- AI Jobs Notification -->
+                        <AIJobsNotification />
+                    </div>
+                </div>
+            </header>
+            
             <slot />
         </main>
     </div>
