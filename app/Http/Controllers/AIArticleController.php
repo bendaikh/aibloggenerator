@@ -146,6 +146,7 @@ class AIArticleController extends Controller
             'tone' => 'nullable|string|in:professional,casual,friendly,formal,conversational',
             'length' => 'nullable|string|in:short,medium,long',
             'keywords' => 'nullable|string',
+            'featured_image' => 'nullable|string|max:1000',
             'auto_publish' => 'boolean',
             'auto_categorize' => 'boolean',
             'background' => 'boolean', // New option for background processing
@@ -183,7 +184,8 @@ class AIArticleController extends Controller
                 $validated['length'] ?? 'medium',
                 $keywords,
                 $validated['auto_publish'] ?? false,
-                ($validated['auto_categorize'] ?? true) ? null : ($validated['category_id'] ?? null)
+                ($validated['auto_categorize'] ?? true) ? null : ($validated['category_id'] ?? null),
+                $validated['featured_image'] ?? null
             );
 
             return redirect()->route('superadmin.ai-articles.index', ['website' => $website->id])
@@ -276,7 +278,7 @@ class AIArticleController extends Controller
                 'slug' => Str::slug($parsed['title']),
                 'content' => $parsed['content'],
                 'excerpt' => $parsed['excerpt'],
-                'featured_image' => null,
+                'featured_image' => $validated['featured_image'] ?? null,
                 'meta_title' => $parsed['meta_title'],
                 'meta_description' => $parsed['meta_description'],
                 'status' => $validated['auto_publish'] ?? false ? 'published' : 'draft',

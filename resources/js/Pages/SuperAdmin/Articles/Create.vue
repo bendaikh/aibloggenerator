@@ -370,6 +370,17 @@
                                 <p class="mt-1 text-xs text-gray-500">Separate keywords with commas</p>
                             </div>
 
+                            <!-- Featured Image Upload (Optional) -->
+                            <div>
+                                <ImageUpload
+                                    v-model="aiForm.featured_image"
+                                    label="Featured Image (Optional)"
+                                    type="article"
+                                    hint="Upload an image for your article, or leave empty to add one later"
+                                    :allow-url="true"
+                                />
+                            </div>
+
                             <!-- Background Processing Info -->
                             <div class="bg-gradient-to-r from-emerald-900/30 to-teal-900/30 border border-emerald-800/50 rounded-lg p-4">
                                 <div class="flex items-start gap-3">
@@ -461,6 +472,7 @@ const aiForm = useForm({
     tone: props.defaultTone,
     length: 'medium',
     keywords: '',
+    featured_image: '',
     auto_publish: false,
     auto_categorize: true,
     background: true

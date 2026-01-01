@@ -31,6 +31,7 @@ class GenerateAIArticleJob implements ShouldQueue
     protected string $keywords;
     protected bool $autoPublish;
     protected ?int $categoryId;
+    protected ?string $featuredImage;
 
     /**
      * Create a new job instance.
@@ -44,7 +45,8 @@ class GenerateAIArticleJob implements ShouldQueue
         string $length = 'medium',
         string $keywords = '',
         bool $autoPublish = false,
-        ?int $categoryId = null
+        ?int $categoryId = null,
+        ?string $featuredImage = null
     ) {
         $this->generationJobId = $generationJobId;
         $this->websiteId = $websiteId;
@@ -55,6 +57,7 @@ class GenerateAIArticleJob implements ShouldQueue
         $this->keywords = $keywords;
         $this->autoPublish = $autoPublish;
         $this->categoryId = $categoryId;
+        $this->featuredImage = $featuredImage;
     }
 
     /**
@@ -99,7 +102,10 @@ class GenerateAIArticleJob implements ShouldQueue
         };
 
         try {
-            Log::info('Starting background AI article generation', ['topic' => $this->topic]);
+            Log::info('Starting background AI article generation', [
+                'topic' => $this->topic,
+                'featured_image' => $this->featuredImage ? 'provided' : 'not provided'
+            ]);
             
             $apiKey = $user->openai_api_key;
             $client = \OpenAI::client($apiKey);
@@ -150,7 +156,7 @@ class GenerateAIArticleJob implements ShouldQueue
                 'slug' => Str::slug($parsed['title']),
                 'content' => $parsed['content'],
                 'excerpt' => $parsed['excerpt'],
-                'featured_image' => null,
+                'featured_image' => $this->featuredImage,
                 'meta_title' => $parsed['meta_title'],
                 'meta_description' => $parsed['meta_description'],
                 'status' => $this->autoPublish ? 'published' : 'draft',
@@ -165,7 +171,8 @@ class GenerateAIArticleJob implements ShouldQueue
             Log::info('Background AI article created successfully', [
                 'article_id' => $article->id,
                 'title' => $article->title,
-                'category' => $category?->name
+                'category' => $category?->name,
+                'featured_image' => $article->featured_image
             ]);
 
         } catch (\Exception $e) {
