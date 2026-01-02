@@ -17,7 +17,12 @@ class IdentifyWebsite
         $host = $request->getHost();
         $baseDomain = config('app.base_domain');
         
-        // Check if it's a subdomain
+        // Skip if it's the main domain (websaasmanager.com) - let other routes handle it
+        if ($host === $baseDomain || $host === 'www.' . $baseDomain) {
+            return $next($request);
+        }
+        
+        // Check if it's a subdomain of the base domain
         if (str_ends_with($host, '.' . $baseDomain)) {
             // Extract subdomain
             $subdomain = str_replace('.' . $baseDomain, '', $host);
@@ -36,9 +41,16 @@ class IdentifyWebsite
             }
         }
         
-        // Check if it's a custom domain
-        $website = Website::where('domain', $host)
-            ->where('is_active', true)
+        // Check if it's a custom domain (with or without www)
+        $domainToCheck = $host;
+        
+        // Try with and without www prefix
+        $website = Website::where('is_active', true)
+            ->where(function ($query) use ($host) {
+                $query->where('domain', $host)
+                    ->orWhere('domain', 'www.' . $host)
+                    ->orWhere('domain', ltrim($host, 'www.'));
+            })
             ->first();
         
         if ($website) {
@@ -48,7 +60,7 @@ class IdentifyWebsite
             return $next($request);
         }
         
-        // No website found
+        // No website found for this domain
         abort(404, 'Website not found');
     }
 }
