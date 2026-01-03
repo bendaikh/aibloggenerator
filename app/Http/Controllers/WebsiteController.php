@@ -605,7 +605,17 @@ HTML;
             'name' => 'required|string|max:255',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:5120',
             'favicon' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,ico|max:2048',
+            'remove_logo' => 'nullable|boolean',
+            'remove_favicon' => 'nullable|boolean',
         ]);
+
+        // Handle logo removal
+        if ($request->remove_logo) {
+            if ($website->logo && File::exists(public_path($website->logo))) {
+                File::delete(public_path($website->logo));
+            }
+            $validated['logo'] = null;
+        }
 
         // Handle logo upload
         if ($request->hasFile('logo')) {
@@ -624,8 +634,16 @@ HTML;
             if ($website->logo && File::exists(public_path($website->logo))) {
                 File::delete(public_path($website->logo));
             }
-        } else {
+        } elseif (!$request->remove_logo) {
             unset($validated['logo']);
+        }
+
+        // Handle favicon removal
+        if ($request->remove_favicon) {
+            if ($website->favicon && File::exists(public_path($website->favicon))) {
+                File::delete(public_path($website->favicon));
+            }
+            $validated['favicon'] = null;
         }
 
         // Handle favicon upload
@@ -645,7 +663,7 @@ HTML;
             if ($website->favicon && File::exists(public_path($website->favicon))) {
                 File::delete(public_path($website->favicon));
             }
-        } else {
+        } elseif (!$request->remove_favicon) {
             unset($validated['favicon']);
         }
 

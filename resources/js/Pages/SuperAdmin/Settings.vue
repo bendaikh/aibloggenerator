@@ -15,6 +15,8 @@ const form = useForm({
     name: props.currentWebsite.name || '',
     logo: null,
     favicon: null,
+    remove_logo: false,
+    remove_favicon: false,
 });
 
 const logoPreview = ref(props.currentWebsite.logo_url || props.currentWebsite.logo || '');
@@ -24,6 +26,7 @@ const handleLogoChange = (event) => {
     const file = event.target.files?.[0];
     if (file) {
         form.logo = file;
+        form.remove_logo = false;
         const reader = new FileReader();
         reader.onload = (e) => {
             logoPreview.value = e.target.result;
@@ -36,6 +39,7 @@ const handleFaviconChange = (event) => {
     const file = event.target.files?.[0];
     if (file) {
         form.favicon = file;
+        form.remove_favicon = false;
         const reader = new FileReader();
         reader.onload = (e) => {
             faviconPreview.value = e.target.result;
@@ -46,14 +50,16 @@ const handleFaviconChange = (event) => {
 
 const removeLogo = () => {
     form.logo = null;
-    logoPreview.value = props.currentWebsite.logo_url || props.currentWebsite.logo || '';
+    form.remove_logo = true;
+    logoPreview.value = '';
     const input = document.getElementById('logo');
     if (input) input.value = '';
 };
 
 const removeFavicon = () => {
     form.favicon = null;
-    faviconPreview.value = props.currentWebsite.favicon_url || props.currentWebsite.favicon || '';
+    form.remove_favicon = true;
+    faviconPreview.value = '';
     const input = document.getElementById('favicon');
     if (input) input.value = '';
 };
