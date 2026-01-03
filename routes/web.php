@@ -11,6 +11,7 @@ use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PublicWebsiteController;
 use App\Http\Controllers\SocialMediaController;
 use App\Http\Controllers\ImageUploadController;
+use App\Http\Controllers\AuthorController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -96,12 +97,10 @@ $registerMainAppRoutes = function () {
         Route::put('/{website}/pages/{page}', [PageController::class, 'update'])->name('superadmin.pages.update');
         Route::delete('/{website}/pages/{page}', [PageController::class, 'destroy'])->name('superadmin.pages.destroy');
         
-        Route::get('/{website}/authors', function ($website) {
-            return Inertia::render('SuperAdmin/Authors', [
-                'currentWebsite' => \App\Models\Website::findOrFail($website),
-                'websites' => \App\Models\Website::where('user_id', auth()->id())->withCount(['articles', 'categories'])->get(),
-            ]);
-        })->name('superadmin.authors');
+        Route::get('/{website}/authors', [AuthorController::class, 'index'])->name('superadmin.authors');
+        Route::post('/{website}/authors', [AuthorController::class, 'store'])->name('superadmin.authors.store');
+        Route::put('/{website}/authors/{author}', [AuthorController::class, 'update'])->name('superadmin.authors.update');
+        Route::delete('/{website}/authors/{author}', [AuthorController::class, 'destroy'])->name('superadmin.authors.destroy');
 
         Route::get('/{website}/appearance', function ($website) {
             return Inertia::render('SuperAdmin/Appearance', [

@@ -26,9 +26,14 @@
                     :key="category.id"
                     class="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] overflow-hidden hover:border-emerald-500 transition-colors"
                 >
-                    <div class="h-32 bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+                    <div class="h-48 bg-[#0a0a0a] flex items-center justify-center border-b border-[#2a2a2a]">
                         <img v-if="category.image" :src="category.image" :alt="category.name" class="h-full w-full object-cover" />
-                        <span v-else class="text-4xl font-bold text-white">{{ category.name.charAt(0) }}</span>
+                        <div v-else class="text-center">
+                            <svg class="w-12 h-12 text-gray-700 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span class="text-gray-600 text-sm font-medium">{{ category.name }}</span>
+                        </div>
                     </div>
                     <div class="p-6">
                         <h3 class="text-xl font-bold text-white mb-2">{{ category.name }}</h3>
@@ -83,33 +88,103 @@
                     </h2>
                 </div>
                 <form @submit.prevent="submitForm" class="p-6 space-y-6">
-                    <!-- Category Name -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">
-                            Category Name *
-                        </label>
-                        <input
-                            v-model="form.name"
-                            type="text"
-                            required
-                            class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:ring-2 focus:ring-emerald-500"
-                            placeholder="e.g., Comfort Classics"
-                        />
-                        <p v-if="form.errors.name" class="mt-1 text-sm text-red-500">{{ form.errors.name }}</p>
-                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-6">
+                            <!-- Category Name -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">
+                                    Category Name *
+                                </label>
+                                <input
+                                    v-model="form.name"
+                                    type="text"
+                                    required
+                                    class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:ring-2 focus:ring-emerald-500"
+                                    placeholder="e.g., Comfort Classics"
+                                />
+                                <p v-if="form.errors.name" class="mt-1 text-sm text-red-500">{{ form.errors.name }}</p>
+                            </div>
 
-                    <!-- Slug -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">
-                            Slug (optional)
-                        </label>
-                        <input
-                            v-model="form.slug"
-                            type="text"
-                            class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:ring-2 focus:ring-emerald-500"
-                            placeholder="Auto-generated from name if empty"
-                        />
-                        <p v-if="form.errors.slug" class="mt-1 text-sm text-red-500">{{ form.errors.slug }}</p>
+                            <!-- Slug -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">
+                                    Slug (optional)
+                                </label>
+                                <input
+                                    v-model="form.slug"
+                                    type="text"
+                                    class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:ring-2 focus:ring-emerald-500"
+                                    placeholder="Auto-generated from name if empty"
+                                />
+                                <p v-if="form.errors.slug" class="mt-1 text-sm text-red-500">{{ form.errors.slug }}</p>
+                            </div>
+                            
+                            <!-- Display Order -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">
+                                    Display Order
+                                </label>
+                                <input
+                                    v-model.number="form.order"
+                                    type="number"
+                                    class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:ring-2 focus:ring-emerald-500"
+                                    placeholder="0"
+                                />
+                                <p v-if="form.errors.order" class="mt-1 text-sm text-red-500">{{ form.errors.order }}</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-6">
+                            <!-- Image Upload -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">
+                                    Category Image
+                                </label>
+                                <div 
+                                    @click="$refs.imageInput.click()"
+                                    class="w-full h-40 bg-[#0a0a0a] border-2 border-dashed border-[#2a2a2a] rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500 transition-colors group relative overflow-hidden"
+                                >
+                                    <template v-if="imagePreview">
+                                        <img :src="imagePreview" class="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-30 transition-opacity" />
+                                        <div class="relative z-10 text-center">
+                                            <svg class="w-8 h-8 text-white mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                            </svg>
+                                            <span class="text-white text-sm font-medium">Change Image</span>
+                                        </div>
+                                    </template>
+                                    <template v-else>
+                                        <svg class="w-10 h-10 text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <span class="text-gray-500 text-sm">Upload PNG, JPG (Max 2MB)</span>
+                                    </template>
+                                    
+                                    <input 
+                                        type="file" 
+                                        ref="imageInput" 
+                                        class="hidden" 
+                                        accept="image/*"
+                                        @change="handleImageUpload"
+                                    />
+                                </div>
+                                <p v-if="form.errors.image" class="mt-1 text-sm text-red-500">{{ form.errors.image }}</p>
+                                <p v-if="form.errors.image_file" class="mt-1 text-sm text-red-500">{{ form.errors.image_file }}</p>
+                            </div>
+
+                            <!-- Is Active -->
+                            <div class="flex items-center">
+                                <input
+                                    v-model="form.is_active"
+                                    type="checkbox"
+                                    id="is_active"
+                                    class="w-4 h-4 text-emerald-600 bg-[#0a0a0a] border-[#2a2a2a] rounded focus:ring-emerald-500"
+                                />
+                                <label for="is_active" class="ml-2 text-sm text-gray-300">
+                                    Active (visible on website)
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Description -->
@@ -124,47 +199,6 @@
                             placeholder="Brief description of this category"
                         ></textarea>
                         <p v-if="form.errors.description" class="mt-1 text-sm text-red-500">{{ form.errors.description }}</p>
-                    </div>
-
-                    <!-- Image URL -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">
-                            Image URL
-                        </label>
-                        <input
-                            v-model="form.image"
-                            type="url"
-                            class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:ring-2 focus:ring-emerald-500"
-                            placeholder="https://example.com/image.jpg"
-                        />
-                        <p v-if="form.errors.image" class="mt-1 text-sm text-red-500">{{ form.errors.image }}</p>
-                    </div>
-
-                    <!-- Order -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">
-                            Display Order
-                        </label>
-                        <input
-                            v-model.number="form.order"
-                            type="number"
-                            class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:ring-2 focus:ring-emerald-500"
-                            placeholder="0"
-                        />
-                        <p v-if="form.errors.order" class="mt-1 text-sm text-red-500">{{ form.errors.order }}</p>
-                    </div>
-
-                    <!-- Is Active -->
-                    <div class="flex items-center">
-                        <input
-                            v-model="form.is_active"
-                            type="checkbox"
-                            id="is_active"
-                            class="w-4 h-4 text-emerald-600 bg-[#0a0a0a] border-[#2a2a2a] rounded focus:ring-emerald-500"
-                        />
-                        <label for="is_active" class="ml-2 text-sm text-gray-300">
-                            Active (visible on website)
-                        </label>
                     </div>
 
                     <!-- Form Actions -->
@@ -214,20 +248,42 @@ const props = defineProps({
 
 const showModal = ref(false);
 const editingCategory = ref(null);
+const imagePreview = ref(null);
 
 const form = useForm({
     name: '',
     slug: '',
     description: '',
-    image: '',
+    image: null,
+    image_file: null, // Used for updates
     order: 0,
-    is_active: true
+    is_active: true,
+    _method: 'POST' // For method spoofing with multipart/form-data
 });
+
+const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        if (editingCategory.value) {
+            form.image_file = file;
+        } else {
+            form.image = file;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.value = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+};
 
 const openCreateModal = () => {
     editingCategory.value = null;
     form.reset();
     form.clearErrors();
+    form._method = 'POST';
+    imagePreview.value = null;
     showModal.value = true;
 };
 
@@ -236,10 +292,13 @@ const openEditModal = (category) => {
     form.name = category.name;
     form.slug = category.slug;
     form.description = category.description || '';
-    form.image = category.image || '';
+    form.image = null; 
+    form.image_file = null;
     form.order = category.order;
     form.is_active = category.is_active;
+    form._method = 'PUT';
     form.clearErrors();
+    imagePreview.value = category.image;
     showModal.value = true;
 };
 
@@ -248,23 +307,28 @@ const closeModal = () => {
     editingCategory.value = null;
     form.reset();
     form.clearErrors();
+    imagePreview.value = null;
 };
 
 const submitForm = () => {
     if (editingCategory.value) {
-        form.put(route('superadmin.categories.update', { 
+        // Inertia.js doesn't support PUT with Files directly in some versions/configs,
+        // so we use POST with _method spoofing
+        form.post(route('superadmin.categories.update', { 
             website: props.currentWebsite?.id, 
             category: editingCategory.value.id 
         }), {
             onSuccess: () => {
                 closeModal();
-            }
+            },
+            forceFormData: true
         });
     } else {
         form.post(route('superadmin.categories.store', { website: props.currentWebsite?.id }), {
             onSuccess: () => {
                 closeModal();
-            }
+            },
+            forceFormData: true
         });
     }
 };
@@ -280,3 +344,4 @@ const deleteCategory = (category) => {
     }
 };
 </script>
+

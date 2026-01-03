@@ -6,6 +6,8 @@ use App\Models\Category;
 use App\Models\Website;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -56,10 +58,23 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255',
             'slug' => 'nullable|string|max:255',
             'description' => 'nullable|string',
-            'image' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
             'order' => 'nullable|integer',
             'is_active' => 'boolean',
         ]);
+
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $directory = public_path('uploads/images/categories');
+            
+            if (!File::isDirectory($directory)) {
+                File::makeDirectory($directory, 0755, true);
+            }
+            
+            $file->move($directory, $filename);
+            $validated['image'] = asset('uploads/images/categories/' . $filename);
+        }
 
         $validated['website_id'] = $website->id;
 
@@ -85,10 +100,31 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255',
             'slug' => 'nullable|string|max:255',
             'description' => 'nullable|string',
-            'image' => 'nullable|string',
+            'image_file' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
             'order' => 'nullable|integer',
             'is_active' => 'boolean',
         ]);
+
+        if ($request->hasFile('image_file')) {
+            // Delete old image if it exists and is local
+            if ($category->image && Str::contains($category->image, asset('uploads/images/categories/'))) {
+                $oldPath = public_path(str_replace(asset(''), '', $category->image));
+                if (File::exists($oldPath)) {
+                    File::delete($oldPath);
+                }
+            }
+
+            $file = $request->file('image_file');
+            $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $directory = public_path('uploads/images/categories');
+            
+            if (!File::isDirectory($directory)) {
+                File::makeDirectory($directory, 0755, true);
+            }
+            
+            $file->move($directory, $filename);
+            $validated['image'] = asset('uploads/images/categories/' . $filename);
+        }
 
         $category->update($validated);
 

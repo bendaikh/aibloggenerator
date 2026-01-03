@@ -78,6 +78,14 @@ class Website extends Model
     }
 
     /**
+     * Get the authors for the website.
+     */
+    public function authors(): HasMany
+    {
+        return $this->hasMany(Author::class);
+    }
+
+    /**
      * Get the pages for the website.
      */
     public function pages(): HasMany
