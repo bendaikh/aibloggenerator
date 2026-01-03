@@ -1,6 +1,8 @@
 <template>
     <PublicWebsiteLayout :website="website">
-        <Head :title="article.title + ' - ' + website.name" />
+        <Head :title="article.title + ' - ' + website.name">
+            <link v-if="website.favicon_url || website.favicon" :rel="'icon'" :href="website.favicon_url || website.favicon" />
+        </Head>
 
         <article class="py-12 bg-gradient-to-b from-white via-gray-50/50 to-white min-h-screen">
             <div class="container mx-auto px-4">

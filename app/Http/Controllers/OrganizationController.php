@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\Page;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -155,6 +156,8 @@ class OrganizationController extends Controller
             'subdomain' => 'nullable|string|max:255|unique:websites,subdomain',
             'description' => 'nullable|string',
             'is_active' => 'boolean',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:5120',
+            'favicon' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,ico|max:2048',
         ]);
 
         $user = Auth::user();
@@ -172,6 +175,38 @@ class OrganizationController extends Controller
             }
         }
 
+        // Handle logo upload
+        if ($request->hasFile('logo')) {
+            $logoFile = $request->file('logo');
+            $logoFilename = Str::uuid() . '.' . $logoFile->getClientOriginalExtension();
+            $logoDirectory = public_path('uploads/images/website');
+            
+            if (!File::isDirectory($logoDirectory)) {
+                File::makeDirectory($logoDirectory, 0755, true);
+            }
+            
+            $logoFile->move($logoDirectory, $logoFilename);
+            $validated['logo'] = 'uploads/images/website/' . $logoFilename;
+        } else {
+            $validated['logo'] = null;
+        }
+
+        // Handle favicon upload
+        if ($request->hasFile('favicon')) {
+            $faviconFile = $request->file('favicon');
+            $faviconFilename = Str::uuid() . '.' . $faviconFile->getClientOriginalExtension();
+            $faviconDirectory = public_path('uploads/images/website');
+            
+            if (!File::isDirectory($faviconDirectory)) {
+                File::makeDirectory($faviconDirectory, 0755, true);
+            }
+            
+            $faviconFile->move($faviconDirectory, $faviconFilename);
+            $validated['favicon'] = 'uploads/images/website/' . $faviconFilename;
+        } else {
+            $validated['favicon'] = null;
+        }
+
         $website = Website::create([
             'user_id' => $user->id,
             'name' => $validated['name'],
@@ -179,6 +214,8 @@ class OrganizationController extends Controller
             'subdomain' => $validated['subdomain'],
             'description' => $validated['description'] ?? null,
             'is_active' => $validated['is_active'] ?? true,
+            'logo' => $validated['logo'],
+            'favicon' => $validated['favicon'],
         ]);
 
         // Create default pages for the website
@@ -564,7 +601,51 @@ HTML;
             'subdomain' => 'nullable|string|max:255|unique:websites,subdomain,' . $website->id,
             'description' => 'nullable|string',
             'is_active' => 'boolean',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:5120',
+            'favicon' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,ico|max:2048',
         ]);
+
+        // Handle logo upload
+        if ($request->hasFile('logo')) {
+            $logoFile = $request->file('logo');
+            $logoFilename = Str::uuid() . '.' . $logoFile->getClientOriginalExtension();
+            $logoDirectory = public_path('uploads/images/website');
+            
+            if (!\Illuminate\Support\Facades\File::isDirectory($logoDirectory)) {
+                \Illuminate\Support\Facades\File::makeDirectory($logoDirectory, 0755, true);
+            }
+            
+            $logoFile->move($logoDirectory, $logoFilename);
+            $validated['logo'] = 'uploads/images/website/' . $logoFilename;
+            
+            // Delete old logo if exists
+            if ($website->logo && File::exists(public_path($website->logo))) {
+                File::delete(public_path($website->logo));
+            }
+        } else {
+            unset($validated['logo']);
+        }
+
+        // Handle favicon upload
+        if ($request->hasFile('favicon')) {
+            $faviconFile = $request->file('favicon');
+            $faviconFilename = Str::uuid() . '.' . $faviconFile->getClientOriginalExtension();
+            $faviconDirectory = public_path('uploads/images/website');
+            
+            if (!File::isDirectory($faviconDirectory)) {
+                File::makeDirectory($faviconDirectory, 0755, true);
+            }
+            
+            $faviconFile->move($faviconDirectory, $faviconFilename);
+            $validated['favicon'] = 'uploads/images/website/' . $faviconFilename;
+            
+            // Delete old favicon if exists
+            if ($website->favicon && File::exists(public_path($website->favicon))) {
+                File::delete(public_path($website->favicon));
+            }
+        } else {
+            unset($validated['favicon']);
+        }
 
         $website->update($validated);
 

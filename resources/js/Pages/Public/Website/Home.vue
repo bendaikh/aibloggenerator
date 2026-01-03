@@ -1,6 +1,8 @@
 <template>
     <PublicWebsiteLayout :website="website">
-        <Head :title="website.name" />
+        <Head :title="website.name">
+            <link v-if="website.favicon_url || website.favicon" :rel="'icon'" :href="website.favicon_url || website.favicon" />
+        </Head>
 
         <!-- Browse by Category Section -->
         <section class="py-12 bg-white">

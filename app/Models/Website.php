@@ -28,7 +28,7 @@ class Website extends Model
         'published_at',
     ];
 
-    protected $appends = ['url'];
+    protected $appends = ['url', 'logo_url', 'favicon_url'];
 
     protected $casts = [
         'theme_settings' => 'array',
@@ -117,6 +117,42 @@ class Website extends Model
     {
         $baseUrl = $this->url;
         return rtrim($baseUrl, '/') . '/' . ltrim($path, '/');
+    }
+
+    /**
+     * Get the full URL for the logo.
+     */
+    public function getLogoUrlAttribute(): ?string
+    {
+        if (!$this->logo) {
+            return null;
+        }
+
+        // If it's already a full URL, return it as is
+        if (filter_var($this->logo, FILTER_VALIDATE_URL)) {
+            return $this->logo;
+        }
+
+        // Otherwise, convert relative path to full URL
+        return asset($this->logo);
+    }
+
+    /**
+     * Get the full URL for the favicon.
+     */
+    public function getFaviconUrlAttribute(): ?string
+    {
+        if (!$this->favicon) {
+            return null;
+        }
+
+        // If it's already a full URL, return it as is
+        if (filter_var($this->favicon, FILTER_VALIDATE_URL)) {
+            return $this->favicon;
+        }
+
+        // Otherwise, convert relative path to full URL
+        return asset($this->favicon);
     }
 }
 

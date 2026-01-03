@@ -7,6 +7,7 @@ use App\Models\Article;
 use App\Models\Page;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\File;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -574,5 +575,83 @@ HTML;
         }
 
         return $subdomain;
+    }
+
+    /**
+     * Show the website settings page.
+     */
+    public function settings(Website $website): Response
+    {
+        $this->authorize('view', $website);
+
+        $websites = auth()->user()->websites()
+            ->withCount(['articles', 'categories'])
+            ->get();
+
+        return Inertia::render('SuperAdmin/Settings', [
+            'currentWebsite' => $website,
+            'websites' => $websites,
+        ]);
+    }
+
+    /**
+     * Update website settings.
+     */
+    public function updateSettings(Request $request, Website $website)
+    {
+        $this->authorize('update', $website);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:5120',
+            'favicon' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,ico|max:2048',
+        ]);
+
+        // Handle logo upload
+        if ($request->hasFile('logo')) {
+            $logoFile = $request->file('logo');
+            $logoFilename = \Illuminate\Support\Str::uuid() . '.' . $logoFile->getClientOriginalExtension();
+            $logoDirectory = public_path('uploads/images/website');
+            
+            if (!File::isDirectory($logoDirectory)) {
+                File::makeDirectory($logoDirectory, 0755, true);
+            }
+            
+            $logoFile->move($logoDirectory, $logoFilename);
+            $validated['logo'] = 'uploads/images/website/' . $logoFilename;
+            
+            // Delete old logo if exists
+            if ($website->logo && File::exists(public_path($website->logo))) {
+                File::delete(public_path($website->logo));
+            }
+        } else {
+            unset($validated['logo']);
+        }
+
+        // Handle favicon upload
+        if ($request->hasFile('favicon')) {
+            $faviconFile = $request->file('favicon');
+            $faviconFilename = \Illuminate\Support\Str::uuid() . '.' . $faviconFile->getClientOriginalExtension();
+            $faviconDirectory = public_path('uploads/images/website');
+            
+            if (!File::isDirectory($faviconDirectory)) {
+                File::makeDirectory($faviconDirectory, 0755, true);
+            }
+            
+            $faviconFile->move($faviconDirectory, $faviconFilename);
+            $validated['favicon'] = 'uploads/images/website/' . $faviconFilename;
+            
+            // Delete old favicon if exists
+            if ($website->favicon && File::exists(public_path($website->favicon))) {
+                File::delete(public_path($website->favicon));
+            }
+        } else {
+            unset($validated['favicon']);
+        }
+
+        $website->update($validated);
+
+        return redirect()->back()
+            ->with('success', 'Settings updated successfully!');
     }
 }

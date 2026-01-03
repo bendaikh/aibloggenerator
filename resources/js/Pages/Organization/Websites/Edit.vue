@@ -9,6 +9,8 @@ const props = defineProps({
 });
 
 const showDomainInstructions = ref(false);
+const logoPreview = ref(props.website.logo || '');
+const faviconPreview = ref(props.website.favicon || '');
 
 const form = useForm({
     name: props.website.name,
@@ -16,10 +18,52 @@ const form = useForm({
     subdomain: props.website.subdomain || '',
     description: props.website.description || '',
     is_active: props.website.is_active,
+    logo: null,
+    favicon: null,
 });
 
+const handleLogoChange = (event) => {
+    const file = event.target.files?.[0];
+    if (file) {
+        form.logo = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            logoPreview.value = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+const handleFaviconChange = (event) => {
+    const file = event.target.files?.[0];
+    if (file) {
+        form.favicon = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            faviconPreview.value = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+const removeLogo = () => {
+    form.logo = null;
+    logoPreview.value = props.website.logo || '';
+    const input = document.getElementById('logo');
+    if (input) input.value = '';
+};
+
+const removeFavicon = () => {
+    form.favicon = null;
+    faviconPreview.value = props.website.favicon || '';
+    const input = document.getElementById('favicon');
+    if (input) input.value = '';
+};
+
 const submit = () => {
-    form.put(route('organization.websites.update', props.website.id));
+    form.put(route('organization.websites.update', props.website.id), {
+        forceFormData: true,
+    });
 };
 </script>
 
@@ -231,6 +275,102 @@ const submit = () => {
                             placeholder="A brief description of your website..."
                         ></textarea>
                         <p v-if="form.errors.description" class="mt-1 text-sm text-red-500">{{ form.errors.description }}</p>
+                    </div>
+
+                    <!-- Logo Upload -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            Logo (Optional)
+                        </label>
+                        <div v-if="logoPreview" class="mb-3">
+                            <div class="relative inline-block">
+                                <img 
+                                    :src="logoPreview" 
+                                    alt="Logo preview"
+                                    class="h-32 w-auto rounded-lg object-cover border border-[#3a3a3a]"
+                                />
+                                <button
+                                    type="button"
+                                    @click="removeLogo"
+                                    class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors"
+                                    title="Remove logo"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="border-2 border-dashed border-[#3a3a3a] rounded-lg p-6 text-center hover:border-[#4a4a4a] transition-colors cursor-pointer" @click="$refs.logoInput?.click()">
+                            <input
+                                id="logo"
+                                ref="logoInput"
+                                type="file"
+                                accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                                class="hidden"
+                                @change="handleLogoChange"
+                            />
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-12 bg-[#252525] rounded-lg flex items-center justify-center mb-3">
+                                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <p class="text-white text-sm font-medium mb-1">
+                                    {{ logoPreview ? 'Click to change logo' : 'Drop an image here or click to browse' }}
+                                </p>
+                                <p class="text-gray-500 text-xs">PNG, JPG, GIF, WebP, SVG up to 5MB</p>
+                            </div>
+                        </div>
+                        <p v-if="form.errors.logo" class="mt-1 text-sm text-red-500">{{ form.errors.logo }}</p>
+                    </div>
+
+                    <!-- Favicon Upload -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            Favicon (Optional)
+                        </label>
+                        <div v-if="faviconPreview" class="mb-3">
+                            <div class="relative inline-block">
+                                <img 
+                                    :src="faviconPreview" 
+                                    alt="Favicon preview"
+                                    class="h-16 w-16 rounded-lg object-cover border border-[#3a3a3a]"
+                                />
+                                <button
+                                    type="button"
+                                    @click="removeFavicon"
+                                    class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors"
+                                    title="Remove favicon"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="border-2 border-dashed border-[#3a3a3a] rounded-lg p-6 text-center hover:border-[#4a4a4a] transition-colors cursor-pointer" @click="$refs.faviconInput?.click()">
+                            <input
+                                id="favicon"
+                                ref="faviconInput"
+                                type="file"
+                                accept="image/jpeg,image/png,image/gif,image/webp,image/x-icon"
+                                class="hidden"
+                                @change="handleFaviconChange"
+                            />
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-12 bg-[#252525] rounded-lg flex items-center justify-center mb-3">
+                                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <p class="text-white text-sm font-medium mb-1">
+                                    {{ faviconPreview ? 'Click to change favicon' : 'Drop an image here or click to browse' }}
+                                </p>
+                                <p class="text-gray-500 text-xs">PNG, JPG, GIF, WebP, ICO up to 2MB. Recommended: 32x32 or 16x16 pixels</p>
+                            </div>
+                        </div>
+                        <p v-if="form.errors.favicon" class="mt-1 text-sm text-red-500">{{ form.errors.favicon }}</p>
                     </div>
 
                     <!-- Active Status -->

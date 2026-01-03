@@ -1,6 +1,8 @@
 <template>
     <PublicWebsiteLayout :website="website">
-        <Head :title="page.meta_title || page.title + ' - ' + website.name" />
+        <Head :title="page.meta_title || page.title + ' - ' + website.name">
+            <link v-if="website.favicon_url || website.favicon" :rel="'icon'" :href="website.favicon_url || website.favicon" />
+        </Head>
 
         <div class="py-12 bg-white">
             <div class="container mx-auto px-4">
