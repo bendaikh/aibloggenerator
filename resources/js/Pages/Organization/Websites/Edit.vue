@@ -61,7 +61,10 @@ const removeFavicon = () => {
 };
 
 const submit = () => {
-    form.put(route('organization.websites.update', props.website.id), {
+    form.transform((data) => ({
+        ...data,
+        _method: 'PUT',
+    })).post(route('organization.websites.update', props.website.id), {
         forceFormData: true,
     });
 };
