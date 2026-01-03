@@ -1,7 +1,7 @@
 <template>
     <PublicWebsiteLayout :website="website">
         <Head :title="website.name">
-            <link v-if="website.favicon_url || website.favicon" :rel="'icon'" :href="website.favicon_url || website.favicon" />
+            <link v-if="website.favicon_url" :rel="'icon'" :href="website.favicon_url" />
         </Head>
 
         <!-- Browse by Category Section -->

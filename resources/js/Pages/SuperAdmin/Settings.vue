@@ -19,8 +19,8 @@ const form = useForm({
     remove_favicon: false,
 });
 
-const logoPreview = ref(props.currentWebsite.logo_url || props.currentWebsite.logo || '');
-const faviconPreview = ref(props.currentWebsite.favicon_url || props.currentWebsite.favicon || '');
+const logoPreview = ref(props.currentWebsite.logo_url || '');
+const faviconPreview = ref(props.currentWebsite.favicon_url || '');
 
 const handleLogoChange = (event) => {
     const file = event.target.files?.[0];

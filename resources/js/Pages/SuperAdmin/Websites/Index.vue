@@ -24,7 +24,7 @@
                         class="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
                     >
                         <div class="h-48 bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center">
-                            <img v-if="website.logo" :src="website.logo" :alt="website.name" class="max-h-32 max-w-full" />
+                            <img v-if="website.logo_url" :src="website.logo_url" :alt="website.name" class="max-h-32 max-w-full" />
                             <span v-else class="text-4xl font-bold text-white">{{ website.name.charAt(0) }}</span>
                         </div>
                         <div class="p-6">

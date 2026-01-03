@@ -30,7 +30,7 @@
                 <div class="flex items-center justify-between py-4">
                     <!-- Logo -->
                     <a :href="website.url" class="flex items-center">
-                        <img v-if="website.logo_url || website.logo" :src="website.logo_url || website.logo" :alt="website.name" class="h-12" />
+                        <img v-if="website.logo_url" :src="website.logo_url" :alt="website.name" class="h-12" />
                         <span v-else class="text-2xl font-bold text-gray-900">{{ website.name }}</span>
                     </a>
 
@@ -171,7 +171,7 @@
                     <!-- Logo Column -->
                     <div>
                         <a :href="website.url" class="inline-block mb-4">
-                            <img v-if="website.logo_url || website.logo" :src="website.logo_url || website.logo" :alt="website.name" class="h-10" />
+                            <img v-if="website.logo_url" :src="website.logo_url" :alt="website.name" class="h-10" />
                             <span v-else class="text-xl font-bold text-gray-900">{{ website.name }}</span>
                         </a>
                         <p class="text-gray-500 text-sm">Delicious recipes for every occasion.</p>

@@ -26,8 +26,9 @@
                     class="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] overflow-hidden hover:border-emerald-500/50 transition-all"
                 >
                     <div class="h-32 bg-gradient-to-br from-amber-500/20 to-yellow-500/20 flex items-center justify-center">
-                        <div class="w-16 h-16 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-xl flex items-center justify-center">
-                            <span class="text-2xl font-bold text-white">{{ website.name.charAt(0) }}</span>
+                        <div class="w-16 h-16 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-xl flex items-center justify-center overflow-hidden">
+                            <img v-if="website.favicon_url" :src="website.favicon_url" :alt="website.name" class="w-full h-full object-cover" />
+                            <span v-else class="text-2xl font-bold text-white">{{ website.name.charAt(0) }}</span>
                         </div>
                     </div>
                     <div class="p-6">

@@ -1,7 +1,7 @@
 <template>
     <PublicWebsiteLayout :website="website">
         <Head :title="category.name + ' - ' + website.name">
-            <link v-if="website.favicon_url || website.favicon" :rel="'icon'" :href="website.favicon_url || website.favicon" />
+            <link v-if="website.favicon_url" :rel="'icon'" :href="website.favicon_url" />
         </Head>
 
         <div class="py-12 bg-white">

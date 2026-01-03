@@ -9,8 +9,8 @@ const props = defineProps({
 });
 
 const showDomainInstructions = ref(false);
-const logoPreview = ref(props.website.logo || '');
-const faviconPreview = ref(props.website.favicon || '');
+const logoPreview = ref(props.website.logo_url || '');
+const faviconPreview = ref(props.website.favicon_url || '');
 
 const form = useForm({
     name: props.website.name,
@@ -48,14 +48,14 @@ const handleFaviconChange = (event) => {
 
 const removeLogo = () => {
     form.logo = null;
-    logoPreview.value = props.website.logo || '';
+    logoPreview.value = props.website.logo_url || '';
     const input = document.getElementById('logo');
     if (input) input.value = '';
 };
 
 const removeFavicon = () => {
     form.favicon = null;
-    faviconPreview.value = props.website.favicon || '';
+    faviconPreview.value = props.website.favicon_url || '';
     const input = document.getElementById('favicon');
     if (input) input.value = '';
 };
