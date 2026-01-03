@@ -6,6 +6,8 @@ use App\Models\Website;
 use App\Models\Article;
 use App\Models\Category;
 use App\Models\Page;
+use App\Models\ArticleGenerationJob;
+use App\Jobs\GenerateGlobalAIArticleJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
@@ -664,6 +666,89 @@ HTML;
 
         return redirect()->route('organization.websites.index')
             ->with('success', 'Website deleted successfully!');
+    }
+
+    /**
+     * Global Articles Index
+     */
+    public function globalArticlesIndex()
+    {
+        $user = Auth::user();
+        $websites = Website::where('user_id', $user->id)
+            ->withCount(['articles', 'categories'])
+            ->get();
+
+        return Inertia::render('Organization/GlobalArticles', [
+            'websites' => $websites,
+            'hasApiKey' => !empty($user->openai_api_key),
+            'defaultTone' => $user->ai_default_tone ?? 'conversational',
+        ]);
+    }
+
+    /**
+     * Generate Global AI Article
+     */
+    public function globalArticlesGenerate(Request $request)
+    {
+        $user = Auth::user();
+
+        if (empty($user->openai_api_key)) {
+            return back()->withErrors(['error' => 'Please configure your OpenAI API key in Global Settings first.']);
+        }
+
+        $validated = $request->validate([
+            'topic' => 'required|string|max:255',
+            'tone' => 'nullable|string|in:professional,casual,friendly,formal,conversational',
+            'length' => 'nullable|string|in:short,medium,long',
+            'keywords' => 'nullable|string',
+            'featured_images' => 'nullable|array',
+            'featured_images.*' => 'nullable|string|max:1000',
+            'auto_publish' => 'boolean',
+            'website_ids' => 'required|array|min:1',
+            'website_ids.*' => 'exists:websites,id',
+        ]);
+
+        $websiteIds = $validated['website_ids'];
+        $generationJobIds = [];
+
+        // Verify websites belong to user and create tracking jobs
+        foreach ($websiteIds as $websiteId) {
+            $website = Website::where('id', $websiteId)->where('user_id', $user->id)->first();
+            if (!$website) {
+                continue; // Or abort/error
+            }
+
+            $trackingJob = ArticleGenerationJob::create([
+                'user_id' => $user->id,
+                'website_id' => $website->id,
+                'topic' => $validated['topic'],
+                'status' => 'pending',
+            ]);
+
+            $generationJobIds[$websiteId] = $trackingJob->id;
+        }
+
+        if (empty($generationJobIds)) {
+            return back()->withErrors(['error' => 'No valid websites selected.']);
+        }
+
+        // Filter out empty images
+        $featuredImages = array_filter($validated['featured_images'] ?? [], fn($img) => !empty($img));
+
+        // Dispatch the global job
+        GenerateGlobalAIArticleJob::dispatch(
+            $generationJobIds,
+            array_keys($generationJobIds),
+            $user->id,
+            $validated['topic'],
+            $validated['tone'] ?? $user->ai_default_tone ?? 'conversational',
+            $validated['length'] ?? 'medium',
+            $validated['keywords'] ?? '',
+            $validated['auto_publish'] ?? false,
+            $featuredImages
+        );
+
+        return redirect()->back()->with('success', 'Global article generation started! We will push it to ' . count($generationJobIds) . ' websites.');
     }
 }
 

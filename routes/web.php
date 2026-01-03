@@ -71,6 +71,10 @@ $registerMainAppRoutes = function () {
         Route::get('/websites/{website}/edit', [OrganizationController::class, 'websitesEdit'])->name('organization.websites.edit');
         Route::put('/websites/{website}', [OrganizationController::class, 'websitesUpdate'])->name('organization.websites.update');
         Route::delete('/websites/{website}', [OrganizationController::class, 'websitesDestroy'])->name('organization.websites.destroy');
+
+        // Global Articles
+        Route::get('/global-articles', [OrganizationController::class, 'globalArticlesIndex'])->name('organization.global-articles.index');
+        Route::post('/global-articles/generate', [OrganizationController::class, 'globalArticlesGenerate'])->name('organization.global-articles.generate');
     });
 
     // SuperAdmin Routes (Website-Specific)
