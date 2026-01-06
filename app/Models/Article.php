@@ -23,6 +23,7 @@ class Article extends Model
         'meta_title',
         'meta_description',
         'meta_tags',
+        'gradients',
         'status',
         'generation_type',
         'views',
@@ -34,6 +35,7 @@ class Article extends Model
 
     protected $casts = [
         'meta_tags' => 'array',
+        'gradients' => 'array',
         'views' => 'integer',
         'ai_generated' => 'boolean',
         'published_at' => 'datetime',

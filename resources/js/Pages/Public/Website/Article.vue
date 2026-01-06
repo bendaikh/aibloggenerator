@@ -89,8 +89,16 @@
                                 </div>
                             </div>
 
-                            <!-- Article Content -->
-                            <div class="prose prose-emerald prose-lg max-w-none article-body" v-html="cleanedContent"></div>
+                            <!-- Recipe Card Component -->
+                            <RecipeCard 
+                                :gradients="article.gradients"
+                                :content="article.processed_content || article.content || ''" 
+                                :title="article.title"
+                                ref="recipeCard"
+                            />
+
+                            <!-- Article Content (with recipe sections removed) -->
+                            <div class="prose prose-emerald prose-lg max-w-none article-body" v-html="contentWithoutRecipeSections"></div>
 
                             <!-- Share Buttons (Bottom) -->
                             <div class="mt-16 bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
@@ -189,8 +197,9 @@
 
 <script setup>
 import { Head } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import PublicWebsiteLayout from '@/Layouts/PublicWebsiteLayout.vue';
+import RecipeCard from '@/Components/RecipeCard.vue';
 
 const props = defineProps({
     website: Object,
@@ -206,6 +215,8 @@ const formatDate = (date) => {
     });
 };
 
+const recipeCard = ref(null);
+
 // Clean the article content by removing markdown code block markers
 // Use processed_content if available (which has fixed image URLs), otherwise fall back to content
 const cleanedContent = computed(() => {
@@ -219,19 +230,84 @@ const cleanedContent = computed(() => {
     return content.trim();
 });
 
-const scrollToRecipe = () => {
-    const headers = document.querySelectorAll('.article-body h2');
-    let recipeHeader = null;
+// Remove Ingredients and Instructions sections from the main content
+// so they only appear in the RecipeCard component
+const contentWithoutRecipeSections = computed(() => {
+    let content = cleanedContent.value;
     
-    for (const h2 of headers) {
-        if (h2.textContent.toLowerCase().includes('ingredient') || h2.textContent.toLowerCase().includes('recipe')) {
-            recipeHeader = h2;
-            break;
+    if (!content) return '';
+    
+    // Create a temporary DOM element to parse HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = content;
+    
+    // Find and remove Ingredients section
+    const ingredientsHeaders = tempDiv.querySelectorAll('h2, h3');
+    ingredientsHeaders.forEach(header => {
+        const headerText = header.textContent.toLowerCase().trim();
+        if (headerText.includes('ingredient') || headerText.includes('ingredients')) {
+            // Remove the header and its associated list
+            let current = header.nextElementSibling;
+            const elementsToRemove = [header];
+            
+            while (current) {
+                if (current.tagName === 'UL' || current.tagName === 'OL') {
+                    elementsToRemove.push(current);
+                    current = current.nextElementSibling;
+                } else if (current.tagName === 'H2' || current.tagName === 'H3') {
+                    break;
+                } else {
+                    current = current.nextElementSibling;
+                }
+            }
+            
+            elementsToRemove.forEach(el => el.remove());
         }
-    }
+    });
     
-    if (recipeHeader) {
-        recipeHeader.scrollIntoView({ behavior: 'smooth' });
+    // Find and remove Instructions section
+    const instructionsHeaders = tempDiv.querySelectorAll('h2, h3');
+    instructionsHeaders.forEach(header => {
+        const headerText = header.textContent.toLowerCase().trim();
+        if (headerText.includes('instruction') || 
+            headerText.includes('instructions') || 
+            headerText.includes('steps') || 
+            headerText.includes('step') ||
+            headerText.includes('directions') ||
+            headerText.includes('direction')) {
+            // Remove the header and its associated list
+            let current = header.nextElementSibling;
+            const elementsToRemove = [header];
+            
+            while (current) {
+                if (current.tagName === 'UL' || current.tagName === 'OL') {
+                    elementsToRemove.push(current);
+                    current = current.nextElementSibling;
+                } else if (current.tagName === 'H2' || current.tagName === 'H3') {
+                    break;
+                } else {
+                    current = current.nextElementSibling;
+                }
+            }
+            
+            elementsToRemove.forEach(el => el.remove());
+        }
+    });
+    
+    return tempDiv.innerHTML;
+});
+
+const scrollToRecipe = () => {
+    // Scroll to the recipe card component
+    if (recipeCard.value && recipeCard.value.scrollIntoView) {
+        recipeCard.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        // Fallback: try to find the recipe card by ID or class
+        const recipeCardElement = document.getElementById('recipe-card') || 
+                                 document.querySelector('.recipe-card-container');
+        if (recipeCardElement) {
+            recipeCardElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 };
 </script>
