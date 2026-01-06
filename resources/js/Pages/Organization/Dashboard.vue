@@ -116,16 +116,35 @@ const props = defineProps({
                         class="block p-4 bg-[#252525] rounded-xl border border-[#3a3a3a] hover:border-emerald-500 transition-all group"
                     >
                         <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-xl flex items-center justify-center shrink-0">
-                                <span class="text-white text-lg font-bold">{{ website.name.charAt(0).toUpperCase() }}</span>
+                            <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 overflow-hidden bg-[#252525]">
+                                <img 
+                                    v-if="website.favicon_url" 
+                                    :src="website.favicon_url" 
+                                    :alt="website.name"
+                                    class="w-full h-full object-cover"
+                                />
+                                <span v-else class="text-white text-lg font-bold bg-gradient-to-br from-amber-500 to-yellow-500 w-full h-full flex items-center justify-center">{{ website.name.charAt(0).toUpperCase() }}</span>
                             </div>
                             <div class="flex-1 min-w-0">
                                 <h3 class="text-white font-semibold truncate group-hover:text-emerald-400 transition-colors">{{ website.name }}</h3>
                                 <p class="text-gray-500 text-sm truncate">{{ website.domain || 'No domain set' }}</p>
                             </div>
-                            <svg class="w-5 h-5 text-gray-500 group-hover:text-emerald-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                            </svg>
+                            <div class="flex items-center gap-2">
+                                <a 
+                                    :href="website.url" 
+                                    target="_blank"
+                                    @click.stop
+                                    class="p-2 text-gray-500 hover:text-emerald-400 transition-colors"
+                                    title="Visit website"
+                                >
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                </a>
+                                <svg class="w-5 h-5 text-gray-500 group-hover:text-emerald-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </div>
                         </div>
                         <div class="flex items-center gap-4 mt-4 text-sm">
                             <span class="text-gray-400">

@@ -127,8 +127,14 @@ const isActivePrefix = (prefix) => {
                             :href="route('superadmin.dashboard', { website: website.id })"
                             class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors text-gray-400 hover:bg-[#1a1a1a] hover:text-white group"
                         >
-                            <div class="w-7 h-7 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-lg flex items-center justify-center shrink-0">
-                                <span class="text-white text-xs font-bold">{{ website.name.charAt(0).toUpperCase() }}</span>
+                            <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-[#252525]">
+                                <img 
+                                    v-if="website.favicon_url" 
+                                    :src="website.favicon_url" 
+                                    :alt="website.name"
+                                    class="w-full h-full object-cover"
+                                />
+                                <span v-else class="text-white text-xs font-bold bg-gradient-to-br from-amber-500 to-yellow-500 w-full h-full flex items-center justify-center">{{ website.name.charAt(0).toUpperCase() }}</span>
                             </div>
                             <div class="flex-1 min-w-0">
                                 <p class="truncate">{{ website.name }}</p>

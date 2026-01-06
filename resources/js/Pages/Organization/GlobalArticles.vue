@@ -124,28 +124,63 @@
 
                             <!-- Multiple Featured Images -->
                             <div class="space-y-4">
-                                <div class="flex items-center justify-between">
-                                    <label class="block text-sm font-medium text-gray-300">
-                                        Featured Images (Optional)
-                                    </label>
-                                    <button 
-                                        type="button"
-                                        @click="addMoreImages"
-                                        class="text-xs text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1"
-                                    >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                                        </svg>
-                                        Add another image
-                                    </button>
-                                </div>
-                                <p class="text-xs text-gray-500">These images will be distributed sequentially to the selected websites.</p>
+                                <label class="block text-sm font-medium text-gray-300">
+                                    Featured Images (Optional)
+                                </label>
+                                <p class="text-xs text-gray-500">Upload multiple images at once. These images will be distributed sequentially to the selected websites.</p>
                                 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div v-for="(img, index) in form.featured_images" :key="index" class="relative group">
+                                <!-- Multiple Image Upload with Label -->
+                                <label 
+                                    for="multipleImageUpload"
+                                    @dragover.prevent="isDragging = true"
+                                    @dragleave.prevent="isDragging = false"
+                                    @drop.prevent="handleMultipleDrop"
+                                    :class="[
+                                        'border-2 border-dashed rounded-lg p-8 text-center transition-all block',
+                                        isUploading ? 'cursor-wait opacity-70' : 'cursor-pointer',
+                                        isDragging ? 'border-emerald-500 bg-emerald-900/20' : 'border-[#3a3a3a] hover:border-[#4a4a4a]'
+                                    ]"
+                                >
+                                    <input
+                                        id="multipleImageUpload"
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/gif,image/webp"
+                                        multiple
+                                        class="sr-only"
+                                        @change="handleMultipleFileSelect"
+                                        :disabled="isUploading"
+                                    />
+                                    <div class="flex flex-col items-center">
+                                        <div v-if="isUploading" class="w-12 h-12 bg-[#252525] rounded-lg flex items-center justify-center mb-3">
+                                            <svg class="animate-spin w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                        </div>
+                                        <div v-else class="w-12 h-12 bg-[#252525] rounded-lg flex items-center justify-center mb-3">
+                                            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                        </div>
+                                        <p class="text-white text-sm font-medium mb-1">
+                                            {{ isUploading ? 'Uploading images...' : 'Drop multiple images here or click to browse' }}
+                                        </p>
+                                        <p class="text-gray-500 text-xs">
+                                            PNG, JPG, WebP up to 5MB each
+                                        </p>
+                                    </div>
+                                </label>
+                                
+                                <!-- Upload Error -->
+                                <div v-if="uploadError" class="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg text-sm">
+                                    {{ uploadError }}
+                                </div>
+                                
+                                <!-- Uploaded Images Preview -->
+                                <div v-if="uploadedImages.length > 0" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                    <div v-for="(img, index) in uploadedImages" :key="index" class="relative group">
                                         <div class="absolute -top-2 -right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button 
-                                                v-if="form.featured_images.length > 1"
                                                 type="button"
                                                 @click="removeImageAt(index)"
                                                 class="w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg"
@@ -155,12 +190,10 @@
                                                 </svg>
                                             </button>
                                         </div>
-                                        <ImageUpload
-                                            v-model="form.featured_images[index]"
-                                            :label="`Image #${index + 1}`"
-                                            type="article"
-                                            hint="PNG, JPG, WebP"
-                                            :allow-url="true"
+                                        <img 
+                                            :src="img" 
+                                            :alt="`Featured image ${index + 1}`"
+                                            class="w-full h-32 object-cover rounded-lg border border-[#3a3a3a]"
                                         />
                                     </div>
                                 </div>
@@ -233,8 +266,14 @@
                                         <div v-else class="w-5 h-5 border-2 border-[#3a3a3a] rounded"></div>
                                     </div>
                                     
-                                    <div class="w-8 h-8 bg-gradient-to-br from-amber-500 to-yellow-500 rounded flex items-center justify-center shrink-0">
-                                        <span class="text-white text-xs font-bold">{{ website.name.charAt(0).toUpperCase() }}</span>
+                                    <div class="w-8 h-8 rounded flex items-center justify-center shrink-0 overflow-hidden bg-[#252525]">
+                                        <img 
+                                            v-if="website.favicon_url" 
+                                            :src="website.favicon_url" 
+                                            :alt="website.name"
+                                            class="w-full h-full object-cover"
+                                        />
+                                        <span v-else class="text-white text-xs font-bold bg-gradient-to-br from-amber-500 to-yellow-500 w-full h-full flex items-center justify-center">{{ website.name.charAt(0).toUpperCase() }}</span>
                                     </div>
 
                                     <div class="flex-1 min-w-0">
@@ -254,7 +293,7 @@
 import { ref, computed } from 'vue';
 import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import ImageUpload from '@/Components/ImageUpload.vue';
+import axios from 'axios';
 
 const page = usePage();
 
@@ -274,23 +313,82 @@ const props = defineProps({
 });
 
 const selectedWebsites = ref([]);
+const isDragging = ref(false);
+const isUploading = ref(false);
+const uploadError = ref('');
+const uploadedImages = ref([]); // Separate reactive array for images
 
 const form = useForm({
     topic: '',
     tone: props.defaultTone,
     length: 'medium',
     keywords: '',
-    featured_images: [''], // Array of images
     auto_publish: false,
     website_ids: [],
 });
 
-const addMoreImages = () => {
-    form.featured_images.push('');
+const handleMultipleFileSelect = async (event) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length > 0) {
+        await uploadMultipleImages(files);
+    }
+    // Reset input so same files can be selected again
+    event.target.value = '';
+};
+
+const handleMultipleDrop = async (event) => {
+    isDragging.value = false;
+    const files = Array.from(event.dataTransfer?.files || []);
+    if (files.length > 0) {
+        await uploadMultipleImages(files);
+    }
+};
+
+const uploadMultipleImages = async (files) => {
+    uploadError.value = '';
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    
+    if (imageFiles.length === 0) {
+        uploadError.value = 'No valid image files selected';
+        return;
+    }
+    
+    isUploading.value = true;
+    const errors = [];
+    
+    // Upload each image
+    for (const file of imageFiles) {
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+            formData.append('type', 'article');
+            
+            const response = await axios.post('/upload/image', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            
+            if (response.data && response.data.success) {
+                uploadedImages.value.push(response.data.url);
+            } else {
+                errors.push(file.name + ': Upload failed');
+            }
+        } catch (err) {
+            console.error('Upload error:', err);
+            errors.push(file.name + ': ' + (err.response?.data?.message || err.message || 'Upload failed'));
+        }
+    }
+    
+    isUploading.value = false;
+    
+    if (errors.length > 0) {
+        uploadError.value = errors.join(', ');
+    }
 };
 
 const removeImageAt = (index) => {
-    form.featured_images.splice(index, 1);
+    uploadedImages.value.splice(index, 1);
 };
 
 const toggleWebsite = (id) => {
@@ -312,11 +410,26 @@ const deselectAllWebsites = () => {
 
 const submitForm = () => {
     form.website_ids = selectedWebsites.value;
-    form.post(route('organization.global-articles.generate'), {
+    form.transform((data) => ({
+        ...data,
+        featured_images: uploadedImages.value,
+    })).post(route('organization.global-articles.generate'), {
         onSuccess: () => {
+            // Reset form fields
             form.reset('topic', 'keywords');
+            form.tone = props.defaultTone;
+            form.length = 'medium';
+            form.auto_publish = false;
+            
+            // Clear uploaded images
+            uploadedImages.value = [];
+            
+            // Clear selected websites
+            selectedWebsites.value = [];
+            
             // Flash message handled by inertia
         }
     });
 };
 </script>
+

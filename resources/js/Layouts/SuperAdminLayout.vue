@@ -58,11 +58,19 @@ const switchWebsite = (website) => {
                         @click="websiteDropdownOpen = !websiteDropdownOpen"
                         class="flex items-center gap-3 p-2 rounded-lg bg-[#1f1f1f] cursor-pointer hover:bg-[#252525] transition-colors w-full"
                     >
-                        <div class="w-8 h-8 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-lg flex items-center justify-center">
-                            <svg v-if="!currentWebsite" class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                            </svg>
-                            <span v-else class="text-white text-sm font-bold">{{ currentWebsite.name?.charAt(0).toUpperCase() }}</span>
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden bg-[#252525]">
+                            <div v-if="!currentWebsite" class="w-full h-full bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                                </svg>
+                            </div>
+                            <img 
+                                v-else-if="currentWebsite.favicon_url" 
+                                :src="currentWebsite.favicon_url" 
+                                :alt="currentWebsite.name"
+                                class="w-full h-full object-cover"
+                            />
+                            <span v-else class="text-white text-sm font-bold bg-gradient-to-br from-amber-500 to-yellow-500 w-full h-full flex items-center justify-center">{{ currentWebsite.name?.charAt(0).toUpperCase() }}</span>
                         </div>
                         <div class="flex-1 min-w-0 text-left">
                             <p class="text-white text-sm font-medium truncate">{{ currentWebsite?.name || 'Select Website' }}</p>
@@ -87,8 +95,14 @@ const switchWebsite = (website) => {
                                 currentWebsite?.id === website.id ? 'bg-[#252525]' : ''
                             ]"
                         >
-                            <div class="w-7 h-7 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-lg flex items-center justify-center shrink-0">
-                                <span class="text-white text-xs font-bold">{{ website.name.charAt(0).toUpperCase() }}</span>
+                            <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-[#252525]">
+                                <img 
+                                    v-if="website.favicon_url" 
+                                    :src="website.favicon_url" 
+                                    :alt="website.name"
+                                    class="w-full h-full object-cover"
+                                />
+                                <span v-else class="text-white text-xs font-bold bg-gradient-to-br from-amber-500 to-yellow-500 w-full h-full flex items-center justify-center">{{ website.name.charAt(0).toUpperCase() }}</span>
                             </div>
                             <div class="flex-1 min-w-0 text-left">
                                 <p class="text-white text-sm truncate">{{ website.name }}</p>
