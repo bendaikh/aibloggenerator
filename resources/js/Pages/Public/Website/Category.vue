@@ -27,8 +27,8 @@
                     >
                         <div class="overflow-hidden rounded-2xl mb-4 shadow-md group-hover:shadow-xl transition">
                             <img
-                                v-if="article.featured_image"
-                                :src="article.featured_image"
+                                v-if="article.processed_featured_image || article.featured_image"
+                                :src="article.processed_featured_image || article.featured_image"
                                 :alt="article.title"
                                 class="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-500"
                             />

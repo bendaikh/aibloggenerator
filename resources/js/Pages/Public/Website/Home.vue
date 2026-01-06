@@ -118,8 +118,8 @@
                     >
                         <div class="overflow-hidden rounded-2xl mb-4 shadow-md group-hover:shadow-xl transition">
                             <img
-                                v-if="article.featured_image"
-                                :src="article.featured_image"
+                                v-if="article.processed_featured_image || article.featured_image"
+                                :src="article.processed_featured_image || article.featured_image"
                                 :alt="article.title"
                                 class="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-500"
                             />
@@ -175,8 +175,8 @@
                             >
                                 <div class="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 shadow-md">
                                     <img
-                                        v-if="article.featured_image"
-                                        :src="article.featured_image"
+                                        v-if="article.processed_featured_image || article.featured_image"
+                                        :src="article.processed_featured_image || article.featured_image"
                                         :alt="article.title"
                                         class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                     />
@@ -212,8 +212,8 @@
                     >
                         <div class="overflow-hidden rounded-2xl mb-3 shadow-md group-hover:shadow-xl transition">
                             <img
-                                v-if="article.featured_image"
-                                :src="article.featured_image"
+                                v-if="article.processed_featured_image || article.featured_image"
+                                :src="article.processed_featured_image || article.featured_image"
                                 :alt="article.title"
                                 class="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-500"
                             />

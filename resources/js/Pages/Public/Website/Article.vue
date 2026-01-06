@@ -70,11 +70,11 @@
                             </header>
 
                             <!-- Featured Image -->
-                            <div v-if="article.featured_image" class="mb-12 relative group">
+                            <div v-if="article.processed_featured_image || article.featured_image" class="mb-12 relative group">
                                 <div class="absolute -inset-1 bg-gradient-to-r from-emerald-100 to-teal-100 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
                                 <div class="relative rounded-[2rem] overflow-hidden shadow-2xl">
                                     <img
-                                        :src="article.featured_image"
+                                        :src="article.processed_featured_image || article.featured_image"
                                         :alt="article.title"
                                         class="w-full h-auto object-cover transform transition duration-500 group-hover:scale-[1.02]"
                                     />
@@ -158,8 +158,8 @@
                                         >
                                             <div class="w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden shadow-sm">
                                                 <img
-                                                    v-if="related.featured_image"
-                                                    :src="related.featured_image"
+                                                    v-if="related.processed_featured_image || related.featured_image"
+                                                    :src="related.processed_featured_image || related.featured_image"
                                                     :alt="related.title"
                                                     class="w-full h-full object-cover group-hover:scale-110 transition duration-500"
                                                 />
@@ -207,8 +207,9 @@ const formatDate = (date) => {
 };
 
 // Clean the article content by removing markdown code block markers
+// Use processed_content if available (which has fixed image URLs), otherwise fall back to content
 const cleanedContent = computed(() => {
-    let content = props.article?.content || '';
+    let content = props.article?.processed_content || props.article?.content || '';
     
     // Remove markdown code block markers (```html, ```, ```xml, etc.)
     content = content.replace(/^```(?:html|xml|markdown|md)?\s*\n?/gi, '');

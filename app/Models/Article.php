@@ -30,7 +30,7 @@ class Article extends Model
         'published_at',
     ];
 
-    protected $appends = ['url'];
+    protected $appends = ['url', 'processed_content', 'processed_featured_image'];
 
     protected $casts = [
         'meta_tags' => 'array',
@@ -113,6 +113,165 @@ class Article extends Model
     public function getUrlAttribute(): string
     {
         return $this->website->getUrlForPath('article/' . $this->slug);
+    }
+
+    /**
+     * Get the processed content with fixed image URLs.
+     * This ensures images are accessible regardless of domain changes.
+     */
+    public function getProcessedContentAttribute(): string
+    {
+        $content = $this->attributes['content'] ?? $this->content ?? '';
+        
+        if (empty($content)) {
+            return '';
+        }
+        
+        // If request() is not available (e.g., in console commands), return original content
+        if (!app()->runningInConsole() && !request()) {
+            return $content;
+        }
+        
+        // Pattern to match img tags with src attributes
+        $pattern = '/<img\s+[^>]*src=["\']([^"\']+)["\'][^>]*>/i';
+        
+        $content = preg_replace_callback($pattern, function ($matches) {
+            $imageUrl = $matches[1];
+            $originalTag = $matches[0];
+            
+            // If request() is not available, return original
+            if (!request()) {
+                return $originalTag;
+            }
+            
+            // Skip if it's already a valid external URL (not localhost/127.0.0.1 and not pointing to uploads)
+            if (preg_match('/^https?:\/\//i', $imageUrl)) {
+                $parsedUrl = parse_url($imageUrl);
+                
+                // If it's a valid external URL (not localhost and not our uploads path), keep it
+                if (isset($parsedUrl['host']) && 
+                    $parsedUrl['host'] !== 'localhost' && 
+                    $parsedUrl['host'] !== '127.0.0.1' &&
+                    strpos($parsedUrl['path'] ?? '', '/uploads/images/') === false) {
+                    return $originalTag; // Already correct external URL
+                }
+                
+                // It's localhost or has uploads path - rebuild with current domain
+                if (isset($parsedUrl['path'])) {
+                    $path = $parsedUrl['path'];
+                    $scheme = request()->getScheme();
+                    $host = request()->getHost();
+                    $port = request()->getPort();
+                    $portString = ($port && $port != 80 && $port != 443) ? ':' . $port : '';
+                    $fixedUrl = $scheme . '://' . $host . $portString . $path;
+                    return str_replace($imageUrl, $fixedUrl, $originalTag);
+                }
+            }
+            
+            // If it's just a filename (UUID pattern), add the full path
+            if (preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.(png|jpg|jpeg|gif|webp)$/i', $imageUrl)) {
+                $scheme = request()->getScheme();
+                $host = request()->getHost();
+                $port = request()->getPort();
+                $portString = ($port && $port != 80 && $port != 443) ? ':' . $port : '';
+                $fixedUrl = $scheme . '://' . $host . $portString . '/uploads/images/article/' . $imageUrl;
+                return str_replace($imageUrl, $fixedUrl, $originalTag);
+            }
+            
+            // If it's a relative path starting with uploads/images/, make it absolute
+            if (strpos($imageUrl, 'uploads/images/') === 0) {
+                $scheme = request()->getScheme();
+                $host = request()->getHost();
+                $port = request()->getPort();
+                $portString = ($port && $port != 80 && $port != 443) ? ':' . $port : '';
+                $fixedUrl = $scheme . '://' . $host . $portString . '/' . $imageUrl;
+                return str_replace($imageUrl, $fixedUrl, $originalTag);
+            }
+            
+            // If it starts with /uploads/images/, make it absolute
+            if (strpos($imageUrl, '/uploads/images/') === 0) {
+                $scheme = request()->getScheme();
+                $host = request()->getHost();
+                $port = request()->getPort();
+                $portString = ($port && $port != 80 && $port != 443) ? ':' . $port : '';
+                $fixedUrl = $scheme . '://' . $host . $portString . $imageUrl;
+                return str_replace($imageUrl, $fixedUrl, $originalTag);
+            }
+            
+            return $originalTag; // No change needed
+        }, $content);
+        
+        return $content;
+    }
+
+    /**
+     * Get the processed featured image URL with fixed domain.
+     * This ensures featured images are accessible regardless of domain changes.
+     */
+    public function getProcessedFeaturedImageAttribute(): ?string
+    {
+        $featuredImage = $this->attributes['featured_image'] ?? $this->featured_image ?? null;
+        
+        if (empty($featuredImage)) {
+            return null;
+        }
+        
+        // If request() is not available (e.g., in console commands), return original
+        if (!request()) {
+            return $featuredImage;
+        }
+        
+        // If it's already a full URL (http/https), check if it needs fixing
+        if (preg_match('/^https?:\/\//i', $featuredImage)) {
+            $parsedUrl = parse_url($featuredImage);
+            
+            // If it's a valid external URL (not localhost and not our uploads path), keep it
+            if (isset($parsedUrl['host']) && 
+                $parsedUrl['host'] !== 'localhost' && 
+                $parsedUrl['host'] !== '127.0.0.1' &&
+                strpos($parsedUrl['path'] ?? '', '/uploads/images/') === false) {
+                return $featuredImage; // Already correct external URL
+            }
+            
+            // It's localhost or has uploads path - rebuild with current domain
+            if (isset($parsedUrl['path'])) {
+                $path = $parsedUrl['path'];
+                $scheme = request()->getScheme();
+                $host = request()->getHost();
+                $port = request()->getPort();
+                $portString = ($port && $port != 80 && $port != 443) ? ':' . $port : '';
+                return $scheme . '://' . $host . $portString . $path;
+            }
+        }
+        
+        // If it's just a filename (UUID pattern), add the full path
+        if (preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.(png|jpg|jpeg|gif|webp)$/i', $featuredImage)) {
+            $scheme = request()->getScheme();
+            $host = request()->getHost();
+            $port = request()->getPort();
+            $portString = ($port && $port != 80 && $port != 443) ? ':' . $port : '';
+            return $scheme . '://' . $host . $portString . '/uploads/images/article/' . $featuredImage;
+        }
+        
+        // If it's a relative path starting with uploads/images/, make it absolute
+        if (strpos($featuredImage, 'uploads/images/') === 0) {
+            $scheme = request()->getScheme();
+            $host = request()->getHost();
+            $port = request()->getPort();
+            $portString = ($port && $port != 80 && $port != 443) ? ':' . $port : '';
+            return $scheme . '://' . $host . $portString . '/' . $featuredImage;
+        }
+        
+        // If it starts with /uploads/images/, make it absolute
+        if (strpos($featuredImage, '/uploads/images/') === 0) {
+            $scheme = request()->getScheme();
+            $host = request()->getHost();
+            $port = request()->getPort();
+            $portString = ($port && $port != 80 && $port != 443) ? ':' . $port : '';
+            return $scheme . '://' . $host . $portString . $featuredImage;
+        }
+        
+        return $featuredImage; // Return as-is if no pattern matches
     }
 }
 
