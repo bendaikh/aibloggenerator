@@ -122,6 +122,20 @@
                                 <p class="mt-1 text-xs text-gray-500">Separate keywords with commas</p>
                             </div>
 
+                            <!-- Ingredients -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">
+                                    Ingredients (Optional)
+                                </label>
+                                <textarea
+                                    v-model="form.ingredients"
+                                    rows="4"
+                                    placeholder="e.g., 2 cups flour, 3 eggs, 1 cup milk, salt and pepper to taste&#10;&#10;If left empty, AI will generate ingredients automatically."
+                                    class="w-full px-4 py-3 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:ring-2 focus:ring-emerald-500 resize-none"
+                                ></textarea>
+                                <p class="mt-1 text-xs text-gray-500">Enter ingredients manually, or leave empty for AI to generate them</p>
+                            </div>
+
                             <!-- Multiple Featured Images -->
                             <div class="space-y-4">
                                 <label class="block text-sm font-medium text-gray-300">
@@ -323,6 +337,7 @@ const form = useForm({
     tone: props.defaultTone,
     length: 'medium',
     keywords: '',
+    ingredients: '',
     auto_publish: false,
     website_ids: [],
 });
@@ -416,7 +431,7 @@ const submitForm = () => {
     })).post(route('organization.global-articles.generate'), {
         onSuccess: () => {
             // Reset form fields
-            form.reset('topic', 'keywords');
+            form.reset('topic', 'keywords', 'ingredients');
             form.tone = props.defaultTone;
             form.length = 'medium';
             form.auto_publish = false;

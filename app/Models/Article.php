@@ -15,6 +15,7 @@ class Article extends Model
         'website_id',
         'category_id',
         'user_id',
+        'author_id',
         'title',
         'slug',
         'excerpt',
@@ -74,6 +75,14 @@ class Article extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the author of the article.
+     */
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(Author::class);
     }
 
     /**

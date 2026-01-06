@@ -50,7 +50,7 @@ class PublicWebsiteController extends Controller
             ->where('slug', $articleSlug)
             ->where('status', 'published')
             ->where('published_at', '<=', now())
-            ->with(['category', 'user'])
+            ->with(['category', 'user', 'author'])
             ->firstOrFail();
 
         // Increment views
@@ -174,7 +174,7 @@ class PublicWebsiteController extends Controller
             ->where('slug', $articleSlug)
             ->where('status', 'published')
             ->where('published_at', '<=', now())
-            ->with(['category', 'user'])
+            ->with(['category', 'user', 'author'])
             ->firstOrFail();
 
         // Increment views

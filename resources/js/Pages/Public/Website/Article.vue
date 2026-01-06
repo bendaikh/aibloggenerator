@@ -29,10 +29,11 @@
                                 <div class="flex flex-wrap items-center gap-6 text-gray-600 text-sm mb-8 pb-8 border-b border-gray-100">
                                     <div class="flex items-center gap-3">
                                         <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
-                                            <span class="text-emerald-700 font-bold uppercase">{{ (article.user?.name || 'A').charAt(0) }}</span>
+                                            <img v-if="article.author?.image" :src="article.author.image" :alt="article.author.name" class="w-full h-full object-cover" />
+                                            <span v-else class="text-emerald-700 font-bold uppercase">{{ (article.author?.name || article.user?.name || 'A').charAt(0) }}</span>
                                         </div>
                                         <div class="flex flex-col">
-                                            <span class="font-bold text-gray-900">By {{ article.user?.name || 'Admin' }}</span>
+                                            <span class="font-bold text-gray-900">By {{ article.author?.name || article.user?.name || 'Admin' }}</span>
                                             <span class="text-xs text-gray-400 font-medium uppercase tracking-wider">Author</span>
                                         </div>
                                     </div>
@@ -89,6 +90,9 @@
                                 </div>
                             </div>
 
+                            <!-- Article Content (with recipe sections removed) -->
+                            <div class="prose prose-emerald prose-lg max-w-none article-body mb-12" v-html="contentWithoutRecipeSections"></div>
+
                             <!-- Recipe Card Component -->
                             <RecipeCard 
                                 :gradients="article.gradients"
@@ -96,9 +100,6 @@
                                 :title="article.title"
                                 ref="recipeCard"
                             />
-
-                            <!-- Article Content (with recipe sections removed) -->
-                            <div class="prose prose-emerald prose-lg max-w-none article-body" v-html="contentWithoutRecipeSections"></div>
 
                             <!-- Share Buttons (Bottom) -->
                             <div class="mt-16 bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
@@ -130,12 +131,13 @@
                                     <div class="relative">
                                         <div class="w-32 h-32 rounded-full mx-auto mb-6 bg-gradient-to-br from-emerald-400 to-teal-500 p-1.5 shadow-xl ring-4 ring-white">
                                             <div class="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
-                                                <span class="text-4xl text-emerald-600 font-serif font-bold italic">{{ (article.user?.name || 'A').charAt(0) }}</span>
+                                                <img v-if="article.author?.image" :src="article.author.image" :alt="article.author?.name" class="w-full h-full object-cover" />
+                                                <span v-else class="text-4xl text-emerald-600 font-serif font-bold italic">{{ (article.author?.name || article.user?.name || 'A').charAt(0) }}</span>
                                             </div>
                                         </div>
-                                        <h3 class="text-2xl font-serif font-bold text-gray-900 mb-2">Hey, I'm {{ article.user?.name || 'Admin' }}!</h3>
+                                        <h3 class="text-2xl font-serif font-bold text-gray-900 mb-2">Hey, I'm {{ article.author?.name || article.user?.name || 'Admin' }}!</h3>
                                         <p class="text-gray-600 mb-6 leading-relaxed">
-                                            I'm so glad you're here! I love creating simple, delicious recipes that your whole family will love.
+                                            {{ article.author?.description || "I'm so glad you're here! I love creating simple, delicious recipes that your whole family will love." }}
                                         </p>
                                         <div class="flex justify-center gap-4 mb-8">
                                             <a href="#" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-emerald-500 hover:text-white transition shadow-sm">

@@ -701,6 +701,7 @@ HTML;
             'tone' => 'nullable|string|in:professional,casual,friendly,formal,conversational',
             'length' => 'nullable|string|in:short,medium,long',
             'keywords' => 'nullable|string',
+            'ingredients' => 'nullable|string|max:2000',
             'featured_images' => 'nullable|array',
             'featured_images.*' => 'nullable|string|max:1000',
             'auto_publish' => 'boolean',
@@ -744,6 +745,7 @@ HTML;
             $validated['tone'] ?? $user->ai_default_tone ?? 'conversational',
             $validated['length'] ?? 'medium',
             $validated['keywords'] ?? '',
+            $validated['ingredients'] ?? '',
             $validated['auto_publish'] ?? false,
             $featuredImages
         );
