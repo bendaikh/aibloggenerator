@@ -1,14 +1,14 @@
 <template>
     <div v-if="hasRecipeData" ref="cardElement" class="recipe-card-container my-12" id="recipe-card">
-        <div class="bg-gray-100 rounded-lg shadow-lg overflow-hidden border border-gray-200">
+        <div class="bg-[#F8FEFA] rounded-3xl shadow-xl shadow-emerald-100/50 overflow-hidden border border-emerald-100">
             <!-- Recipe Header -->
-            <div class="px-8 pt-8 pb-6 border-b border-gray-200">
+            <div class="px-8 pt-8 pb-6 border-b border-emerald-100/50">
                 <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{{ recipeTitle }}</h2>
                 <p v-if="recipeDescription" class="text-gray-500 text-sm leading-relaxed">{{ recipeDescription }}</p>
             </div>
 
             <!-- Time Metadata Row -->
-            <div v-if="hasTimeMetadata" class="px-8 py-4 border-b border-gray-100 bg-gray-50">
+            <div v-if="hasTimeMetadata" class="px-8 py-4 border-b border-emerald-100/50 bg-emerald-50/30">
                 <div class="flex flex-wrap justify-center gap-8 md:gap-16">
                     <div v-if="prepTime" class="flex flex-col items-center">
                         <div class="flex items-center gap-2 text-gray-600 mb-1">
@@ -41,31 +41,31 @@
             </div>
 
             <!-- Additional Metadata -->
-            <div v-if="hasAdditionalMetadata" class="px-8 py-4 border-b border-gray-100 text-sm">
+            <div v-if="hasAdditionalMetadata" class="px-8 py-4 border-b border-emerald-100/50 text-sm">
                 <div class="space-y-2">
                     <div v-if="author" class="flex items-center gap-2">
-                        <span class="text-orange-500 font-semibold">👤 By:</span>
-                        <span class="text-blue-600">{{ author }}</span>
+                        <span class="text-emerald-600 font-semibold">👤 By:</span>
+                        <span class="text-teal-600">{{ author }}</span>
                     </div>
                     <div v-if="category" class="flex items-center gap-2">
-                        <span class="text-orange-500 font-semibold">📂 Category:</span>
-                        <span class="text-blue-600">{{ category }}</span>
+                        <span class="text-emerald-600 font-semibold">📂 Category:</span>
+                        <span class="text-teal-600">{{ category }}</span>
                     </div>
                     <div v-if="skillLevel" class="flex items-center gap-2">
-                        <span class="text-orange-500 font-semibold">📊 Skill Level:</span>
+                        <span class="text-emerald-600 font-semibold">📊 Skill Level:</span>
                         <span class="text-gray-700">{{ skillLevel }}</span>
                     </div>
                     <div v-if="cuisine" class="flex items-center gap-2">
-                        <span class="text-orange-500 font-semibold">🍽️ Cuisine:</span>
+                        <span class="text-emerald-600 font-semibold">🍽️ Cuisine:</span>
                         <span class="text-gray-700">{{ cuisine }}</span>
                     </div>
                     <div v-if="servings" class="flex items-center gap-2">
-                        <span class="text-orange-500 font-semibold">🍴 Yield:</span>
-                        <span class="text-blue-600">{{ servings }} Servings</span>
+                        <span class="text-emerald-600 font-semibold">🍴 Yield:</span>
+                        <span class="text-teal-600">{{ servings }} Servings</span>
                     </div>
                     <div v-if="dietaryCategories.length > 0" class="flex items-center gap-2">
-                        <span class="text-orange-500 font-semibold">🥗 Dietary Categories:</span>
-                        <span class="text-blue-600">{{ dietaryCategories.join(', ') }}</span>
+                        <span class="text-emerald-600 font-semibold">🥗 Dietary Categories:</span>
+                        <span class="text-teal-600">{{ dietaryCategories.join(', ') }}</span>
                     </div>
                 </div>
             </div>
@@ -107,7 +107,7 @@
                     <h3 class="text-xl font-bold text-gray-900 mb-4">Notes</h3>
                     <div class="space-y-2">
                         <div v-for="(note, index) in notes" :key="index" class="flex items-start gap-2 text-sm">
-                            <span class="flex-shrink-0 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">!</span>
+                            <span class="flex-shrink-0 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center text-white text-xs font-bold">!</span>
                             <span class="text-gray-700 leading-relaxed">{{ note }}</span>
                         </div>
                     </div>
@@ -161,26 +161,24 @@ const cuisine = ref('');
 const dietaryCategories = ref([]);
 const ingredientSubheader = ref('Core Ingredients');
 
-// Default colorful badge classes for ingredients (gradient oranges/yellows)
+// Default colorful badge classes for ingredients (emerald/teal theme)
 const defaultIngredientBadgeColors = [
-    'bg-gradient-to-br from-orange-400 to-orange-600',
-    'bg-gradient-to-br from-amber-400 to-amber-600',
-    'bg-gradient-to-br from-yellow-500 to-orange-500',
-    'bg-gradient-to-br from-orange-500 to-red-500',
-    'bg-gradient-to-br from-amber-500 to-yellow-600',
-    'bg-gradient-to-br from-orange-400 to-amber-500',
+    'bg-gradient-to-br from-emerald-400 to-emerald-600',
+    'bg-gradient-to-br from-teal-400 to-teal-600',
+    'bg-gradient-to-br from-emerald-500 to-teal-500',
+    'bg-gradient-to-br from-teal-500 to-emerald-600',
+    'bg-gradient-to-br from-emerald-400 to-teal-500',
+    'bg-gradient-to-br from-teal-400 to-emerald-500',
 ];
 
-// Default colorful badge classes for steps
+// Default colorful badge classes for steps (emerald/teal theme)
 const defaultStepBadgeColors = [
-    'bg-gradient-to-r from-orange-500 to-orange-600',
-    'bg-gradient-to-r from-blue-500 to-blue-600',
-    'bg-gradient-to-r from-green-500 to-green-600',
-    'bg-gradient-to-r from-purple-500 to-purple-600',
-    'bg-gradient-to-r from-pink-500 to-pink-600',
+    'bg-gradient-to-r from-emerald-500 to-emerald-600',
     'bg-gradient-to-r from-teal-500 to-teal-600',
-    'bg-gradient-to-r from-indigo-500 to-indigo-600',
-    'bg-gradient-to-r from-red-500 to-red-600',
+    'bg-gradient-to-r from-emerald-600 to-teal-500',
+    'bg-gradient-to-r from-teal-600 to-emerald-500',
+    'bg-gradient-to-r from-emerald-400 to-teal-400',
+    'bg-gradient-to-r from-teal-400 to-emerald-400',
 ];
 
 // Computed gradients from props or defaults
