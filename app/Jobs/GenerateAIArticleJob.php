@@ -275,7 +275,7 @@ HOW TO WRITE THIS (follow this closely):
 - If it's a recipe, tell the story behind it before diving into ingredients
 - Use descriptive, sensory language (how things smell, taste, feel)
 - Include "Pro Tips" or "What You Must Know" boxes where relevant
-- For recipes: organize with clear Ingredients and Instructions sections (these can have headers)
+- For recipes: organize with clear Ingredients and Instructions sections (these can have headers). ALWAYS include both Ingredients AND Instructions sections - instructions are required for recipes.
 - End naturally - maybe with a call to try the recipe, a personal note, or asking readers to share their experience
 
 Requirements:

@@ -56,10 +56,10 @@
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
                                             Jump to Recipe
                                         </button>
-                                        <button class="flex items-center gap-2 px-4 py-2 bg-[#E60023] text-white rounded-full font-bold text-xs uppercase tracking-widest hover:bg-[#bd081c] transition shadow-md shadow-red-100">
+                                        <a :href="pinterestShareUrl" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-4 py-2 bg-[#E60023] text-white rounded-full font-bold text-xs uppercase tracking-widest hover:bg-[#bd081c] transition shadow-md shadow-red-100">
                                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.965 1.406-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/></svg>
                                             Pin
-                                        </button>
+                                        </a>
                                         <button class="p-2 bg-white text-gray-400 rounded-full hover:bg-gray-50 hover:text-gray-600 transition shadow-sm border border-gray-100">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
                                         </button>
@@ -109,11 +109,11 @@
                                         <p class="text-gray-500">Spread the deliciousness with your friends!</p>
                                     </div>
                                     <div class="flex gap-4">
-                                        <a href="#" class="group flex items-center gap-3 px-6 py-3 bg-[#1877F2] text-white rounded-2xl hover:bg-[#166fe5] transition shadow-lg shadow-blue-200">
+                                        <a :href="facebookShareUrl" target="_blank" rel="noopener noreferrer" class="group flex items-center gap-3 px-6 py-3 bg-[#1877F2] text-white rounded-2xl hover:bg-[#166fe5] transition shadow-lg shadow-blue-200">
                                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                                             <span class="font-bold">Share</span>
                                         </a>
-                                        <a href="#" class="group flex items-center gap-3 px-6 py-3 bg-[#E60023] text-white rounded-2xl hover:bg-[#bd081c] transition shadow-lg shadow-red-200">
+                                        <a :href="pinterestShareUrl" target="_blank" rel="noopener noreferrer" class="group flex items-center gap-3 px-6 py-3 bg-[#E60023] text-white rounded-2xl hover:bg-[#bd081c] transition shadow-lg shadow-red-200">
                                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.965 1.406-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/></svg>
                                             <span class="font-bold">Pin</span>
                                         </a>
@@ -312,6 +312,46 @@ const scrollToRecipe = () => {
         }
     }
 };
+
+// Get current page URL for sharing
+const currentPageUrl = computed(() => {
+    if (typeof window !== 'undefined') {
+        return window.location.href;
+    }
+    // Fallback to article.url if window is not available
+    return props.article?.url || '';
+});
+
+// Get article image URL for Pinterest sharing
+const articleImageUrl = computed(() => {
+    const image = props.article?.processed_featured_image || props.article?.featured_image;
+    if (image) {
+        // If image is relative, make it absolute
+        if (image.startsWith('http')) {
+            return image;
+        }
+        // Make relative URL absolute
+        if (typeof window !== 'undefined') {
+            return new URL(image, window.location.origin).href;
+        }
+        return image;
+    }
+    return '';
+});
+
+// Facebook share URL
+const facebookShareUrl = computed(() => {
+    const url = encodeURIComponent(currentPageUrl.value);
+    return `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+});
+
+// Pinterest share URL
+const pinterestShareUrl = computed(() => {
+    const url = encodeURIComponent(currentPageUrl.value);
+    const media = encodeURIComponent(articleImageUrl.value);
+    const description = encodeURIComponent(props.article?.title || '');
+    return `https://pinterest.com/pin/create/button/?url=${url}&media=${media}&description=${description}`;
+});
 </script>
 
 <style>

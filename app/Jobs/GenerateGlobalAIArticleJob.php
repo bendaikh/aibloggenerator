@@ -282,7 +282,7 @@ PROMPT;
         if (!empty($this->ingredients)) {
             $ingredientsText = "\n- DO NOT include an ingredients section - it will be added automatically at the end.";
         } else {
-            $ingredientsText = "\n- If the topic is recipe-related, include a well-formatted ingredients list at the END of the article.";
+            $ingredientsText = "\n- If the topic is recipe-related, include a well-formatted ingredients list AND detailed instructions section at the END of the article. ALWAYS include both Ingredients AND Instructions sections - instructions are required for recipes.";
         }
         
         // Add variation instructions to ensure unique articles
@@ -322,7 +322,7 @@ CRITICAL WRITING STYLE RULES - DO NOT VIOLATE THESE:
 Requirements:
 - Length: {$wordCount} words
 - Tone: {$this->tone} (but always authentic and personal)
-- Use proper HTML formatting: <h2> for major sections, <h3> for subsections, <p>, <ul>, <ol>, <strong>, <em>, <blockquote> for tips/quotes
+- Use proper HTML formatting: <h2> for major sections (Ingredients, Instructions, Pro Tips), <h3> for subsections, <p>, <ul>, <ol>, <strong>, <em>, <blockquote> for tips/quotes
 - Make it SEO-friendly but human-first{$keywordsText}{$ingredientsText}
 
 Format your response EXACTLY as follows:

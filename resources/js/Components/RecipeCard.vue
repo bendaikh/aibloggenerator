@@ -72,32 +72,35 @@
 
             <!-- Recipe Content -->
             <div class="px-8 py-8">
-                <!-- Ingredients Section -->
-                <div v-if="ingredients.length > 0" class="mb-10">
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">Ingredients</h3>
-                    <p v-if="ingredientSubheader" class="text-gray-500 text-sm mb-4 flex items-center gap-1">
-                        <span class="text-gray-400">◆</span>
-                        {{ ingredientSubheader }}
-                    </p>
-                    <div class="space-y-3">
-                        <div v-for="(ingredient, index) in ingredients" :key="index" class="flex items-start gap-3">
-                            <span :class="getIngredientBadgeClass(index)" class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-white shadow-sm">
-                                {{ String(index + 1).padStart(2, '0') }}
-                            </span>
-                            <span class="text-gray-700 leading-relaxed flex-1 pt-1">{{ ingredient }}</span>
+                <!-- Ingredients and Instructions Section -->
+                <div v-if="ingredients.length > 0 || instructions.length > 0" class="mb-10">
+                    <!-- Ingredients -->
+                    <div v-if="ingredients.length > 0" class="mb-8">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Ingredients</h3>
+                        <p v-if="ingredientSubheader" class="text-gray-500 text-sm mb-4 flex items-center gap-1">
+                            <span class="text-gray-400">◆</span>
+                            {{ ingredientSubheader }}
+                        </p>
+                        <div class="space-y-3">
+                            <div v-for="(ingredient, index) in ingredients" :key="index" class="flex items-start gap-3">
+                                <span :class="getIngredientBadgeClass(index)" class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-white shadow-sm">
+                                    {{ String(index + 1).padStart(2, '0') }}
+                                </span>
+                                <span class="text-gray-700 leading-relaxed flex-1 pt-1">{{ ingredient }}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Steps Section -->
-                <div v-if="instructions.length > 0" class="mb-10">
-                    <h3 class="text-xl font-bold text-gray-900 mb-5">Steps</h3>
-                    <div class="space-y-6">
-                        <div v-for="(instruction, index) in instructions" :key="index">
-                            <div :class="getStepBadgeClass(index)" class="inline-flex items-center px-3 py-1 rounded-md text-white text-xs font-bold mb-2">
-                                Step {{ String(index + 1).padStart(2, '0') }}
+                    <!-- Instructions (shown right after ingredients) -->
+                    <div v-if="instructions.length > 0" class="pt-6 border-t border-emerald-100/50">
+                        <h3 class="text-xl font-bold text-gray-900 mb-5">Instructions</h3>
+                        <div class="space-y-6">
+                            <div v-for="(instruction, index) in instructions" :key="index">
+                                <div :class="getStepBadgeClass(index)" class="inline-flex items-center px-3 py-1 rounded-md text-white text-xs font-bold mb-2">
+                                    Step {{ String(index + 1).padStart(2, '0') }}
+                                </div>
+                                <p class="text-gray-700 leading-relaxed text-sm pl-1">{{ instruction }}</p>
                             </div>
-                            <p class="text-gray-700 leading-relaxed text-sm pl-1">{{ instruction }}</p>
                         </div>
                     </div>
                 </div>
