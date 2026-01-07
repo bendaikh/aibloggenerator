@@ -40,17 +40,17 @@
         </section>
 
         <!-- Call to Action Boxes -->
-        <section class="py-8 bg-gray-50">
+        <section v-if="shouldShowCtaSection" class="py-8 bg-gray-50">
             <div class="container mx-auto px-4">
                 <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-                    <div class="bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl p-8 text-white text-center shadow-lg hover:shadow-xl transition">
+                    <div v-if="showNewsletterCta" class="bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl p-8 text-white text-center shadow-lg hover:shadow-xl transition">
                         <h3 class="text-2xl font-bold mb-1">GET NEW RECIPES</h3>
                         <h4 class="text-lg mb-4 text-emerald-100">IN YOUR INBOX</h4>
                         <a href="#subscribe" class="inline-block bg-white text-emerald-600 px-8 py-3 rounded-full font-bold hover:bg-emerald-50 transition shadow-md">
                             SUBSCRIBE NOW 💌
                         </a>
                     </div>
-                    <div class="bg-gradient-to-br from-pink-400 to-rose-500 rounded-2xl p-8 text-white text-center shadow-lg hover:shadow-xl transition">
+                    <div v-if="showShopCta" class="bg-gradient-to-br from-pink-400 to-rose-500 rounded-2xl p-8 text-white text-center shadow-lg hover:shadow-xl transition">
                         <h3 class="text-2xl font-bold mb-1">VISIT OUR SHOP</h3>
                         <h4 class="text-lg mb-4 text-pink-100">FIND GREAT GIFT IDEAS!</h4>
                         <a href="#shop" class="inline-block bg-white text-pink-600 px-8 py-3 rounded-full font-bold hover:bg-pink-50 transition shadow-md">
@@ -209,11 +209,18 @@
 <script setup>
 import { Head } from '@inertiajs/vue3';
 import PublicWebsiteLayout from '@/Layouts/PublicWebsiteLayout.vue';
+import { computed } from 'vue';
 
-defineProps({
+const props = defineProps({
     website: Object,
     latestArticles: Array,
     featuredArticles: Array,
     author: Object
 });
+
+// Get theme settings with defaults
+const themeSettings = computed(() => props.website.theme_settings || {});
+const showNewsletterCta = computed(() => themeSettings.value.show_newsletter_cta !== false);
+const showShopCta = computed(() => themeSettings.value.show_shop_cta !== false);
+const shouldShowCtaSection = computed(() => showNewsletterCta.value || showShopCta.value);
 </script>

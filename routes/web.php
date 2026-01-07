@@ -107,12 +107,8 @@ $registerMainAppRoutes = function () {
         Route::put('/{website}/authors/{author}', [AuthorController::class, 'update'])->name('superadmin.authors.update');
         Route::delete('/{website}/authors/{author}', [AuthorController::class, 'destroy'])->name('superadmin.authors.destroy');
 
-        Route::get('/{website}/appearance', function ($website) {
-            return Inertia::render('SuperAdmin/Appearance', [
-                'currentWebsite' => \App\Models\Website::findOrFail($website),
-                'websites' => \App\Models\Website::where('user_id', auth()->id())->withCount(['articles', 'categories'])->get(),
-            ]);
-        })->name('superadmin.appearance');
+        Route::get('/{website}/appearance', [WebsiteController::class, 'appearance'])->name('superadmin.appearance');
+        Route::put('/{website}/appearance', [WebsiteController::class, 'updateAppearance'])->name('superadmin.appearance.update');
 
         Route::get('/{website}/social-media', [SocialMediaController::class, 'index'])->name('superadmin.social-media');
         Route::post('/{website}/social-media', [SocialMediaController::class, 'update'])->name('superadmin.social-media.update');

@@ -113,6 +113,8 @@ class WebsiteController extends Controller
             'header_text' => $validated['name'],
             'newsletter_enabled' => true,
             'comments_enabled' => true,
+            'show_newsletter_cta' => true,
+            'show_shop_cta' => true,
         ];
 
         $website = Website::create($validated);
@@ -575,6 +577,49 @@ HTML;
         }
 
         return $subdomain;
+    }
+
+    /**
+     * Show the appearance page.
+     */
+    public function appearance(Website $website): Response
+    {
+        $this->authorize('view', $website);
+
+        $websites = auth()->user()->websites()
+            ->withCount(['articles', 'categories'])
+            ->get();
+
+        return Inertia::render('SuperAdmin/Appearance', [
+            'currentWebsite' => $website,
+            'websites' => $websites,
+        ]);
+    }
+
+    /**
+     * Update appearance settings.
+     */
+    public function updateAppearance(Request $request, Website $website)
+    {
+        $this->authorize('update', $website);
+
+        $validated = $request->validate([
+            'theme' => 'required|string',
+            'theme_settings' => 'nullable|array',
+        ]);
+
+        // Merge with existing theme settings to preserve other settings
+        $currentSettings = $website->theme_settings ?? [];
+        $newSettings = $validated['theme_settings'] ?? [];
+        $mergedSettings = array_merge($currentSettings, $newSettings);
+
+        $website->update([
+            'theme' => $validated['theme'],
+            'theme_settings' => $mergedSettings,
+        ]);
+
+        return redirect()->back()
+            ->with('success', 'Appearance settings updated successfully!');
     }
 
     /**
