@@ -108,6 +108,20 @@ class PublicWebsiteController extends Controller
     }
 
     /**
+     * Display all articles (subdomain/custom domain).
+     */
+    public function showAllArticlesByDomain(Request $request): Response
+    {
+        $website = $request->get('website');
+        
+        if (!$website) {
+            abort(404, 'Website not found');
+        }
+
+        return $this->renderAllArticles($website);
+    }
+
+    /**
      * Display a page (subdomain/custom domain).
      */
     public function showPageByDomain(Request $request, string $pageSlug): Response
@@ -230,6 +244,18 @@ class PublicWebsiteController extends Controller
     }
 
     /**
+     * Display all articles (legacy route).
+     */
+    public function showAllArticles(string $websiteSlug): Response
+    {
+        $website = Website::where('slug', $websiteSlug)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        return $this->renderAllArticles($website);
+    }
+
+    /**
      * Display a page (legacy route).
      */
     public function showPage(string $websiteSlug, string $pageSlug): Response
@@ -256,6 +282,32 @@ class PublicWebsiteController extends Controller
         return Inertia::render('Public/Website/Page', [
             'website' => $website,
             'page' => $page,
+        ]);
+    }
+
+    /**
+     * Render all articles page for a website.
+     */
+    private function renderAllArticles(Website $website): Response
+    {
+        // Load categories and pages for navigation
+        $website->load([
+            'categories' => function ($query) {
+                $query->where('is_active', true)->orderBy('order');
+            },
+            'pages' => function ($query) {
+                $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
+            }
+        ]);
+
+        $articles = $website->publishedArticles()
+            ->with('category')
+            ->orderBy('published_at', 'desc')
+            ->paginate(12);
+
+        return Inertia::render('Public/Website/AllArticles', [
+            'website' => $website,
+            'articles' => $articles,
         ]);
     }
 
@@ -287,10 +339,16 @@ class PublicWebsiteController extends Controller
             ->take(4)
             ->get();
 
+        // Load the first active author for the website
+        $author = $website->authors()
+            ->where('is_active', true)
+            ->first();
+
         return Inertia::render('Public/Website/Home', [
             'website' => $website,
             'latestArticles' => $latestArticles,
             'featuredArticles' => $featuredArticles,
+            'author' => $author,
         ]);
     }
 }

@@ -36,38 +36,6 @@
                         </p>
                     </a>
                 </div>
-
-                <!-- Icon Row -->
-                <div class="flex flex-wrap justify-center gap-4 md:gap-8 pt-6 border-t border-gray-100">
-                    <a href="#" class="flex flex-col items-center text-gray-500 hover:text-emerald-500 transition">
-                        <span class="text-2xl mb-1">🥗</span>
-                        <span class="text-xs uppercase tracking-wide">Salads</span>
-                    </a>
-                    <a href="#" class="flex flex-col items-center text-gray-500 hover:text-emerald-500 transition">
-                        <span class="text-2xl mb-1">🍖</span>
-                        <span class="text-xs uppercase tracking-wide">Stews</span>
-                    </a>
-                    <a href="#" class="flex flex-col items-center text-gray-500 hover:text-emerald-500 transition">
-                        <span class="text-2xl mb-1">🍲</span>
-                        <span class="text-xs uppercase tracking-wide">Soups</span>
-                    </a>
-                    <a href="#" class="flex flex-col items-center text-gray-500 hover:text-emerald-500 transition">
-                        <span class="text-2xl mb-1">🍝</span>
-                        <span class="text-xs uppercase tracking-wide">Pasta</span>
-                    </a>
-                    <a href="#" class="flex flex-col items-center text-gray-500 hover:text-emerald-500 transition">
-                        <span class="text-2xl mb-1">🥘</span>
-                        <span class="text-xs uppercase tracking-wide">One Pot</span>
-                    </a>
-                    <a href="#" class="flex flex-col items-center text-gray-500 hover:text-emerald-500 transition">
-                        <span class="text-2xl mb-1">🍪</span>
-                        <span class="text-xs uppercase tracking-wide">Cookies</span>
-                    </a>
-                    <a href="#" class="flex flex-col items-center text-gray-500 hover:text-emerald-500 transition">
-                        <span class="text-2xl mb-1">🧁</span>
-                        <span class="text-xs uppercase tracking-wide">Muffins</span>
-                    </a>
-                </div>
             </div>
         </section>
 
@@ -101,7 +69,7 @@
                         <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">What's New</h2>
                         <p class="text-gray-500">The newest breakfast ideas, dinners and desserts. These easy recipes are pretty much guaranteed winners!</p>
                     </div>
-                    <a :href="website.url" class="text-emerald-500 hover:text-emerald-600 font-semibold flex items-center whitespace-nowrap">
+                    <a :href="website.url + '/articles'" class="text-emerald-500 hover:text-emerald-600 font-semibold flex items-center whitespace-nowrap">
                         Browse All The Latest
                         <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -143,22 +111,25 @@
                     <div class="bg-white rounded-2xl p-8 shadow-lg">
                         <div class="flex flex-col md:flex-row gap-6 items-center md:items-start">
                             <div class="w-32 h-32 rounded-full overflow-hidden ring-4 ring-emerald-400 shadow-lg flex-shrink-0">
-                                <div class="w-full h-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+                                <img
+                                    v-if="author?.image"
+                                    :src="author.image"
+                                    :alt="author?.name || 'Author'"
+                                    class="w-full h-full object-cover"
+                                />
+                                <div v-else class="w-full h-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
                                     <span class="text-white text-4xl">👩‍🍳</span>
                                 </div>
                             </div>
                             <div class="text-center md:text-left">
-                                <h3 class="text-2xl font-bold text-gray-900 mb-3">Hi I'm {{ website.name.split(' ')[0] || 'Chef' }}!</h3>
-                                <p class="text-gray-600 mb-4">
-                                    I love to cook! I have been cooking and baking for as long as I can remember. 
-                                    Here you will find deliciously simple tried and true recipes. Thanks so much for stopping by!
+                                <h3 class="text-2xl font-bold text-gray-900 mb-3">Hi I'm {{ author?.name || website.name.split(' ')[0] || 'Chef' }}!</h3>
+                                <p class="text-gray-600">
+                                    <span v-if="author?.description">{{ author.description }}</span>
+                                    <span v-else>
+                                        I love to cook! I have been cooking and baking for as long as I can remember. 
+                                        Here you will find deliciously simple tried and true recipes. Thanks so much for stopping by!
+                                    </span>
                                 </p>
-                                <a href="#about" class="inline-flex items-center text-emerald-500 hover:text-emerald-600 font-semibold">
-                                    Learn More About Us
-                                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </a>
                             </div>
                         </div>
                     </div>
@@ -232,46 +203,6 @@
             </div>
         </section>
 
-        <!-- Most Popular Recipes -->
-        <section class="py-16 bg-gray-50">
-            <div class="container mx-auto px-4">
-                <div class="text-center mb-10">
-                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Our Most Popular Recipes</h2>
-                    <p class="text-gray-500">Sometimes you just want to cook what's tried and true, especially when company's coming or cooking for a crowd. 
-                    These recipes are some of the most popular recipes on our blog.</p>
-                </div>
-
-                <div v-if="latestArticles.length > 0" class="bg-white rounded-2xl p-8 shadow-lg max-w-3xl mx-auto">
-                    <p class="text-gray-500 text-center py-8">
-                        Check back often for our most popular recipes, or browse our categories above!
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        <!-- What's For Dinner -->
-        <section class="py-16 bg-white">
-            <div class="container mx-auto px-4">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-                    <div>
-                        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">What's For Dinner?</h2>
-                        <p class="text-gray-500">Discover delicious dinner recipes perfect for any night of the week.</p>
-                    </div>
-                    <a :href="website.url" class="text-emerald-500 hover:text-emerald-600 font-semibold flex items-center whitespace-nowrap">
-                        Browse More Recipes
-                        <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </a>
-                </div>
-
-                <div class="bg-gray-50 rounded-2xl p-8 text-center">
-                    <p class="text-gray-500">
-                        Check back soon! New dinner recipes are being added regularly.
-                    </p>
-                </div>
-            </div>
-        </section>
     </PublicWebsiteLayout>
 </template>
 
@@ -282,6 +213,7 @@ import PublicWebsiteLayout from '@/Layouts/PublicWebsiteLayout.vue';
 defineProps({
     website: Object,
     latestArticles: Array,
-    featuredArticles: Array
+    featuredArticles: Array,
+    author: Object
 });
 </script>

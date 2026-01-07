@@ -29,6 +29,7 @@ $isLocalDev = in_array($baseDomain, ['localhost', '127.0.0.1']) || app()->enviro
 if (!$isLocalDev) {
     Route::domain('{subdomain}.' . $baseDomain)->middleware('identify.website')->group(function () {
         Route::get('/', [PublicWebsiteController::class, 'showByDomain'])->name('website.home');
+        Route::get('/articles', [PublicWebsiteController::class, 'showAllArticlesByDomain'])->name('website.articles.subdomain');
         Route::get('/category/{category}', [PublicWebsiteController::class, 'showCategoryByDomain'])->name('website.category.subdomain');
         Route::get('/article/{article}', [PublicWebsiteController::class, 'showArticleByDomain'])->name('article.show.subdomain');
         Route::get('/page/{page}', [PublicWebsiteController::class, 'showPageByDomain'])->name('website.page.subdomain');
@@ -151,6 +152,7 @@ $registerMainAppRoutes = function () {
 
     // Public Website Routes (for /site/ URLs - works everywhere)
     Route::get('/site/{website}', [PublicWebsiteController::class, 'show'])->name('website.show');
+    Route::get('/site/{website}/articles', [PublicWebsiteController::class, 'showAllArticles'])->name('website.articles');
     Route::get('/site/{website}/category/{category}', [PublicWebsiteController::class, 'showCategory'])->name('website.category');
     Route::get('/site/{website}/article/{article}', [PublicWebsiteController::class, 'showArticle'])->name('article.show');
     Route::get('/site/{website}/page/{page}', [PublicWebsiteController::class, 'showPage'])->name('website.page');
@@ -179,6 +181,7 @@ if ($isLocalDev) {
 if (!$isLocalDev) {
     Route::middleware('identify.website')->group(function () {
         Route::get('/', [PublicWebsiteController::class, 'showByDomain'])->name('website.home.custom');
+        Route::get('/articles', [PublicWebsiteController::class, 'showAllArticlesByDomain'])->name('website.articles.custom');
         Route::get('/category/{category}', [PublicWebsiteController::class, 'showCategoryByDomain'])->name('website.category.custom');
         Route::get('/article/{article}', [PublicWebsiteController::class, 'showArticleByDomain'])->name('article.show.custom');
         Route::get('/page/{page}', [PublicWebsiteController::class, 'showPageByDomain'])->name('website.page.custom');
