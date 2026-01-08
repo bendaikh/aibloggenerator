@@ -9,13 +9,13 @@
 
             <!-- Time Metadata Row -->
             <div v-if="hasTimeMetadata" class="px-8 py-4 border-b border-emerald-100/50 bg-emerald-50/30">
-                <div class="flex flex-wrap justify-center gap-8 md:gap-16">
+                <div class="flex flex-wrap justify-center gap-6 md:gap-12">
                     <div v-if="prepTime" class="flex flex-col items-center">
                         <div class="flex items-center gap-2 text-gray-600 mb-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span class="text-xs font-semibold uppercase tracking-wide">Prep Time</span>
+                            <span class="text-xs font-semibold uppercase tracking-wide">Prep</span>
                         </div>
                         <span class="text-gray-900 font-medium text-sm">{{ prepTime }}</span>
                     </div>
@@ -24,16 +24,25 @@
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
                             </svg>
-                            <span class="text-xs font-semibold uppercase tracking-wide">Cook Time</span>
+                            <span class="text-xs font-semibold uppercase tracking-wide">Cook</span>
                         </div>
                         <span class="text-gray-900 font-medium text-sm">{{ cookTime }}</span>
+                    </div>
+                    <div v-if="restTime" class="flex flex-col items-center">
+                        <div class="flex items-center gap-2 text-gray-600 mb-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="text-xs font-semibold uppercase tracking-wide">Rest Time</span>
+                        </div>
+                        <span class="text-gray-900 font-medium text-sm">{{ restTime }}</span>
                     </div>
                     <div v-if="totalTime" class="flex flex-col items-center">
                         <div class="flex items-center gap-2 text-gray-600 mb-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span class="text-xs font-semibold uppercase tracking-wide">Total Time</span>
+                            <span class="text-xs font-semibold uppercase tracking-wide">Total</span>
                         </div>
                         <span class="text-gray-900 font-medium text-sm">{{ totalTime }}</span>
                     </div>
@@ -82,12 +91,17 @@
                             {{ ingredientSubheader }}
                         </p>
                         <div class="space-y-3">
-                            <div v-for="(ingredient, index) in ingredients" :key="index" class="flex items-start gap-3">
-                                <span :class="getIngredientBadgeClass(index)" class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-white shadow-sm">
-                                    {{ String(index + 1).padStart(2, '0') }}
+                            <label v-for="(ingredient, index) in ingredients" :key="index" class="flex items-start gap-3 cursor-pointer group">
+                                <input 
+                                    type="checkbox" 
+                                    :value="index"
+                                    v-model="checkedIngredients"
+                                    class="mt-1 w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 focus:ring-2 cursor-pointer flex-shrink-0"
+                                />
+                                <span :class="{'line-through text-gray-400': checkedIngredients.includes(index)}" class="text-gray-700 leading-relaxed flex-1 pt-0.5 group-hover:text-emerald-600 transition">
+                                    {{ ingredient }}
                                 </span>
-                                <span class="text-gray-700 leading-relaxed flex-1 pt-1">{{ ingredient }}</span>
-                            </div>
+                            </label>
                         </div>
                     </div>
 
@@ -153,6 +167,7 @@ const instructions = ref([]);
 const notes = ref([]);
 const prepTime = ref('');
 const cookTime = ref('');
+const restTime = ref('');
 const totalTime = ref('');
 const servings = ref('');
 const recipeTitle = ref('');
@@ -163,6 +178,7 @@ const skillLevel = ref('');
 const cuisine = ref('');
 const dietaryCategories = ref([]);
 const ingredientSubheader = ref('Core Ingredients');
+const checkedIngredients = ref([]);
 
 // Default colorful badge classes for ingredients (emerald/teal theme)
 const defaultIngredientBadgeColors = [
@@ -212,7 +228,7 @@ const hasRecipeData = computed(() => {
 });
 
 const hasTimeMetadata = computed(() => {
-    return prepTime.value || cookTime.value || totalTime.value;
+    return prepTime.value || cookTime.value || restTime.value || totalTime.value;
 });
 
 const hasAdditionalMetadata = computed(() => {
@@ -325,6 +341,11 @@ const extractMetadata = (container) => {
     const cookTimeMatch = textLower.match(/(?:cook|cooking)\s*time[:\s]*(\d+\s*(?:min|minute|minutes|hour|hours|hr|hrs|h|m))/i);
     if (cookTimeMatch) {
         cookTime.value = cookTimeMatch[1].trim();
+    }
+    
+    const restTimeMatch = textLower.match(/(?:rest|resting)\s*time[:\s]*(\d+\s*(?:min|minute|minutes|hour|hours|hr|hrs|h|m))/i);
+    if (restTimeMatch) {
+        restTime.value = restTimeMatch[1].trim();
     }
     
     const totalTimeMatch = textLower.match(/(?:total)\s*time[:\s]*(\d+\s*(?:min|minute|minutes|hour|hours|hr|hrs|h|m))/i);
