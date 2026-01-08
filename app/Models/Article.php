@@ -20,7 +20,9 @@ class Article extends Model
         'slug',
         'excerpt',
         'content',
+        'notes',
         'featured_image',
+        'secondary_image',
         'meta_title',
         'meta_description',
         'meta_tags',
@@ -30,12 +32,17 @@ class Article extends Model
         'views',
         'ai_generated',
         'published_at',
+        'prep_time',
+        'cook_time',
+        'rest_time',
+        'total_time',
     ];
 
-    protected $appends = ['url', 'processed_content', 'processed_featured_image'];
+    protected $appends = ['url', 'processed_content', 'processed_featured_image', 'processed_secondary_image'];
 
     protected $casts = [
         'meta_tags' => 'array',
+        'notes' => 'array',
         'gradients' => 'array',
         'views' => 'integer',
         'ai_generated' => 'boolean',
@@ -283,6 +290,75 @@ class Article extends Model
         }
         
         return $featuredImage; // Return as-is if no pattern matches
+    }
+
+    /**
+     * Get the processed secondary image URL with fixed domain.
+     */
+    public function getProcessedSecondaryImageAttribute(): ?string
+    {
+        $secondaryImage = $this->attributes['secondary_image'] ?? $this->secondary_image ?? null;
+        
+        if (empty($secondaryImage)) {
+            return null;
+        }
+        
+        // If request() is not available (e.g., in console commands), return original
+        if (!request()) {
+            return $secondaryImage;
+        }
+        
+        // If it's already a full URL (http/https), check if it needs fixing
+        if (preg_match('/^https?:\/\//i', $secondaryImage)) {
+            $parsedUrl = parse_url($secondaryImage);
+            
+            // If it's a valid external URL (not localhost and not our uploads path), keep it
+            if (isset($parsedUrl['host']) && 
+                $parsedUrl['host'] !== 'localhost' && 
+                $parsedUrl['host'] !== '127.0.0.1' &&
+                strpos($parsedUrl['path'] ?? '', '/uploads/images/') === false) {
+                return $secondaryImage; // Already correct external URL
+            }
+            
+            // It's localhost or has uploads path - rebuild with current domain
+            if (isset($parsedUrl['path'])) {
+                $path = $parsedUrl['path'];
+                $scheme = request()->getScheme();
+                $host = request()->getHost();
+                $port = request()->getPort();
+                $portString = ($port && $port != 80 && $port != 443) ? ':' . $port : '';
+                return $scheme . '://' . $host . $portString . $path;
+            }
+        }
+        
+        // If it's just a filename (UUID pattern), add the full path
+        if (preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.(png|jpg|jpeg|gif|webp)$/i', $secondaryImage)) {
+            $scheme = request()->getScheme();
+            $host = request()->getHost();
+            $port = request()->getPort();
+            $portString = ($port && $port != 80 && $port != 443) ? ':' . $port : '';
+            return $scheme . '://' . $host . $portString . '/uploads/images/article/' . $secondaryImage;
+        }
+        
+        // If it's a relative path starting with uploads/images/, make it absolute
+        if (strpos($secondaryImage, 'uploads/images/') === 0) {
+            $scheme = request()->getScheme();
+            $host = request()->getHost();
+            $port = request()->getPort();
+            $portString = ($port && $port != 80 && $port != 443) ? ':' . $port : '';
+            return $scheme . '://' . $host . $portString . '/' . $secondaryImage;
+        }
+        
+        // If it starts with /uploads/images/, make it absolute
+        if (strpos($secondaryImage, '/uploads/images/') === 0) {
+            $scheme = request()->getScheme();
+            $host = request()->getHost();
+            $port = request()->getPort();
+            $portString = ($port && $port != 80 && $port != 443) ? ':' . $port : '';
+            return $scheme . '://' . $host . $portString . $secondaryImage;
+        }
+        
+        return $secondaryImage; // Return as-is if no pattern matches
     }
 }
 

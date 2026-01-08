@@ -10,43 +10,50 @@
             <!-- Time Metadata Row -->
             <div v-if="hasTimeMetadata" class="px-8 py-4 border-b border-emerald-100/50 bg-emerald-50/30">
                 <div class="flex flex-wrap justify-center gap-6 md:gap-12">
-                    <div v-if="prepTime" class="flex flex-col items-center">
+                    <div v-if="displayPrepTime" class="flex flex-col items-center">
                         <div class="flex items-center gap-2 text-gray-600 mb-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <span class="text-xs font-semibold uppercase tracking-wide">Prep</span>
                         </div>
-                        <span class="text-gray-900 font-medium text-sm">{{ prepTime }}</span>
+                        <span class="text-gray-900 font-medium text-sm">{{ displayPrepTime }}</span>
                     </div>
-                    <div v-if="cookTime" class="flex flex-col items-center">
+                    <div v-if="displayCookTime" class="flex flex-col items-center">
                         <div class="flex items-center gap-2 text-gray-600 mb-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
                             </svg>
                             <span class="text-xs font-semibold uppercase tracking-wide">Cook</span>
                         </div>
-                        <span class="text-gray-900 font-medium text-sm">{{ cookTime }}</span>
+                        <span class="text-gray-900 font-medium text-sm">{{ displayCookTime }}</span>
                     </div>
-                    <div v-if="restTime" class="flex flex-col items-center">
+                    <div v-if="displayRestTime" class="flex flex-col items-center">
                         <div class="flex items-center gap-2 text-gray-600 mb-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <span class="text-xs font-semibold uppercase tracking-wide">Rest Time</span>
                         </div>
-                        <span class="text-gray-900 font-medium text-sm">{{ restTime }}</span>
+                        <span class="text-gray-900 font-medium text-sm">{{ displayRestTime }}</span>
                     </div>
-                    <div v-if="totalTime" class="flex flex-col items-center">
+                    <div v-if="displayTotalTime" class="flex flex-col items-center">
                         <div class="flex items-center gap-2 text-gray-600 mb-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <span class="text-xs font-semibold uppercase tracking-wide">Total</span>
                         </div>
-                        <span class="text-gray-900 font-medium text-sm">{{ totalTime }}</span>
+                        <span class="text-gray-900 font-medium text-sm">{{ displayTotalTime }}</span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Tags (Added as requested) -->
+            <div v-if="tags && tags.length > 0" class="px-8 py-3 border-b border-emerald-100/50 flex flex-wrap gap-2">
+                <span v-for="(tag, index) in tags" :key="index" class="px-3 py-1 bg-emerald-100/50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider rounded-full border border-emerald-200/50">
+                    #{{ tag }}
+                </span>
             </div>
 
             <!-- Additional Metadata -->
@@ -159,16 +166,21 @@ const props = defineProps({
     gradients: {
         type: Object,
         default: null
-    }
+    },
+    prepTime: String,
+    cookTime: String,
+    restTime: String,
+    totalTime: String,
+    tags: Array
 });
 
 const ingredients = ref([]);
 const instructions = ref([]);
 const notes = ref([]);
-const prepTime = ref('');
-const cookTime = ref('');
-const restTime = ref('');
-const totalTime = ref('');
+const internalPrepTime = ref('');
+const internalCookTime = ref('');
+const internalRestTime = ref('');
+const internalTotalTime = ref('');
 const servings = ref('');
 const recipeTitle = ref('');
 const recipeDescription = ref('');
@@ -180,7 +192,17 @@ const dietaryCategories = ref([]);
 const ingredientSubheader = ref('Core Ingredients');
 const checkedIngredients = ref([]);
 
-// Default colorful badge classes for ingredients (emerald/teal theme)
+// Computed times that prefer props over parsed content
+const displayPrepTime = computed(() => props.prepTime || internalPrepTime.value);
+const displayCookTime = computed(() => props.cookTime || internalCookTime.value);
+const displayRestTime = computed(() => props.restTime || internalRestTime.value);
+const displayTotalTime = computed(() => props.totalTime || internalTotalTime.value);
+
+// ... default colors ...
+
+const hasTimeMetadata = computed(() => {
+    return displayPrepTime.value || displayCookTime.value || displayRestTime.value || displayTotalTime.value;
+});
 const defaultIngredientBadgeColors = [
     'bg-gradient-to-br from-emerald-400 to-emerald-600',
     'bg-gradient-to-br from-teal-400 to-teal-600',
@@ -225,10 +247,6 @@ const getStepBadgeClass = (index) => {
 
 const hasRecipeData = computed(() => {
     return ingredients.value.length > 0 || instructions.value.length > 0;
-});
-
-const hasTimeMetadata = computed(() => {
-    return prepTime.value || cookTime.value || restTime.value || totalTime.value;
 });
 
 const hasAdditionalMetadata = computed(() => {
@@ -335,22 +353,22 @@ const extractMetadata = (container) => {
     // Look for time patterns - more flexible matching
     const prepTimeMatch = textLower.match(/(?:prep|preparation)\s*time[:\s]*(\d+\s*(?:min|minute|minutes|hour|hours|hr|hrs|h|m))/i);
     if (prepTimeMatch) {
-        prepTime.value = prepTimeMatch[1].trim();
+        internalPrepTime.value = prepTimeMatch[1].trim();
     }
     
     const cookTimeMatch = textLower.match(/(?:cook|cooking)\s*time[:\s]*(\d+\s*(?:min|minute|minutes|hour|hours|hr|hrs|h|m))/i);
     if (cookTimeMatch) {
-        cookTime.value = cookTimeMatch[1].trim();
+        internalCookTime.value = cookTimeMatch[1].trim();
     }
     
     const restTimeMatch = textLower.match(/(?:rest|resting)\s*time[:\s]*(\d+\s*(?:min|minute|minutes|hour|hours|hr|hrs|h|m))/i);
     if (restTimeMatch) {
-        restTime.value = restTimeMatch[1].trim();
+        internalRestTime.value = restTimeMatch[1].trim();
     }
     
     const totalTimeMatch = textLower.match(/(?:total)\s*time[:\s]*(\d+\s*(?:min|minute|minutes|hour|hours|hr|hrs|h|m))/i);
     if (totalTimeMatch) {
-        totalTime.value = totalTimeMatch[1].trim();
+        internalTotalTime.value = totalTimeMatch[1].trim();
     }
     
     // Look for servings/yield - more flexible

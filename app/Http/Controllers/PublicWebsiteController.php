@@ -256,6 +256,47 @@ class PublicWebsiteController extends Controller
     }
 
     /**
+     * Search articles and recipes (legacy route).
+     */
+    public function searchLegacy(Request $request, string $websiteSlug): Response
+    {
+        $website = Website::where('slug', $websiteSlug)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        $query = $request->input('q');
+
+        // Load categories and pages for navigation
+        $website->load([
+            'categories' => function ($query) {
+                $query->where('is_active', true)->orderBy('order');
+            },
+            'pages' => function ($query) {
+                $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
+            }
+        ]);
+
+        $articles = $website->publishedArticles()
+            ->with('category')
+            ->when($query, function ($q) use ($query) {
+                $q->where(function ($inner) use ($query) {
+                    $inner->where('title', 'like', "%{$query}%")
+                        ->orWhere('content', 'like', "%{$query}%")
+                        ->orWhere('excerpt', 'like', "%{$query}%");
+                });
+            })
+            ->orderBy('published_at', 'desc')
+            ->paginate(12)
+            ->withQueryString();
+
+        return Inertia::render('Public/Website/AllArticles', [
+            'website' => $website,
+            'articles' => $articles,
+            'searchQuery' => $query,
+        ]);
+    }
+
+    /**
      * Display a page (legacy route).
      */
     public function showPage(string $websiteSlug, string $pageSlug): Response
@@ -282,6 +323,49 @@ class PublicWebsiteController extends Controller
         return Inertia::render('Public/Website/Page', [
             'website' => $website,
             'page' => $page,
+        ]);
+    }
+
+    /**
+     * Search articles and recipes (subdomain/custom domain).
+     */
+    public function search(Request $request): Response
+    {
+        $website = $request->get('website');
+        
+        if (!$website) {
+            abort(404, 'Website not found');
+        }
+
+        $query = $request->input('q');
+
+        // Load categories and pages for navigation
+        $website->load([
+            'categories' => function ($query) {
+                $query->where('is_active', true)->orderBy('order');
+            },
+            'pages' => function ($query) {
+                $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
+            }
+        ]);
+
+        $articles = $website->publishedArticles()
+            ->with('category')
+            ->when($query, function ($q) use ($query) {
+                $q->where(function ($inner) use ($query) {
+                    $inner->where('title', 'like', "%{$query}%")
+                        ->orWhere('content', 'like', "%{$query}%")
+                        ->orWhere('excerpt', 'like', "%{$query}%");
+                });
+            })
+            ->orderBy('published_at', 'desc')
+            ->paginate(12)
+            ->withQueryString();
+
+        return Inertia::render('Public/Website/AllArticles', [
+            'website' => $website,
+            'articles' => $articles,
+            'searchQuery' => $query,
         ]);
     }
 

@@ -44,11 +44,27 @@
                                         </time>
                                         <span class="text-xs text-gray-400 font-medium uppercase tracking-wider">Published</span>
                                     </div>
-                                    <div class="hidden sm:block h-8 w-px bg-gray-200"></div>
-                                    <div class="flex flex-col">
-                                        <span class="font-bold text-gray-900">{{ article.views || 0 }}</span>
-                                        <span class="text-xs text-gray-400 font-medium uppercase tracking-wider">Views</span>
-                                    </div>
+                                    
+                                    <!-- Cook Times - Horizontal with vertical lines, bold and bigger -->
+                                    <template v-if="article.prep_time || article.cook_time || article.total_time">
+                                        <div class="hidden sm:block h-8 w-px bg-gray-200"></div>
+                                        <div class="flex items-center gap-4">
+                                            <div v-if="article.prep_time" class="flex items-center gap-2">
+                                                <span class="text-xs text-gray-400 font-medium uppercase tracking-wider">Prep:</span>
+                                                <span class="text-base font-bold text-gray-900">{{ article.prep_time }}</span>
+                                            </div>
+                                            <div v-if="article.cook_time && article.prep_time" class="h-6 w-px bg-gray-300"></div>
+                                            <div v-if="article.cook_time" class="flex items-center gap-2">
+                                                <span class="text-xs text-gray-400 font-medium uppercase tracking-wider">Cook:</span>
+                                                <span class="text-base font-bold text-gray-900">{{ article.cook_time }}</span>
+                                            </div>
+                                            <div v-if="article.total_time && (article.prep_time || article.cook_time)" class="h-6 w-px bg-gray-300"></div>
+                                            <div v-if="article.total_time" class="flex items-center gap-2">
+                                                <span class="text-xs text-gray-400 font-medium uppercase tracking-wider">Total:</span>
+                                                <span class="text-base font-bold text-gray-900">{{ article.total_time }}</span>
+                                            </div>
+                                        </div>
+                                    </template>
                                     
                                     <!-- Action Buttons Bar -->
                                     <div class="ml-auto flex flex-wrap items-center gap-2">
@@ -112,13 +128,48 @@
                             </div>
 
                             <!-- Article Content (with recipe sections removed) -->
-                            <div class="prose prose-emerald prose-lg max-w-none article-body mb-12" v-html="contentWithoutRecipeSections"></div>
+                            <div class="prose prose-emerald prose-lg max-w-none article-body mb-12" :style="{ fontFamily: articleFontFamily }" v-html="contentWithoutRecipeSections"></div>
 
-                            <!-- Recipe Card Component -->
+            <!-- Tags Card -->
+            <div v-if="article.meta_tags && article.meta_tags.length > 0" class="mb-12 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-8 shadow-sm border border-emerald-100">
+                <div class="flex items-center gap-3 mb-6">
+                    <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
+                    <h3 class="text-2xl font-bold text-gray-900">Tags</h3>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <span 
+                        v-for="(tag, index) in article.meta_tags" 
+                        :key="index"
+                        class="px-4 py-2 bg-white text-emerald-700 text-sm font-semibold rounded-full border-2 border-emerald-200 shadow-sm hover:bg-emerald-100 hover:border-emerald-300 transition-colors"
+                    >
+                        #{{ tag }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Pro Tips / Notes Card -->
+            <div v-if="article.notes && article.notes.length > 0" class="mb-12">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">Notes</h3>
+                <div class="space-y-2">
+                    <div v-for="(note, index) in article.notes" :key="index" class="flex items-start gap-2 text-sm">
+                        <span class="flex-shrink-0 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center text-white text-xs font-bold">!</span>
+                        <span class="text-gray-700 leading-relaxed">{{ note }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recipe Card Component -->
                             <RecipeCard 
                                 :gradients="article.gradients"
                                 :content="article.processed_content || article.content || ''" 
                                 :title="article.title"
+                                :prep-time="article.prep_time"
+                                :cook-time="article.cook_time"
+                                :rest-time="article.rest_time"
+                                :total-time="article.total_time"
+                                :tags="article.meta_tags"
                                 ref="recipeCard"
                             />
 
@@ -211,6 +262,24 @@ const props = defineProps({
     relatedArticles: Array
 });
 
+// Get font family from website theme settings
+const articleFontFamily = computed(() => {
+    const fontId = props.website?.theme_settings?.article_font_family || 'default';
+    const fontMap = {
+        'default': "'Plus Jakarta Sans', sans-serif",
+        'inter': "'Inter', sans-serif",
+        'roboto': "'Roboto', sans-serif",
+        'open-sans': "'Open Sans', sans-serif",
+        'lato': "'Lato', sans-serif",
+        'montserrat': "'Montserrat', sans-serif",
+        'poppins': "'Poppins', sans-serif",
+        'raleway': "'Raleway', sans-serif",
+        'merriweather': "'Merriweather', serif",
+        'lora': "'Lora', serif",
+    };
+    return fontMap[fontId] || fontMap['default'];
+});
+
 const formatDate = (date) => {
     return new Date(date).toLocaleDateString('en-US', {
         year: 'numeric',
@@ -297,6 +366,30 @@ const contentWithoutRecipeSections = computed(() => {
             elementsToRemove.forEach(el => el.remove());
         }
     });
+
+    // Insert secondary image in the middle of the content
+    const secondaryImage = props.article?.processed_secondary_image || props.article?.secondary_image;
+    if (secondaryImage) {
+        const paragraphs = tempDiv.querySelectorAll('p');
+        if (paragraphs.length >= 2) {
+            // Find the middle paragraph
+            const middleIndex = Math.floor(paragraphs.length / 2);
+            const middleParagraph = paragraphs[middleIndex];
+            
+            // Create image element
+            const imgContainer = document.createElement('div');
+            imgContainer.className = 'my-12 relative group';
+            imgContainer.innerHTML = `
+                <div class="absolute -inset-1 bg-gradient-to-r from-emerald-100 to-teal-100 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                <div class="relative rounded-[2rem] overflow-hidden shadow-2xl">
+                    <img src="${secondaryImage}" alt="${props.article.title}" class="w-full h-auto object-cover transform transition duration-500 group-hover:scale-[1.02]" />
+                </div>
+            `;
+            
+            // Insert after middle paragraph
+            middleParagraph.parentNode.insertBefore(imgContainer, middleParagraph.nextSibling);
+        }
+    }
     
     return tempDiv.innerHTML;
 });
@@ -357,7 +450,7 @@ const pinterestShareUrl = computed(() => {
 </script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=Roboto:wght@300;400;500;700;900&family=Open+Sans:wght@300;400;500;600;700;800&family=Lato:wght@300;400;700;900&family=Montserrat:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&family=Raleway:wght@300;400;500;600;700;800&family=Merriweather:wght@300;400;700;900&family=Lora:wght@400;500;600;700&display=swap');
 
 .font-serif {
     font-family: 'Playfair Display', serif;

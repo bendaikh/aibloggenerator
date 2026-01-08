@@ -159,6 +159,12 @@ class GenerateAIArticleJob implements ShouldQueue
                 'featured_image' => $this->featuredImage,
                 'meta_title' => $parsed['meta_title'],
                 'meta_description' => $parsed['meta_description'],
+                'meta_tags' => $parsed['meta_tags'] ?? [],
+                'notes' => $parsed['notes'] ?? [],
+                'prep_time' => $parsed['prep_time'] ?? null,
+                'cook_time' => $parsed['cook_time'] ?? null,
+                'rest_time' => $parsed['rest_time'] ?? null,
+                'total_time' => $parsed['total_time'] ?? null,
                 'status' => $this->autoPublish ? 'published' : 'draft',
                 'published_at' => $this->autoPublish ? now() : null,
                 'ai_generated' => true,
@@ -287,13 +293,22 @@ Requirements:
 
 Format your response EXACTLY as follows (no markdown code blocks, just plain text):
 
-TITLE: [Write a specific, enticing title that promises value - not generic]
+TITLE: [Write a SHORT, specific, enticing title - MAX 50 characters. Focus on the main dish/topic only. Examples: "Classic French Onion Soup", "30-Minute Chicken Stir-Fry", "Ultimate Chocolate Chip Cookies"]
 
 EXCERPT: [2-3 sentences that capture the essence and make readers want more - write it like a teaser, not a summary]
 
 META_TITLE: [SEO title, 50-60 characters]
 
 META_DESCRIPTION: [SEO description, 150-160 characters]
+
+TAGS: [REQUIRED - Comma separated list of 5-8 relevant tags for this recipe/article. Examples: comfort food, easy recipe, family dinner, quick meals, vegetarian, etc.]
+
+PREP_TIME: [e.g. 10 mins]
+COOK_TIME: [e.g. 25 mins]
+REST_TIME: [e.g. 5 mins]
+TOTAL_TIME: [e.g. 40 mins]
+
+NOTES: [REQUIRED - 3-5 pro tips, expert advice, or important notes as separate lines. Each tip should be practical and valuable. Format: one tip per line]
 
 CONTENT:
 [Full article in HTML - no ```html markers, just the HTML tags directly]
@@ -309,6 +324,12 @@ PROMPT;
         $excerpt = '';
         $metaTitle = '';
         $metaDescription = '';
+        $metaTags = [];
+        $notes = [];
+        $prepTime = '';
+        $cookTime = '';
+        $restTime = '';
+        $totalTime = '';
         $articleContent = '';
 
         // Extract TITLE
@@ -329,6 +350,37 @@ PROMPT;
         // Extract META_DESCRIPTION
         if (preg_match('/META_DESCRIPTION:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
             $metaDescription = trim($matches[1]);
+        }
+
+        // Extract TAGS
+        if (preg_match('/TAGS:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
+            $tagsString = trim($matches[1]);
+            $metaTags = array_map('trim', explode(',', $tagsString));
+            // Remove empty tags and limit to 10
+            $metaTags = array_slice(array_filter($metaTags), 0, 10);
+        }
+
+        // Extract times
+        if (preg_match('/PREP_TIME:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
+            $prepTime = trim($matches[1]);
+        }
+        if (preg_match('/COOK_TIME:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
+            $cookTime = trim($matches[1]);
+        }
+        if (preg_match('/REST_TIME:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
+            $restTime = trim($matches[1]);
+        }
+        if (preg_match('/TOTAL_TIME:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
+            $totalTime = trim($matches[1]);
+        }
+
+        // Extract NOTES
+        if (preg_match('/NOTES:\s*(.+?)(?=\n\n|CONTENT:|$)/is', $content, $matches)) {
+            $notesString = trim($matches[1]);
+            // Split by newlines and clean up
+            $notesArray = array_filter(array_map('trim', explode("\n", $notesString)));
+            // Remove empty notes and limit to 10
+            $notes = array_slice(array_filter($notesArray), 0, 10);
         }
 
         // Extract CONTENT
@@ -358,6 +410,12 @@ PROMPT;
             'excerpt' => $excerpt,
             'meta_title' => $metaTitle,
             'meta_description' => $metaDescription,
+            'meta_tags' => $metaTags,
+            'notes' => $notes,
+            'prep_time' => $prepTime,
+            'cook_time' => $cookTime,
+            'rest_time' => $restTime,
+            'total_time' => $totalTime,
             'content' => $articleContent,
         ];
     }

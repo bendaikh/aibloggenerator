@@ -1,6 +1,6 @@
 <template>
-    <PublicWebsiteLayout :website="website">
-        <Head :title="'All Articles - ' + website.name">
+    <PublicWebsiteLayout :website="website" :search-query="searchQuery">
+        <Head :title="searchQuery ? `Search results for '${searchQuery}' - ${website.name}` : `All Articles - ${website.name}`">
             <link v-if="website.favicon_url" :rel="'icon'" :href="website.favicon_url" />
         </Head>
 
@@ -9,50 +9,23 @@
                 <!-- Page Header -->
                 <header class="text-center mb-12">
                     <div class="inline-block px-4 py-2 bg-emerald-100 text-emerald-600 rounded-full text-sm font-semibold uppercase tracking-wider mb-4">
-                        All The Latest
+                        {{ searchQuery ? 'Search Results' : 'All The Latest' }}
                     </div>
-                    <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Browse All The Latest</h1>
+                    <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                        {{ searchQuery ? 'Search: ' + searchQuery : 'Browse All The Latest' }}
+                    </h1>
                     <p class="text-xl text-gray-500 max-w-2xl mx-auto">
-                        The newest breakfast ideas, dinners and desserts. These easy recipes are pretty much guaranteed winners!
+                        {{ searchQuery ? 'Showing ' + articles.total + ' results for your search.' : 'The newest breakfast ideas, dinners and desserts. These easy recipes are pretty much guaranteed winners!' }}
                     </p>
                 </header>
 
                 <!-- Articles Grid -->
                 <div v-if="articles.data.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-                    <a
+                    <ArticleCard
                         v-for="article in articles.data"
                         :key="article.id"
-                        :href="article.url"
-                        class="group"
-                    >
-                        <div class="overflow-hidden rounded-2xl mb-4 shadow-md group-hover:shadow-xl transition">
-                            <img
-                                v-if="article.processed_featured_image || article.featured_image"
-                                :src="article.processed_featured_image || article.featured_image"
-                                :alt="article.title"
-                                class="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-500"
-                            />
-                            <div v-else class="w-full aspect-[4/3] bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-                                <span class="text-white text-6xl">🍽️</span>
-                            </div>
-                        </div>
-                        <div class="flex justify-center text-yellow-400 text-sm mb-2">
-                            <span v-for="i in 5" :key="i">★</span>
-                        </div>
-                        <h2 class="text-xl font-bold text-gray-900 mb-2 group-hover:text-emerald-500 transition text-center">
-                            {{ article.title }}
-                        </h2>
-                        <p v-if="article.excerpt" class="text-gray-500 text-sm text-center">
-                            {{ article.excerpt.substring(0, 100) }}{{ article.excerpt.length > 100 ? '...' : '' }}
-                        </p>
-                        <div class="flex items-center justify-center gap-2 mt-3 text-xs text-gray-400">
-                            <time :datetime="article.published_at">
-                                {{ formatDate(article.published_at) }}
-                            </time>
-                            <span>•</span>
-                            <span>{{ article.views }} views</span>
-                        </div>
-                    </a>
+                        :article="article"
+                    />
                 </div>
 
                 <!-- Empty State -->
@@ -93,10 +66,12 @@
 <script setup>
 import { Head } from '@inertiajs/vue3';
 import PublicWebsiteLayout from '@/Layouts/PublicWebsiteLayout.vue';
+import ArticleCard from '@/Components/ArticleCard.vue';
 
 defineProps({
     website: Object,
-    articles: Object
+    articles: Object,
+    searchQuery: String
 });
 
 const formatDate = (date) => {

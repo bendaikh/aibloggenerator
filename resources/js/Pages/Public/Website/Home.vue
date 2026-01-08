@@ -78,27 +78,11 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <a
+                    <ArticleCard
                         v-for="article in latestArticles"
                         :key="article.id"
-                        :href="article.url"
-                        class="group"
-                    >
-                        <div class="overflow-hidden rounded-2xl mb-4 shadow-md group-hover:shadow-xl transition">
-                            <img
-                                v-if="article.processed_featured_image || article.featured_image"
-                                :src="article.processed_featured_image || article.featured_image"
-                                :alt="article.title"
-                                class="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-500"
-                            />
-                            <div v-else class="w-full aspect-[4/3] bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-                                <span class="text-white text-6xl">🍽️</span>
-                            </div>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-900 group-hover:text-emerald-500 transition leading-tight">
-                            {{ article.title }}
-                        </h3>
-                    </a>
+                        :article="article"
+                    />
                 </div>
             </div>
         </section>
@@ -175,30 +159,11 @@
                 </div>
 
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                    <a
+                    <ArticleCard
                         v-for="article in featuredArticles"
                         :key="article.id"
-                        :href="article.url"
-                        class="group text-center"
-                    >
-                        <div class="overflow-hidden rounded-2xl mb-3 shadow-md group-hover:shadow-xl transition">
-                            <img
-                                v-if="article.processed_featured_image || article.featured_image"
-                                :src="article.processed_featured_image || article.featured_image"
-                                :alt="article.title"
-                                class="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-500"
-                            />
-                            <div v-else class="w-full aspect-square bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-                                <span class="text-white text-4xl">🍽️</span>
-                            </div>
-                        </div>
-                        <div class="flex justify-center text-yellow-400 text-sm mb-1">
-                            <span v-for="i in 5" :key="i">★</span>
-                        </div>
-                        <h3 class="font-semibold text-gray-900 group-hover:text-emerald-500 transition text-sm leading-tight">
-                            {{ article.title }}
-                        </h3>
-                    </a>
+                        :article="article"
+                    />
                 </div>
             </div>
         </section>
@@ -209,6 +174,7 @@
 <script setup>
 import { Head } from '@inertiajs/vue3';
 import PublicWebsiteLayout from '@/Layouts/PublicWebsiteLayout.vue';
+import ArticleCard from '@/Components/ArticleCard.vue';
 import { computed } from 'vue';
 
 const props = defineProps({

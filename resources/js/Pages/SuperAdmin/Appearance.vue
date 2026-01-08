@@ -28,9 +28,24 @@ const form = useForm({
     theme_settings: {
         show_newsletter_cta: currentThemeSettings.show_newsletter_cta !== false, // Default to true
         show_shop_cta: currentThemeSettings.show_shop_cta !== false, // Default to true
+        article_font_family: currentThemeSettings.article_font_family || 'default',
         ...currentThemeSettings
     }
 });
+
+// Available fonts
+const availableFonts = [
+    { id: 'default', name: 'Default (Plus Jakarta Sans)', preview: 'Aa' },
+    { id: 'inter', name: 'Inter', preview: 'Aa' },
+    { id: 'roboto', name: 'Roboto', preview: 'Aa' },
+    { id: 'open-sans', name: 'Open Sans', preview: 'Aa' },
+    { id: 'lato', name: 'Lato', preview: 'Aa' },
+    { id: 'montserrat', name: 'Montserrat', preview: 'Aa' },
+    { id: 'poppins', name: 'Poppins', preview: 'Aa' },
+    { id: 'raleway', name: 'Raleway', preview: 'Aa' },
+    { id: 'merriweather', name: 'Merriweather (Serif)', preview: 'Aa' },
+    { id: 'lora', name: 'Lora (Serif)', preview: 'Aa' },
+];
 
 const submit = () => {
     form.put(route('superadmin.appearance.update', props.currentWebsite.id), {
@@ -39,6 +54,23 @@ const submit = () => {
             // Show success message
         }
     });
+};
+
+// Get font family CSS value
+const getFontFamily = (fontId) => {
+    const fontMap = {
+        'default': "'Plus Jakarta Sans', sans-serif",
+        'inter': "'Inter', sans-serif",
+        'roboto': "'Roboto', sans-serif",
+        'open-sans': "'Open Sans', sans-serif",
+        'lato': "'Lato', sans-serif",
+        'montserrat': "'Montserrat', sans-serif",
+        'poppins': "'Poppins', sans-serif",
+        'raleway': "'Raleway', sans-serif",
+        'merriweather': "'Merriweather', serif",
+        'lora': "'Lora', serif",
+    };
+    return fontMap[fontId] || fontMap['default'];
 };
 </script>
 
@@ -138,6 +170,39 @@ const submit = () => {
                                 />
                                 <div class="w-11 h-6 bg-[#3a3a3a] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                             </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Typography Settings -->
+                <div class="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4">Typography</h3>
+                    <p class="text-gray-400 text-sm mb-6">Choose the font family for article text</p>
+                    
+                    <div class="space-y-4">
+                        <label class="block">
+                            <span class="text-white text-sm font-medium mb-2 block">Article Font Family</span>
+                            <select
+                                v-model="form.theme_settings.article_font_family"
+                                class="w-full px-4 py-3 bg-[#252525] border border-[#3a3a3a] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                            >
+                                <option v-for="font in availableFonts" :key="font.id" :value="font.id">
+                                    {{ font.name }}
+                                </option>
+                            </select>
+                            <p class="text-gray-500 text-xs mt-2">This font will be applied to all article text content</p>
+                        </label>
+                        
+                        <!-- Font Preview -->
+                        <div class="p-6 bg-[#252525] rounded-lg border border-[#3a3a3a]">
+                            <p class="text-gray-400 text-xs mb-3">PREVIEW:</p>
+                            <div :style="{ fontFamily: getFontFamily(form.theme_settings.article_font_family) }">
+                                <p class="text-white text-2xl font-bold mb-2">The Quick Brown Fox</p>
+                                <p class="text-gray-300 text-base leading-relaxed">
+                                    This is how your article text will look. Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+                                    Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>

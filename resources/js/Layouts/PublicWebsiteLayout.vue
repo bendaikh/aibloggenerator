@@ -70,18 +70,8 @@
                         </a>
                     </nav>
 
-                    <!-- Right Icons -->
+                    <!-- Right Icons (Removed as requested) -->
                     <div class="flex items-center gap-4">
-                        <button class="text-gray-600 hover:text-emerald-500 transition">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </button>
-                        <button class="text-gray-600 hover:text-emerald-500 transition">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                            </svg>
-                        </button>
                     </div>
                 </div>
 
@@ -105,16 +95,18 @@
         <div class="bg-gray-50 py-6">
             <div class="container mx-auto px-4">
                 <div class="max-w-2xl mx-auto">
-                    <div class="relative">
+                    <form :action="website.url + '/search'" method="GET" class="relative">
                         <input
                             type="text"
+                            name="q"
+                            :value="searchQuery"
                             placeholder="🔍 Search recipes and articles..."
                             class="w-full px-6 py-4 rounded-full border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-gray-700 shadow-sm"
                         />
-                        <button class="absolute right-2 top-1/2 -translate-y-1/2 bg-emerald-500 text-white px-6 py-2.5 rounded-full font-medium hover:bg-emerald-600 transition shadow-md">
+                        <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 bg-emerald-500 text-white px-6 py-2.5 rounded-full font-medium hover:bg-emerald-600 transition shadow-md">
                             Search
                         </button>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -227,10 +219,14 @@
 </template>
 
 <script setup>
-defineProps({
+const props = defineProps({
     website: {
         type: Object,
         required: true
+    },
+    searchQuery: {
+        type: String,
+        default: ''
     }
 });
 </script>

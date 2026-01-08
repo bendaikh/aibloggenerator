@@ -81,10 +81,15 @@ class ArticleController extends Controller
             'excerpt' => 'nullable|string',
             'content' => 'required|string',
             'featured_image' => 'nullable|string|max:1000',
+            'secondary_image' => 'nullable|string|max:1000',
             'meta_tags' => 'nullable|array',
             'status' => 'required|in:draft,published,scheduled',
             'generation_type' => 'required|in:manual,ai',
             'published_at' => 'nullable|date',
+            'prep_time' => 'nullable|string|max:255',
+            'cook_time' => 'nullable|string|max:255',
+            'rest_time' => 'nullable|string|max:255',
+            'total_time' => 'nullable|string|max:255',
         ]);
 
         $validated['website_id'] = $website->id;
@@ -146,9 +151,14 @@ class ArticleController extends Controller
             'excerpt' => 'nullable|string',
             'content' => 'required|string',
             'featured_image' => 'nullable|string',
+            'secondary_image' => 'nullable|string',
             'meta_tags' => 'nullable|array',
             'status' => 'required|in:draft,published,scheduled',
             'published_at' => 'nullable|date',
+            'prep_time' => 'nullable|string|max:255',
+            'cook_time' => 'nullable|string|max:255',
+            'rest_time' => 'nullable|string|max:255',
+            'total_time' => 'nullable|string|max:255',
         ]);
 
         $article->update($validated);

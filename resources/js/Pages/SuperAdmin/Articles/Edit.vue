@@ -93,15 +93,41 @@
                         </div>
 
                         <!-- Featured Image Upload -->
-                        <div class="mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <ImageUpload
                                 v-model="form.featured_image"
                                 label="Featured Image"
                                 type="article"
-                                hint="Recommended size: 1200x630px for social sharing"
+                                hint="Primary image shown on cards"
                                 :allow-url="true"
                             />
-                            <p v-if="form.errors.featured_image" class="mt-2 text-sm text-red-500">{{ form.errors.featured_image }}</p>
+                            <ImageUpload
+                                v-model="form.secondary_image"
+                                label="Secondary Image"
+                                type="article"
+                                hint="Middle of article image"
+                                :allow-url="true"
+                            />
+                        </div>
+
+                        <!-- Time Information -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <div>
+                                <label for="prep_time" class="block text-sm font-medium text-gray-300 mb-2">Prep Time</label>
+                                <input id="prep_time" v-model="form.prep_time" type="text" class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="e.g. 10 mins" />
+                            </div>
+                            <div>
+                                <label for="cook_time" class="block text-sm font-medium text-gray-300 mb-2">Cook Time</label>
+                                <input id="cook_time" v-model="form.cook_time" type="text" class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="e.g. 20 mins" />
+                            </div>
+                            <div>
+                                <label for="rest_time" class="block text-sm font-medium text-gray-300 mb-2">Rest Time</label>
+                                <input id="rest_time" v-model="form.rest_time" type="text" class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="e.g. 5 mins" />
+                            </div>
+                            <div>
+                                <label for="total_time" class="block text-sm font-medium text-gray-300 mb-2">Total Time</label>
+                                <input id="total_time" v-model="form.total_time" type="text" class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="e.g. 35 mins" />
+                            </div>
                         </div>
 
                         <!-- Excerpt -->
@@ -226,6 +252,11 @@ const form = useForm({
     excerpt: props.article.excerpt || '',
     content: props.article.content || '',
     featured_image: props.article.featured_image || '',
+    secondary_image: props.article.secondary_image || '',
+    prep_time: props.article.prep_time || '',
+    cook_time: props.article.cook_time || '',
+    rest_time: props.article.rest_time || '',
+    total_time: props.article.total_time || '',
     status: props.article.status || 'draft',
     published_at: props.article.published_at ? props.article.published_at.substring(0, 16) : ''
 });

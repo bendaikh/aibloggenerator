@@ -33,6 +33,7 @@ if (!$isLocalDev) {
         Route::get('/category/{category}', [PublicWebsiteController::class, 'showCategoryByDomain'])->name('website.category.subdomain');
         Route::get('/article/{article}', [PublicWebsiteController::class, 'showArticleByDomain'])->name('article.show.subdomain');
         Route::get('/page/{page}', [PublicWebsiteController::class, 'showPageByDomain'])->name('website.page.subdomain');
+        Route::get('/search', [PublicWebsiteController::class, 'search'])->name('website.search.subdomain');
     });
 }
 
@@ -152,6 +153,7 @@ $registerMainAppRoutes = function () {
     Route::get('/site/{website}/category/{category}', [PublicWebsiteController::class, 'showCategory'])->name('website.category');
     Route::get('/site/{website}/article/{article}', [PublicWebsiteController::class, 'showArticle'])->name('article.show');
     Route::get('/site/{website}/page/{page}', [PublicWebsiteController::class, 'showPage'])->name('website.page');
+    Route::get('/site/{website}/search', [PublicWebsiteController::class, 'searchLegacy'])->name('website.search');
     
     // Auth routes
     require __DIR__.'/auth.php';
@@ -181,5 +183,6 @@ if (!$isLocalDev) {
         Route::get('/category/{category}', [PublicWebsiteController::class, 'showCategoryByDomain'])->name('website.category.custom');
         Route::get('/article/{article}', [PublicWebsiteController::class, 'showArticleByDomain'])->name('article.show.custom');
         Route::get('/page/{page}', [PublicWebsiteController::class, 'showPageByDomain'])->name('website.page.custom');
+        Route::get('/search', [PublicWebsiteController::class, 'search'])->name('website.search.custom');
     });
 }
