@@ -36,7 +36,7 @@
             </h2>
 
             <!-- Cook Times - Horizontal with vertical lines -->
-            <div v-if="hasTimeInfo" class="flex items-center justify-center gap-3 mb-4 py-3 border-y border-emerald-100 bg-emerald-50/30">
+            <div v-if="showTime && hasTimeInfo" class="flex items-center justify-center gap-3 mb-4 py-3 border-y border-emerald-100 bg-emerald-50/30">
                 <div v-if="article.prep_time" class="flex items-center gap-1.5">
                     <span class="text-[10px] uppercase text-gray-500 font-bold tracking-wider">Prep:</span>
                     <span class="text-sm font-bold text-gray-900">{{ article.prep_time }}</span>
@@ -65,7 +65,7 @@
             </div>
 
             <!-- Footer Info -->
-            <div class="flex items-center justify-center text-[11px] text-gray-400">
+            <div v-if="showDate" class="flex items-center justify-center text-[11px] text-gray-400">
                 <time :datetime="article.published_at">
                     {{ formatDate(article.published_at) }}
                 </time>
@@ -81,6 +81,14 @@ const props = defineProps({
     article: {
         type: Object,
         required: true
+    },
+    showTime: {
+        type: Boolean,
+        default: true
+    },
+    showDate: {
+        type: Boolean,
+        default: true
     }
 });
 

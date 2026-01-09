@@ -150,22 +150,82 @@
                                 <p v-if="manualForm.errors.slug" class="mt-2 text-sm text-red-500">{{ manualForm.errors.slug }}</p>
                             </div>
 
-                            <!-- Featured Image Upload -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                <ImageUpload
-                                    v-model="manualForm.featured_image"
-                                    label="Featured Image"
-                                    type="article"
-                                    hint="Primary image shown on cards"
-                                    :allow-url="true"
-                                />
-                                <ImageUpload
-                                    v-model="manualForm.secondary_image"
-                                    label="Secondary Image"
-                                    type="article"
-                                    hint="Middle of article image"
-                                    :allow-url="true"
-                                />
+                            <!-- Article Images Upload (Multiple) -->
+                            <div class="mb-6 space-y-4">
+                                <label class="block text-sm font-medium text-gray-300">
+                                    Article Images (Optional)
+                                </label>
+                                <p class="text-xs text-gray-500">Upload multiple images. The first will be the featured image, second will be the secondary image.</p>
+                                
+                                <!-- Multiple Image Upload -->
+                                <label 
+                                    for="articleImagesUpload"
+                                    @dragover.prevent="isDragging = true"
+                                    @dragleave.prevent="isDragging = false"
+                                    @drop.prevent="handleImagesDrop"
+                                    :class="[
+                                        'border-2 border-dashed rounded-lg p-8 text-center transition-all block',
+                                        isUploading ? 'cursor-wait opacity-70' : 'cursor-pointer',
+                                        isDragging ? 'border-emerald-500 bg-emerald-900/20' : 'border-[#3a3a3a] hover:border-[#4a4a4a]'
+                                    ]"
+                                >
+                                    <input
+                                        id="articleImagesUpload"
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/gif,image/webp"
+                                        multiple
+                                        class="sr-only"
+                                        @change="handleImagesSelect"
+                                        :disabled="isUploading"
+                                    />
+                                    <div class="flex flex-col items-center">
+                                        <div v-if="isUploading" class="w-12 h-12 bg-[#252525] rounded-lg flex items-center justify-center mb-3">
+                                            <svg class="animate-spin w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                        </div>
+                                        <div v-else class="w-12 h-12 bg-[#252525] rounded-lg flex items-center justify-center mb-3">
+                                            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                        </div>
+                                        <p class="text-white text-sm font-medium mb-1">
+                                            {{ isUploading ? 'Uploading images...' : 'Drop images here or click to browse' }}
+                                        </p>
+                                        <p class="text-gray-500 text-xs">
+                                            PNG, JPG, WebP up to 5MB each
+                                        </p>
+                                    </div>
+                                </label>
+                                
+                                <!-- Upload Error -->
+                                <div v-if="uploadError" class="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg text-sm">
+                                    {{ uploadError }}
+                                </div>
+                                
+                                <!-- Uploaded Images Preview -->
+                                <div v-if="uploadedImages.length > 0" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div v-for="(img, index) in uploadedImages" :key="index" class="relative group">
+                                        <div class="absolute -top-2 -right-2 z-10">
+                                            <button 
+                                                type="button"
+                                                @click="removeImageAt(index)"
+                                                class="w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg"
+                                            >
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div class="aspect-square bg-[#252525] rounded-lg overflow-hidden border-2 border-[#3a3a3a]">
+                                            <img :src="img" :alt="`Image ${index + 1}`" class="w-full h-full object-cover" />
+                                        </div>
+                                        <div class="mt-2 text-center">
+                                            <p class="text-xs text-gray-400">{{ index === 0 ? 'Featured' : index === 1 ? 'Secondary' : `Image ${index + 1}` }}</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Time Information -->
@@ -396,15 +456,77 @@
                                 <p class="mt-1 text-xs text-gray-500">Separate keywords with commas</p>
                             </div>
 
-                            <!-- Featured Image Upload (Optional) -->
-                            <div>
-                                <ImageUpload
-                                    v-model="aiForm.featured_image"
-                                    label="Featured Image (Optional)"
-                                    type="article"
-                                    hint="Upload an image for your article, or leave empty to add one later"
-                                    :allow-url="true"
-                                />
+                            <!-- Article Images Upload (Multiple) -->
+                            <div class="mb-6 space-y-4">
+                                <label class="block text-sm font-medium text-gray-300">
+                                    Article Images (Optional)
+                                </label>
+                                <p class="text-xs text-gray-500">Upload multiple images. The first will be the featured image, second will be the secondary image.</p>
+                                
+                                <!-- Multiple Image Upload -->
+                                <label 
+                                    for="aiArticleImagesUpload"
+                                    @dragover.prevent="isDragging = true"
+                                    @dragleave.prevent="isDragging = false"
+                                    @drop.prevent="handleAIImagesDrop"
+                                    :class="[
+                                        'border-2 border-dashed rounded-lg p-8 text-center transition-all block',
+                                        isUploading ? 'cursor-wait opacity-70' : 'cursor-pointer',
+                                        isDragging ? 'border-emerald-500 bg-emerald-900/20' : 'border-[#3a3a3a] hover:border-[#4a4a4a]'
+                                    ]"
+                                >
+                                    <input
+                                        id="aiArticleImagesUpload"
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/gif,image/webp"
+                                        multiple
+                                        class="sr-only"
+                                        @change="handleAIImagesSelect"
+                                        :disabled="isUploading"
+                                    />
+                                    <div class="flex flex-col items-center">
+                                        <div v-if="isUploading" class="w-12 h-12 bg-[#252525] rounded-lg flex items-center justify-center mb-3">
+                                            <svg class="animate-spin w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                        </div>
+                                        <div v-else class="w-12 h-12 bg-[#252525] rounded-lg flex items-center justify-center mb-3">
+                                            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                        </div>
+                                        <p class="text-white text-sm font-medium mb-1">
+                                            {{ isUploading ? 'Uploading images...' : 'Drop images here or click to browse' }}
+                                        </p>
+                                        <p class="text-gray-500 text-xs">
+                                            PNG, JPG, WebP up to 5MB each
+                                        </p>
+                                    </div>
+                                </label>
+                                
+                                <!-- Uploaded Images Preview -->
+                                <div v-if="uploadedImages.length > 0" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div v-for="(img, index) in uploadedImages" :key="index" class="relative group">
+                                        <div class="absolute -top-2 -right-2 z-10">
+                                            <button 
+                                                type="button"
+                                                @click="removeImageAt(index)"
+                                                class="w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg"
+                                            >
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div class="aspect-square bg-[#252525] rounded-lg overflow-hidden border-2 border-[#3a3a3a]">
+                                            <img :src="img" :alt="`Image ${index + 1}`" class="w-full h-full object-cover" />
+                                        </div>
+                                        <div class="mt-2 text-center">
+                                            <p class="text-xs text-gray-400">{{ index === 0 ? 'Featured' : index === 1 ? 'Secondary' : `Image ${index + 1}` }}</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Background Processing Info -->
@@ -478,6 +600,12 @@ const props = defineProps({
 
 const creationMethod = ref(null);
 
+// Image upload states
+const isDragging = ref(false);
+const isUploading = ref(false);
+const uploadError = ref('');
+const uploadedImages = ref([]);
+
 // Manual form
 const manualForm = useForm({
     category_id: '',
@@ -504,10 +632,92 @@ const aiForm = useForm({
     length: 'medium',
     keywords: '',
     featured_image: '',
+    secondary_image: '',
     auto_publish: false,
     auto_categorize: true,
     background: true
 });
+
+// Handle multiple image upload
+const handleImagesSelect = (event) => {
+    const files = Array.from(event.target.files);
+    uploadImages(files, 'manual');
+};
+
+const handleImagesDrop = (event) => {
+    isDragging.value = false;
+    const files = Array.from(event.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+    uploadImages(files, 'manual');
+};
+
+const handleAIImagesSelect = (event) => {
+    const files = Array.from(event.target.files);
+    uploadImages(files, 'ai');
+};
+
+const handleAIImagesDrop = (event) => {
+    isDragging.value = false;
+    const files = Array.from(event.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+    uploadImages(files, 'ai');
+};
+
+const uploadImages = async (files, method = 'manual') => {
+    if (files.length === 0) return;
+    
+    uploadError.value = '';
+    isUploading.value = true;
+
+    for (const file of files) {
+        if (file.size > 5 * 1024 * 1024) {
+            uploadError.value = `${file.name} is too large. Maximum size is 5MB.`;
+            continue;
+        }
+
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('type', 'article');
+
+        try {
+            const response = await fetch(route('image.upload'), {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                },
+                body: formData,
+            });
+
+            const data = await response.json();
+            
+            if (data.url) {
+                uploadedImages.value.push(data.url);
+                // Update appropriate form
+                const targetForm = method === 'manual' ? manualForm : aiForm;
+                
+                if (uploadedImages.value.length === 1) {
+                    targetForm.featured_image = data.url;
+                } else if (uploadedImages.value.length === 2) {
+                    targetForm.secondary_image = data.url;
+                }
+            } else {
+                uploadError.value = data.error || 'Upload failed';
+            }
+        } catch (error) {
+            uploadError.value = 'Upload failed. Please try again.';
+            console.error('Upload error:', error);
+        }
+    }
+
+    isUploading.value = false;
+};
+
+const removeImageAt = (index) => {
+    uploadedImages.value.splice(index, 1);
+    // Update both form fields to be safe
+    manualForm.featured_image = uploadedImages.value[0] || '';
+    manualForm.secondary_image = uploadedImages.value[1] || '';
+    aiForm.featured_image = uploadedImages.value[0] || '';
+    aiForm.secondary_image = uploadedImages.value[1] || '';
+};
 
 const submitManual = () => {
     manualForm.post(route('superadmin.articles.store', { website: props.currentWebsite?.id }));

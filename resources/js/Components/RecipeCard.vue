@@ -1,50 +1,59 @@
 <template>
     <div v-if="hasRecipeData" ref="cardElement" class="recipe-card-container my-12" id="recipe-card">
-        <div class="bg-[#F8FEFA] rounded-3xl shadow-xl shadow-emerald-100/50 overflow-hidden border border-emerald-100">
+        <div class="bg-[#F8FEFA] rounded-3xl shadow-xl shadow-emerald-100/50 overflow-hidden border-2 border-dashed border-emerald-300">
             <!-- Recipe Header -->
             <div class="px-8 pt-8 pb-6 border-b border-emerald-100/50">
-                <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{{ recipeTitle }}</h2>
-                <p v-if="recipeDescription" class="text-gray-500 text-sm leading-relaxed">{{ recipeDescription }}</p>
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2 text-center">{{ recipeTitle }}</h2>
+                <p v-if="recipeDescription" class="text-gray-500 text-sm leading-relaxed text-center">{{ recipeDescription }}</p>
             </div>
 
             <!-- Time Metadata Row -->
-            <div v-if="hasTimeMetadata" class="px-8 py-4 border-b border-emerald-100/50 bg-emerald-50/30">
-                <div class="flex flex-wrap justify-center gap-6 md:gap-12">
+            <div v-if="hasTimeMetadata" class="px-8 py-6 border-b border-emerald-100/50 bg-emerald-50/30">
+                <div class="flex flex-wrap justify-center items-center gap-8 md:gap-16">
                     <div v-if="displayPrepTime" class="flex flex-col items-center">
-                        <div class="flex items-center gap-2 text-gray-600 mb-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center gap-2 text-emerald-600 mb-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span class="text-xs font-semibold uppercase tracking-wide">Prep</span>
+                            <span class="text-xs font-bold uppercase tracking-widest">Prep</span>
                         </div>
-                        <span class="text-gray-900 font-medium text-sm">{{ displayPrepTime }}</span>
+                        <span class="text-xl font-black text-gray-900">{{ displayPrepTime }}</span>
                     </div>
+
+                    <div v-if="displayCookTime && displayPrepTime" class="hidden md:block h-12 w-px bg-emerald-200"></div>
+
                     <div v-if="displayCookTime" class="flex flex-col items-center">
-                        <div class="flex items-center gap-2 text-gray-600 mb-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center gap-2 text-emerald-600 mb-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
                             </svg>
-                            <span class="text-xs font-semibold uppercase tracking-wide">Cook</span>
+                            <span class="text-xs font-bold uppercase tracking-widest">Cook</span>
                         </div>
-                        <span class="text-gray-900 font-medium text-sm">{{ displayCookTime }}</span>
+                        <span class="text-xl font-black text-gray-900">{{ displayCookTime }}</span>
                     </div>
+
+                    <div v-if="displayRestTime && (displayPrepTime || displayCookTime)" class="hidden md:block h-12 w-px bg-emerald-200"></div>
+
                     <div v-if="displayRestTime" class="flex flex-col items-center">
-                        <div class="flex items-center gap-2 text-gray-600 mb-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center gap-2 text-emerald-600 mb-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span class="text-xs font-semibold uppercase tracking-wide">Rest Time</span>
+                            <span class="text-xs font-bold uppercase tracking-widest">Rest</span>
                         </div>
-                        <span class="text-gray-900 font-medium text-sm">{{ displayRestTime }}</span>
+                        <span class="text-xl font-black text-gray-900">{{ displayRestTime }}</span>
                     </div>
+
+                    <div v-if="displayTotalTime && (displayPrepTime || displayCookTime || displayRestTime)" class="hidden md:block h-12 w-px bg-emerald-200"></div>
+
                     <div v-if="displayTotalTime" class="flex flex-col items-center">
-                        <div class="flex items-center gap-2 text-gray-600 mb-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center gap-2 text-emerald-600 mb-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span class="text-xs font-semibold uppercase tracking-wide">Total</span>
+                            <span class="text-xs font-bold uppercase tracking-widest">Total</span>
                         </div>
-                        <span class="text-gray-900 font-medium text-sm">{{ displayTotalTime }}</span>
+                        <span class="text-xl font-black text-gray-900">{{ displayTotalTime }}</span>
                     </div>
                 </div>
             </div>
@@ -92,7 +101,10 @@
                 <div v-if="ingredients.length > 0 || instructions.length > 0" class="mb-10">
                     <!-- Ingredients -->
                     <div v-if="ingredients.length > 0" class="mb-8">
-                        <h3 class="text-xl font-bold text-gray-900 mb-2">Ingredients</h3>
+                        <div class="flex items-center gap-4 mb-4">
+                            <h3 class="text-xl font-bold text-gray-900 whitespace-nowrap">Ingredients</h3>
+                            <div class="flex-1 h-px bg-gradient-to-r from-emerald-300 to-transparent"></div>
+                        </div>
                         <p v-if="ingredientSubheader" class="text-gray-500 text-sm mb-4 flex items-center gap-1">
                             <span class="text-gray-400">◆</span>
                             {{ ingredientSubheader }}
@@ -114,7 +126,10 @@
 
                     <!-- Instructions (shown right after ingredients) -->
                     <div v-if="instructions.length > 0" class="pt-6 border-t border-emerald-100/50">
-                        <h3 class="text-xl font-bold text-gray-900 mb-5">Instructions</h3>
+                        <div class="flex items-center gap-4 mb-5">
+                            <h3 class="text-xl font-bold text-gray-900 whitespace-nowrap">Instructions</h3>
+                            <div class="flex-1 h-px bg-gradient-to-r from-emerald-300 to-transparent"></div>
+                        </div>
                         <div class="space-y-6">
                             <div v-for="(instruction, index) in instructions" :key="index">
                                 <div :class="getStepBadgeClass(index)" class="inline-flex items-center px-3 py-1 rounded-md text-white text-xs font-bold mb-2">
@@ -127,12 +142,17 @@
                 </div>
 
                 <!-- Notes Section -->
-                <div v-if="notes.length > 0">
-                    <h3 class="text-xl font-bold text-gray-900 mb-4">Notes</h3>
-                    <div class="space-y-2">
-                        <div v-for="(note, index) in notes" :key="index" class="flex items-start gap-2 text-sm">
-                            <span class="flex-shrink-0 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center text-white text-xs font-bold">!</span>
-                            <span class="text-gray-700 leading-relaxed">{{ note }}</span>
+                <div v-if="notes.length > 0" class="mt-10 bg-emerald-50/50 rounded-2xl p-6 border border-emerald-100">
+                    <div class="flex items-center gap-3 mb-4">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                        <h3 class="text-xl font-bold text-gray-900">Recipe Notes</h3>
+                    </div>
+                    <div class="space-y-3">
+                        <div v-for="(note, index) in notes" :key="index" class="flex items-start gap-3">
+                            <div class="mt-2 w-1.5 h-1.5 bg-emerald-500 rounded-sm flex-shrink-0"></div>
+                            <p class="text-gray-700 leading-relaxed text-sm">{{ note }}</p>
                         </div>
                     </div>
                 </div>

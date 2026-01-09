@@ -161,6 +161,11 @@ class ArticleController extends Controller
             'total_time' => 'nullable|string|max:255',
         ]);
 
+        // If changing status to published and published_at is not set, set it now
+        if ($validated['status'] === 'published' && !$validated['published_at'] && $article->status !== 'published') {
+            $validated['published_at'] = now();
+        }
+
         $article->update($validated);
 
         return redirect()->route('superadmin.articles.show', ['website' => $website->id, 'article' => $article->id])

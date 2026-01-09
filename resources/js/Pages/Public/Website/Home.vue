@@ -163,6 +163,8 @@
                         v-for="article in featuredArticles"
                         :key="article.id"
                         :article="article"
+                        :show-time="false"
+                        :show-date="false"
                     />
                 </div>
             </div>

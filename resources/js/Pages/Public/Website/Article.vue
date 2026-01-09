@@ -47,21 +47,21 @@
                                     
                                     <!-- Cook Times - Horizontal with vertical lines, bold and bigger -->
                                     <template v-if="article.prep_time || article.cook_time || article.total_time">
-                                        <div class="hidden sm:block h-8 w-px bg-gray-200"></div>
-                                        <div class="flex items-center gap-4">
+                                        <div class="hidden sm:block h-8 w-0.5 bg-gray-300 mx-2"></div>
+                                        <div class="flex items-center gap-6">
                                             <div v-if="article.prep_time" class="flex items-center gap-2">
-                                                <span class="text-xs text-gray-400 font-medium uppercase tracking-wider">Prep:</span>
-                                                <span class="text-base font-bold text-gray-900">{{ article.prep_time }}</span>
+                                                <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">Prep:</span>
+                                                <span class="text-lg font-black text-gray-900">{{ article.prep_time }}</span>
                                             </div>
-                                            <div v-if="article.cook_time && article.prep_time" class="h-6 w-px bg-gray-300"></div>
+                                            <div v-if="article.cook_time && article.prep_time" class="h-8 w-0.5 bg-gray-300"></div>
                                             <div v-if="article.cook_time" class="flex items-center gap-2">
-                                                <span class="text-xs text-gray-400 font-medium uppercase tracking-wider">Cook:</span>
-                                                <span class="text-base font-bold text-gray-900">{{ article.cook_time }}</span>
+                                                <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">Cook:</span>
+                                                <span class="text-lg font-black text-gray-900">{{ article.cook_time }}</span>
                                             </div>
-                                            <div v-if="article.total_time && (article.prep_time || article.cook_time)" class="h-6 w-px bg-gray-300"></div>
+                                            <div v-if="article.total_time && (article.prep_time || article.cook_time)" class="h-8 w-0.5 bg-gray-300"></div>
                                             <div v-if="article.total_time" class="flex items-center gap-2">
-                                                <span class="text-xs text-gray-400 font-medium uppercase tracking-wider">Total:</span>
-                                                <span class="text-base font-bold text-gray-900">{{ article.total_time }}</span>
+                                                <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">Total:</span>
+                                                <span class="text-lg font-black text-gray-900">{{ article.total_time }}</span>
                                             </div>
                                         </div>
                                     </template>
@@ -106,13 +106,13 @@
                             </div>
 
                             <!-- Share Buttons Below Image -->
-                            <div v-if="article.processed_featured_image || article.featured_image" class="mb-12 bg-gradient-to-br from-pink-50 to-rose-50 rounded-2xl p-6 shadow-sm border border-pink-100">
+                            <div v-if="article.processed_featured_image || article.featured_image" class="mb-12 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 shadow-sm border border-emerald-100">
                                 <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                                    <a :href="facebookShareUrl" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-3 px-6 py-4 bg-[#1877F2] text-white rounded-xl hover:bg-[#166fe5] transition shadow-lg shadow-blue-200 flex-1 max-w-xs">
+                                    <a :href="facebookShareUrl" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition shadow-lg shadow-emerald-200 flex-1 max-w-xs">
                                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                                         <span class="font-bold text-base">Share on Facebook</span>
                                     </a>
-                                    <a :href="pinterestShareUrl" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-3 px-6 py-4 bg-[#E60023] text-white rounded-xl hover:bg-[#bd081c] transition shadow-lg shadow-red-200 flex-1 max-w-xs">
+                                    <a :href="pinterestShareUrl" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-xl hover:from-teal-600 hover:to-teal-700 transition shadow-lg shadow-teal-200 flex-1 max-w-xs">
                                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.965 1.406-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/></svg>
                                         <span class="font-bold text-base">Pin this for later!</span>
                                     </a>
@@ -150,12 +150,22 @@
             </div>
 
             <!-- Pro Tips / Notes Card -->
-            <div v-if="article.notes && article.notes.length > 0" class="mb-12">
-                <h3 class="text-xl font-bold text-gray-900 mb-4">Notes</h3>
-                <div class="space-y-2">
-                    <div v-for="(note, index) in article.notes" :key="index" class="flex items-start gap-2 text-sm">
-                        <span class="flex-shrink-0 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center text-white text-xs font-bold">!</span>
-                        <span class="text-gray-700 leading-relaxed">{{ note }}</span>
+            <div v-if="article.notes && article.notes.length > 0" class="mb-12 bg-emerald-50/50 rounded-[2rem] p-8 border-2 border-dashed border-emerald-100 shadow-sm relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-100/20 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                
+                <div class="flex items-center gap-3 mb-6 relative">
+                    <div class="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900">Pro Tips & Notes</h3>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 relative">
+                    <div v-for="(note, index) in article.notes" :key="index" class="flex items-start gap-4">
+                        <div class="mt-1.5 w-2 h-2 bg-emerald-500 rounded-sm flex-shrink-0"></div>
+                        <p class="text-gray-700 leading-relaxed font-medium">{{ note }}</p>
                     </div>
                 </div>
             </div>
@@ -380,9 +390,14 @@ const contentWithoutRecipeSections = computed(() => {
             const imgContainer = document.createElement('div');
             imgContainer.className = 'my-12 relative group';
             imgContainer.innerHTML = `
-                <div class="absolute -inset-1 bg-gradient-to-r from-emerald-100 to-teal-100 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
                 <div class="relative rounded-[2rem] overflow-hidden shadow-2xl">
                     <img src="${secondaryImage}" alt="${props.article.title}" class="w-full h-auto object-cover transform transition duration-500 group-hover:scale-[1.02]" />
+                    <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <a href="${pinterestShareUrl.value}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-4 py-2 bg-[#E60023] text-white rounded-full font-bold text-sm hover:bg-[#bd081c] transition shadow-lg">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.965 1.406-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/></svg>
+                            <span>Pin it</span>
+                        </a>
+                    </div>
                 </div>
             `;
             

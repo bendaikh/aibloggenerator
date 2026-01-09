@@ -32,6 +32,7 @@ class GenerateAIArticleJob implements ShouldQueue
     protected bool $autoPublish;
     protected ?int $categoryId;
     protected ?string $featuredImage;
+    protected ?string $secondaryImage;
 
     /**
      * Create a new job instance.
@@ -46,7 +47,8 @@ class GenerateAIArticleJob implements ShouldQueue
         string $keywords = '',
         bool $autoPublish = false,
         ?int $categoryId = null,
-        ?string $featuredImage = null
+        ?string $featuredImage = null,
+        ?string $secondaryImage = null
     ) {
         $this->generationJobId = $generationJobId;
         $this->websiteId = $websiteId;
@@ -58,6 +60,7 @@ class GenerateAIArticleJob implements ShouldQueue
         $this->autoPublish = $autoPublish;
         $this->categoryId = $categoryId;
         $this->featuredImage = $featuredImage;
+        $this->secondaryImage = $secondaryImage;
     }
 
     /**
@@ -157,6 +160,7 @@ class GenerateAIArticleJob implements ShouldQueue
                 'content' => $parsed['content'],
                 'excerpt' => $parsed['excerpt'],
                 'featured_image' => $this->featuredImage,
+                'secondary_image' => $this->secondaryImage,
                 'meta_title' => $parsed['meta_title'],
                 'meta_description' => $parsed['meta_description'],
                 'meta_tags' => $parsed['meta_tags'] ?? [],
