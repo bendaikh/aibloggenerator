@@ -7,6 +7,7 @@ use App\Models\Website;
 use App\Models\Category;
 use App\Models\User;
 use App\Models\ArticleGenerationJob;
+use App\Services\PinterestDesignService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -184,6 +185,19 @@ class GenerateAIArticleJob implements ShouldQueue
                 'category' => $category?->name,
                 'featured_image' => $article->featured_image
             ]);
+
+            // Generate Pinterest pin if article has images
+            if ($article->featured_image) {
+                try {
+                    PinterestDesignService::createFromArticle($article);
+                    Log::info('Pinterest pin created for article', ['article_id' => $article->id]);
+                } catch (\Exception $e) {
+                    Log::warning('Failed to create Pinterest pin', [
+                        'article_id' => $article->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
 
         } catch (\Exception $e) {
             $generationJob->markAsFailed($e->getMessage());

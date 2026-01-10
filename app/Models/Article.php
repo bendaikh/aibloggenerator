@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class Article extends Model
@@ -90,6 +91,14 @@ class Article extends Model
     public function author(): BelongsTo
     {
         return $this->belongsTo(Author::class);
+    }
+
+    /**
+     * Get the Pinterest pins for the article.
+     */
+    public function pinterestPins(): HasMany
+    {
+        return $this->hasMany(PinterestPin::class);
     }
 
     /**

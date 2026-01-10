@@ -94,6 +94,14 @@ class Website extends Model
     }
 
     /**
+     * Get the Pinterest pins for the website.
+     */
+    public function pinterestPins(): HasMany
+    {
+        return $this->hasMany(PinterestPin::class);
+    }
+
+    /**
      * Get published articles.
      */
     public function publishedArticles(): HasMany

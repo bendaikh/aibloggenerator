@@ -12,6 +12,7 @@ use App\Http\Controllers\PublicWebsiteController;
 use App\Http\Controllers\SocialMediaController;
 use App\Http\Controllers\ImageUploadController;
 use App\Http\Controllers\AuthorController;
+use App\Http\Controllers\PinterestPinController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -107,6 +108,17 @@ $registerMainAppRoutes = function () {
         Route::post('/{website}/authors', [AuthorController::class, 'store'])->name('superadmin.authors.store');
         Route::put('/{website}/authors/{author}', [AuthorController::class, 'update'])->name('superadmin.authors.update');
         Route::delete('/{website}/authors/{author}', [AuthorController::class, 'destroy'])->name('superadmin.authors.destroy');
+
+        // Pinterest Pins Routes
+        Route::get('/{website}/pinterest-pins', [PinterestPinController::class, 'index'])->name('superadmin.pinterest-pins.index');
+        Route::get('/{website}/pinterest-pins/create', [PinterestPinController::class, 'create'])->name('superadmin.pinterest-pins.create');
+        Route::post('/{website}/pinterest-pins', [PinterestPinController::class, 'store'])->name('superadmin.pinterest-pins.store');
+        Route::get('/{website}/pinterest-pins/{pin}', [PinterestPinController::class, 'show'])->name('superadmin.pinterest-pins.show');
+        Route::post('/{website}/pinterest-pins/{pin}/regenerate', [PinterestPinController::class, 'regenerate'])->name('superadmin.pinterest-pins.regenerate');
+        Route::delete('/{website}/pinterest-pins/{pin}', [PinterestPinController::class, 'destroy'])->name('superadmin.pinterest-pins.destroy');
+        Route::post('/{website}/pinterest-pins/bulk-generate', [PinterestPinController::class, 'bulkGenerate'])->name('superadmin.pinterest-pins.bulk-generate');
+        Route::get('/{website}/pinterest-pins/{pin}/download', [PinterestPinController::class, 'download'])->name('superadmin.pinterest-pins.download');
+        Route::get('/{website}/pinterest-pins/{pin}/data', [PinterestPinController::class, 'getPinData'])->name('superadmin.pinterest-pins.data');
 
         Route::get('/{website}/appearance', [WebsiteController::class, 'appearance'])->name('superadmin.appearance');
         Route::put('/{website}/appearance', [WebsiteController::class, 'updateAppearance'])->name('superadmin.appearance.update');
