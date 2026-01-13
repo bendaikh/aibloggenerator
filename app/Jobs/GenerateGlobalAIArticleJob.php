@@ -304,11 +304,34 @@ PROMPT;
         $keywordsText = !empty($this->keywords) ? "\n- Naturally weave in these keywords: {$this->keywords}" : '';
         
         // Handle ingredients: if provided, we will add them programmatically at the end, so tell AI NOT to include them
+        // But AI MUST still generate REAL cooking instructions (not ingredient descriptions!)
         $ingredientsText = '';
         if (!empty($this->ingredients)) {
-            $ingredientsText = "\n- DO NOT include an ingredients section - it will be added automatically at the end.";
+            $ingredientsText = <<<INGREDIENTS_INSTRUCTION
+
+IMPORTANT - INGREDIENTS ARE PROVIDED SEPARATELY:
+- DO NOT include an Ingredients section - it will be added automatically.
+- You MUST include an Instructions section with ACTUAL COOKING STEPS.
+
+INSTRUCTIONS MUST BE COOKING ACTIONS, FOR EXAMPLE:
+1. Preheat your oven to 350°F (175°C).
+2. In a large bowl, combine the dry ingredients.
+3. Heat oil in a pan over medium heat.
+4. Add the onions and sauté until translucent.
+5. Stir in the spices and cook for 1 minute until fragrant.
+6. Add the meat and brown on all sides.
+7. Simmer for 30 minutes until tender.
+
+DO NOT repeat ingredient names as instructions. Instructions are VERBS/ACTIONS (preheat, mix, chop, sauté, bake, stir, simmer, serve).
+INGREDIENTS_INSTRUCTION;
         } else {
-            $ingredientsText = "\n- If the topic is recipe-related, include a well-formatted ingredients list AND detailed instructions section at the END of the article. ALWAYS include both Ingredients AND Instructions sections - instructions are required for recipes.";
+            $ingredientsText = <<<INGREDIENTS_INSTRUCTION
+
+FOR RECIPE CONTENT:
+- Include an Ingredients section: a list of items with quantities (e.g., "2 cups flour", "1 lb chicken")
+- Include an Instructions section: step-by-step COOKING ACTIONS (e.g., "1. Preheat oven to 350°F", "2. Mix ingredients in a bowl")
+- These MUST be different! Ingredients = WHAT you need. Instructions = HOW to cook (action verbs).
+INGREDIENTS_INSTRUCTION;
         }
         
         // Add variation instructions to ensure unique articles
@@ -353,6 +376,12 @@ Requirements:
 - Tone: {$this->tone} (but always authentic and personal)
 - Use proper HTML formatting: <h2> for major sections (Ingredients, Instructions, Pro Tips), <h3> for subsections, <p>, <ul>, <ol>, <strong>, <em>, <blockquote> for tips/quotes
 - Make it SEO-friendly but human-first{$keywordsText}{$ingredientsText}
+
+CRITICAL FOR RECIPES - READ CAREFULLY:
+- Instructions section: Use <h2>Instructions</h2> followed by <ol> with step-by-step COOKING DIRECTIONS
+- Each instruction step must START WITH AN ACTION VERB: Preheat, Mix, Chop, Sauté, Bake, Stir, Add, Pour, Heat, Season, Serve, etc.
+- WRONG: "Meat: Traditionally lamb is used" (this is an ingredient description, NOT an instruction)
+- RIGHT: "Season the lamb with salt and pepper, then sear in a hot pan for 3 minutes per side"
 
 Format your response EXACTLY as follows:
 
@@ -466,22 +495,78 @@ PROMPT;
     /**
      * Ensure ingredients section appears at the end of the article.
      * This function will REMOVE any existing ingredients section and add it at the very end.
+     * IMPORTANT: This method carefully preserves the Instructions section!
      */
     private function ensureIngredientsAtEnd(string $content): string
     {
-        // First, remove any existing Ingredients section from the content
-        // This regex matches <h2>Ingredients</h2> followed by <ul>...</ul> or <ol>...</ol>
-        $pattern = '/<h[23][^>]*>\s*Ingredients?\s*<\/h[23]>\s*(<ul[^>]*>.*?<\/ul>|<ol[^>]*>.*?<\/ol>)/is';
-        $content = preg_replace($pattern, '', $content);
+        // Create a DOM parser to safely manipulate HTML without breaking other sections
+        $dom = new \DOMDocument();
+        // Suppress warnings for malformed HTML
+        @$dom->loadHTML('<?xml encoding="utf-8" ?><div>' . $content . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
         
-        // Also try to remove any standalone ingredients list that might be wrapped differently
-        $pattern2 = '/<h[23][^>]*>\s*Ingredients?\s*<\/h[23]>\s*(<p>.*?<\/p>\s*)*(<ul[^>]*>.*?<\/ul>|<ol[^>]*>.*?<\/ol>)/is';
-        $content = preg_replace($pattern2, '', $content);
+        $xpath = new \DOMXPath($dom);
+        
+        // Find and remove ONLY the Ingredients section (not Instructions!)
+        // Look for h2 or h3 headers that contain "Ingredient" but NOT "Instruction"
+        $headers = $xpath->query('//h2|//h3');
+        $elementsToRemove = [];
+        
+        foreach ($headers as $header) {
+            $headerText = strtolower(trim($header->textContent));
+            
+            // Only target ingredients headers, NOT instructions
+            if ((strpos($headerText, 'ingredient') !== false) && 
+                (strpos($headerText, 'instruction') === false) &&
+                (strpos($headerText, 'step') === false) &&
+                (strpos($headerText, 'direction') === false)) {
+                
+                $elementsToRemove[] = $header;
+                
+                // Also remove the list that follows the header
+                $sibling = $header->nextSibling;
+                while ($sibling) {
+                    // Skip text nodes
+                    if ($sibling->nodeType === XML_TEXT_NODE) {
+                        $sibling = $sibling->nextSibling;
+                        continue;
+                    }
+                    
+                    // If we hit a ul or ol, mark it for removal
+                    if ($sibling->nodeName === 'ul' || $sibling->nodeName === 'ol') {
+                        $elementsToRemove[] = $sibling;
+                        break;
+                    }
+                    
+                    // If we hit another header, stop
+                    if ($sibling->nodeName === 'h2' || $sibling->nodeName === 'h3') {
+                        break;
+                    }
+                    
+                    $sibling = $sibling->nextSibling;
+                }
+            }
+        }
+        
+        // Remove the marked elements
+        foreach ($elementsToRemove as $element) {
+            if ($element->parentNode) {
+                $element->parentNode->removeChild($element);
+            }
+        }
+        
+        // Get the cleaned content
+        $wrapper = $dom->getElementsByTagName('div')->item(0);
+        $cleanedContent = '';
+        if ($wrapper) {
+            foreach ($wrapper->childNodes as $child) {
+                $cleanedContent .= $dom->saveHTML($child);
+            }
+        }
         
         // Clean up any extra whitespace from removal
-        $content = preg_replace('/\n{3,}/', "\n\n", trim($content));
+        $cleanedContent = preg_replace('/\n{3,}/', "\n\n", trim($cleanedContent));
         
-        // Now append ingredients at the very end
+        // Now append ingredients at the very end (BEFORE any existing Instructions section)
         $ingredientsList = array_map('trim', preg_split('/[,\n]+/', $this->ingredients));
         $ingredientsHtml = "\n\n<h2>Ingredients</h2>\n<ul>\n";
         foreach ($ingredientsList as $ingredient) {
@@ -492,7 +577,14 @@ PROMPT;
         }
         $ingredientsHtml .= "</ul>";
         
-        return $content . $ingredientsHtml;
+        // Check if there's an Instructions section, and insert ingredients before it
+        if (preg_match('/<h[23][^>]*>\s*(?:Instructions?|Steps?|Directions?)\s*<\/h[23]>/i', $cleanedContent, $matches, PREG_OFFSET_MATCH)) {
+            $insertPosition = $matches[0][1];
+            return substr($cleanedContent, 0, $insertPosition) . $ingredientsHtml . "\n\n" . substr($cleanedContent, $insertPosition);
+        }
+        
+        // If no instructions section found, just append at the end
+        return $cleanedContent . $ingredientsHtml;
     }
 
     /**

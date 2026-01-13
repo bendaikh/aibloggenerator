@@ -302,7 +302,10 @@ HOW TO WRITE THIS (follow this closely):
 - If it's a recipe, tell the story behind it before diving into ingredients
 - Use descriptive, sensory language (how things smell, taste, feel)
 - Include "Pro Tips" or "What You Must Know" boxes where relevant
-- For recipes: organize with clear Ingredients and Instructions sections (these can have headers). ALWAYS include both Ingredients AND Instructions sections - instructions are required for recipes.
+- For recipes: organize with clear Ingredients and Instructions sections.
+- Ingredients section: List items with quantities (e.g., "2 cups flour", "1 lb lamb")
+- Instructions section: Step-by-step COOKING ACTIONS starting with verbs (e.g., "1. Preheat oven to 350°F", "2. Sauté onions until golden", "3. Add spices and stir for 1 minute")
+- CRITICAL: Instructions must be ACTION STEPS (preheat, mix, chop, sauté, bake, simmer, serve) - NOT ingredient descriptions!
 - End naturally - maybe with a call to try the recipe, a personal note, or asking readers to share their experience
 
 Requirements:

@@ -293,7 +293,20 @@ const parseRecipeContent = () => {
     // Find Instructions section
     const instructionsSection = findSection(tempDiv, ['instructions', 'instruction', 'steps', 'step', 'directions', 'direction']);
     if (instructionsSection) {
-        instructions.value = extractListItems(instructionsSection);
+        let rawInstructions = extractListItems(instructionsSection);
+        
+        // SAFEGUARD: Check if instructions are duplicates of ingredients
+        // This happens when AI mistakenly uses ingredient descriptions as instructions
+        if (ingredients.value.length > 0 && rawInstructions.length > 0) {
+            const isDuplicate = checkIfInstructionsAreDuplicates(ingredients.value, rawInstructions);
+            if (isDuplicate) {
+                // Instructions are duplicates - clear them so we don't show duplicate content
+                console.warn('RecipeCard: Instructions appear to be duplicates of ingredients, hiding instructions');
+                rawInstructions = [];
+            }
+        }
+        
+        instructions.value = rawInstructions;
     }
 
     // Find Notes section
@@ -308,6 +321,55 @@ const parseRecipeContent = () => {
     // Set recipe title and description
     recipeTitle.value = props.title || 'Recipe';
     recipeDescription.value = extractDescription(tempDiv);
+};
+
+// Check if instructions are essentially duplicates of ingredients
+// This catches AI mistakes where it repeats ingredient descriptions as instructions
+const checkIfInstructionsAreDuplicates = (ingredientsList, instructionsList) => {
+    if (ingredientsList.length !== instructionsList.length) {
+        return false;
+    }
+    
+    // Normalize text for comparison (remove punctuation, lowercase, trim)
+    const normalize = (text) => {
+        return text.toLowerCase()
+            .replace(/[^\w\s]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    };
+    
+    // Check if most instructions match ingredients
+    let matchCount = 0;
+    for (let i = 0; i < ingredientsList.length; i++) {
+        const ingNorm = normalize(ingredientsList[i]);
+        const instNorm = normalize(instructionsList[i]);
+        
+        // Check if they're similar (one contains the other, or high overlap)
+        if (ingNorm === instNorm || 
+            ingNorm.includes(instNorm) || 
+            instNorm.includes(ingNorm) ||
+            calculateSimilarity(ingNorm, instNorm) > 0.7) {
+            matchCount++;
+        }
+    }
+    
+    // If more than 70% match, consider them duplicates
+    return (matchCount / ingredientsList.length) > 0.7;
+};
+
+// Simple similarity check based on word overlap
+const calculateSimilarity = (str1, str2) => {
+    const words1 = new Set(str1.split(' ').filter(w => w.length > 2));
+    const words2 = new Set(str2.split(' ').filter(w => w.length > 2));
+    
+    if (words1.size === 0 || words2.size === 0) return 0;
+    
+    let intersection = 0;
+    for (const word of words1) {
+        if (words2.has(word)) intersection++;
+    }
+    
+    return intersection / Math.max(words1.size, words2.size);
 };
 
 const findSection = (container, keywords) => {
