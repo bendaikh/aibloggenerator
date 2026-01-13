@@ -46,8 +46,12 @@ class PublicWebsiteController extends Controller
             }
         ]);
 
+        // Try exact match first, then try with ID pattern (e.g., slug-431)
         $article = $website->articles()
-            ->where('slug', $articleSlug)
+            ->where(function ($query) use ($articleSlug) {
+                $query->where('slug', $articleSlug)
+                    ->orWhere('slug', 'like', $articleSlug . '-%');
+            })
             ->where('status', 'published')
             ->where('published_at', '<=', now())
             ->with(['category', 'user', 'author'])
@@ -184,8 +188,12 @@ class PublicWebsiteController extends Controller
             }
         ]);
 
+        // Try exact match first, then try with ID pattern (e.g., slug-431)
         $article = $website->articles()
-            ->where('slug', $articleSlug)
+            ->where(function ($query) use ($articleSlug) {
+                $query->where('slug', $articleSlug)
+                    ->orWhere('slug', 'like', $articleSlug . '-%');
+            })
             ->where('status', 'published')
             ->where('published_at', '<=', now())
             ->with(['category', 'user', 'author'])

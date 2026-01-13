@@ -139,7 +139,9 @@ class Article extends Model
      */
     public function getUrlAttribute(): string
     {
-        return $this->website->getUrlForPath('article/' . $this->slug);
+        // Strip trailing ID pattern (e.g., -431) from slug for cleaner URLs
+        $cleanSlug = preg_replace('/-\d+$/', '', $this->slug);
+        return $this->website->getUrlForPath('recipes/' . $cleanSlug);
     }
 
     /**
