@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 
 class ImageUploadController extends Controller
 {
@@ -13,6 +15,7 @@ class ImageUploadController extends Controller
      * 
      * This stores images directly in public/uploads/ folder to avoid
      * symlink issues on shared hosting (like Hostinger)
+     * All images are automatically converted to WebP format for better performance
      */
     public function upload(Request $request)
     {
@@ -24,29 +27,55 @@ class ImageUploadController extends Controller
         $type = $request->input('type', 'general');
         $file = $request->file('image');
         
-        // Generate unique filename
-        $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
-        
         // Create directory if it doesn't exist
         $directory = public_path("uploads/images/{$type}");
         if (!File::isDirectory($directory)) {
             File::makeDirectory($directory, 0755, true);
         }
         
-        // Move file directly to public folder (no symlink needed!)
-        $file->move($directory, $filename);
+        // Generate unique filename with .webp extension
+        $filename = Str::uuid() . '.webp';
         
-        // Path relative to public folder
-        $relativePath = "uploads/images/{$type}/{$filename}";
+        try {
+            // Create image manager instance
+            $manager = new ImageManager(new Driver());
+            
+            // Load and process the image
+            $image = $manager->read($file->getRealPath());
+            
+            // Convert to WebP format with quality optimization (85% quality is a good balance)
+            // This will significantly reduce file size while maintaining good visual quality
+            $image->toWebp(85)->save($directory . '/' . $filename);
+            
+            // Path relative to public folder
+            $relativePath = "uploads/images/{$type}/{$filename}";
 
-        // Generate the full URL
-        $url = asset($relativePath);
+            // Generate the full URL
+            $url = asset($relativePath);
 
-        return response()->json([
-            'success' => true,
-            'url' => $url,
-            'path' => $relativePath,
-        ]);
+            return response()->json([
+                'success' => true,
+                'url' => $url,
+                'path' => $relativePath,
+            ]);
+        } catch (\Exception $e) {
+            // Fallback: if WebP conversion fails, save original file
+            // This ensures the upload still works even if image processing fails
+            \Log::warning('WebP conversion failed, saving original: ' . $e->getMessage());
+            
+            $originalExtension = $file->getClientOriginalExtension();
+            $fallbackFilename = Str::uuid() . '.' . $originalExtension;
+            $file->move($directory, $fallbackFilename);
+            
+            $relativePath = "uploads/images/{$type}/{$fallbackFilename}";
+            $url = asset($relativePath);
+
+            return response()->json([
+                'success' => true,
+                'url' => $url,
+                'path' => $relativePath,
+            ]);
+        }
     }
 
     /**

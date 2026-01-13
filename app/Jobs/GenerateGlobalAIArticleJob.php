@@ -333,6 +333,9 @@ You are a professional blog writer who creates authentic, engaging content.
 
 Write a COMPLETELY UNIQUE blog post about: "{$this->topic}"
 
+CRITICAL TITLE RULE:
+- The TITLE field below is pre-filled with the exact title the user wants. DO NOT CHANGE IT. Use it exactly as written - no additions, no modifications, no "improvements".
+
 UNIQUENESS REQUIREMENT (Variation #{$variationIndex}, Seed: {$randomSeed}):
 - {$variationStyle}
 - Use different examples, metaphors, and explanations than typical articles
@@ -353,7 +356,7 @@ Requirements:
 
 Format your response EXACTLY as follows:
 
-TITLE: [Write a SHORT, specific, enticing title - MAX 50 characters. Focus on the main dish/topic only. Must be UNIQUE. Examples: "Classic French Onion Soup", "30-Minute Chicken Stir-Fry"]
+TITLE: {$this->topic}
 
 EXCERPT: [2-3 sentences teaser]
 
@@ -392,9 +395,8 @@ PROMPT;
         $totalTime = '';
         $articleContent = '';
 
-        if (preg_match('/TITLE:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
-            $title = trim($matches[1]);
-        }
+        // ALWAYS use the original topic as the title - never let AI change it
+        $title = $this->topic;
         if (preg_match('/EXCERPT:\s*(.+?)(?=\n\n|META_TITLE|$)/is', $content, $matches)) {
             $excerpt = trim($matches[1]);
         }
@@ -441,7 +443,7 @@ PROMPT;
             $articleContent = $this->ensureIngredientsAtEnd($articleContent);
         }
 
-        if (empty($title)) $title = 'Untitled Article';
+        if (empty($title)) $title = $this->topic;
         if (empty($excerpt)) $excerpt = Str::limit(strip_tags($articleContent), 200);
         if (empty($metaTitle)) $metaTitle = Str::limit($title, 60);
         if (empty($metaDescription)) $metaDescription = Str::limit($excerpt, 160);

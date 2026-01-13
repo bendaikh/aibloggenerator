@@ -284,6 +284,9 @@ You are a professional food blogger and recipe writer who creates authentic, eng
 
 Write a blog post about: "{$this->topic}"
 
+CRITICAL TITLE RULE:
+- The TITLE field below is pre-filled with the exact title the user wants. DO NOT CHANGE IT. Use it exactly as written - no additions, no modifications, no "improvements".
+
 CRITICAL WRITING STYLE RULES - DO NOT VIOLATE THESE:
 1. DO NOT use section headers like "Introduction" or "Conclusion" - these scream AI-generated content
 2. DO NOT start with generic phrases like "Are you looking for..." or "In this article, we will..."
@@ -311,7 +314,7 @@ Requirements:
 
 Format your response EXACTLY as follows (no markdown code blocks, just plain text):
 
-TITLE: [Write a SHORT, specific, enticing title - MAX 50 characters. Focus on the main dish/topic only. Examples: "Classic French Onion Soup", "30-Minute Chicken Stir-Fry", "Ultimate Chocolate Chip Cookies"]
+TITLE: {$this->topic}
 
 EXCERPT: [2-3 sentences that capture the essence and make readers want more - write it like a teaser, not a summary]
 
@@ -350,10 +353,8 @@ PROMPT;
         $totalTime = '';
         $articleContent = '';
 
-        // Extract TITLE
-        if (preg_match('/TITLE:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
-            $title = trim($matches[1]);
-        }
+        // ALWAYS use the original topic as the title - never let AI change it
+        $title = $this->topic;
 
         // Extract EXCERPT
         if (preg_match('/EXCERPT:\s*(.+?)(?=\n\n|META_TITLE|$)/is', $content, $matches)) {
@@ -409,9 +410,9 @@ PROMPT;
         // Clean the article content
         $articleContent = $this->cleanContent($articleContent);
 
-        // Fallbacks
+        // Fallbacks - use original topic as title if parsing fails
         if (empty($title)) {
-            $title = 'Untitled Article';
+            $title = $this->topic;
         }
         if (empty($excerpt)) {
             $excerpt = Str::limit(strip_tags($articleContent), 200);

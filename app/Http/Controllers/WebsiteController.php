@@ -8,6 +8,9 @@ use App\Models\Page;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -665,15 +668,27 @@ HTML;
         // Handle logo upload
         if ($request->hasFile('logo')) {
             $logoFile = $request->file('logo');
-            $logoFilename = \Illuminate\Support\Str::uuid() . '.' . $logoFile->getClientOriginalExtension();
             $logoDirectory = public_path('uploads/images/website');
             
             if (!File::isDirectory($logoDirectory)) {
                 File::makeDirectory($logoDirectory, 0755, true);
             }
             
-            $logoFile->move($logoDirectory, $logoFilename);
-            $validated['logo'] = 'uploads/images/website/' . $logoFilename;
+            // Convert logo to WebP format
+            $logoFilename = Str::uuid() . '.webp';
+            
+            try {
+                $manager = new ImageManager(new Driver());
+                $image = $manager->read($logoFile->getRealPath());
+                $image->toWebp(85)->save($logoDirectory . '/' . $logoFilename);
+                $validated['logo'] = 'uploads/images/website/' . $logoFilename;
+            } catch (\Exception $e) {
+                // Fallback to original format if conversion fails
+                \Log::warning('Logo WebP conversion failed: ' . $e->getMessage());
+                $logoFilename = Str::uuid() . '.' . $logoFile->getClientOriginalExtension();
+                $logoFile->move($logoDirectory, $logoFilename);
+                $validated['logo'] = 'uploads/images/website/' . $logoFilename;
+            }
             
             // Delete old logo if exists
             if ($website->logo && File::exists(public_path($website->logo))) {
