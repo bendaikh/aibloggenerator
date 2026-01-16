@@ -35,8 +35,8 @@
                 {{ article.title }}
             </h2>
 
-            <!-- Cook Times - Horizontal with vertical lines (hidden on very small screens for compact cards) -->
-            <div v-if="showTime && hasTimeInfo" class="hidden sm:flex items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-4 py-2 sm:py-3 border-y border-emerald-100 bg-emerald-50/30">
+            <!-- Cook Times - Horizontal with vertical lines -->
+            <div v-if="showTime && hasTimeInfo" class="flex items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-4 py-2 sm:py-3 border-y border-emerald-100 bg-emerald-50/30">
                 <div v-if="article.prep_time" class="flex items-center gap-1">
                     <span class="text-[8px] sm:text-[10px] uppercase text-gray-500 font-bold tracking-wider">Prep:</span>
                     <span class="text-xs sm:text-sm font-bold text-gray-900">{{ article.prep_time }}</span>
@@ -53,8 +53,8 @@
                 </div>
             </div>
 
-            <!-- Tags (hidden on mobile for compact view) -->
-            <div v-if="showTags && article.meta_tags && article.meta_tags.length > 0" class="hidden sm:flex flex-wrap justify-center gap-1.5 mb-2 sm:mb-4">
+            <!-- Tags -->
+            <div v-if="showTags && article.meta_tags && article.meta_tags.length > 0" class="flex flex-wrap justify-center gap-1.5 mb-2 sm:mb-4">
                 <span 
                     v-for="(tag, index) in article.meta_tags.slice(0, 3)" 
                     :key="index"
