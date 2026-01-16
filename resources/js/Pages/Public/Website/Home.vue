@@ -12,15 +12,15 @@
                     <p class="text-gray-500">Find the perfect recipe for any meal of the day</p>
                 </div>
 
-                <!-- Circular Category Icons -->
-                <div class="flex flex-wrap justify-center gap-6 md:gap-10 mb-8">
+                <!-- Circular Category Icons - Grid layout for better mobile organization -->
+                <div class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-6 gap-4 sm:gap-6 md:gap-8 max-w-4xl mx-auto mb-8">
                     <a
                         v-for="category in website.categories?.slice(0, 6)"
                         :key="category.id"
                         :href="category.url"
                         class="group text-center"
                     >
-                        <div class="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden mb-3 ring-4 ring-transparent group-hover:ring-emerald-400 transition-all duration-300 shadow-lg">
+                        <div class="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 mx-auto rounded-full overflow-hidden mb-2 sm:mb-3 ring-4 ring-transparent group-hover:ring-emerald-400 transition-all duration-300 shadow-lg">
                             <img
                                 v-if="category.image"
                                 :src="category.image"
@@ -28,10 +28,10 @@
                                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                             />
                             <div v-else class="w-full h-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-                                <span class="text-white text-3xl">{{ category.name.charAt(0) }}</span>
+                                <span class="text-white text-2xl sm:text-3xl">{{ category.name.charAt(0) }}</span>
                             </div>
                         </div>
-                        <p class="text-sm font-medium text-gray-700 group-hover:text-emerald-600 transition uppercase tracking-wide">
+                        <p class="text-xs sm:text-sm font-medium text-gray-700 group-hover:text-emerald-600 transition uppercase tracking-wide leading-tight">
                             {{ category.name }}
                         </p>
                     </a>
@@ -158,13 +158,14 @@
                     <p class="text-gray-500">Wondering which recipes everyone is completely loving? Check out these reader favorites:</p>
                 </div>
 
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
                     <ArticleCard
                         v-for="article in featuredArticles"
                         :key="article.id"
                         :article="article"
                         :show-time="false"
                         :show-date="false"
+                        :show-tags="false"
                     />
                 </div>
             </div>

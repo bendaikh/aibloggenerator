@@ -16,45 +16,45 @@
             </div>
             
             <!-- Category Badge -->
-            <div v-if="article.category" class="absolute top-4 left-4">
-                <span class="px-3 py-1 bg-white/90 backdrop-blur-sm text-emerald-600 text-xs font-bold rounded-full shadow-sm uppercase tracking-wider">
+            <div v-if="article.category" class="absolute top-2 left-2 sm:top-4 sm:left-4">
+                <span class="px-2 py-0.5 sm:px-3 sm:py-1 bg-white/90 backdrop-blur-sm text-emerald-600 text-[10px] sm:text-xs font-bold rounded-full shadow-sm uppercase tracking-wider">
                     {{ article.category.name }}
                 </span>
             </div>
         </div>
 
         <!-- Content -->
-        <div class="p-6">
+        <div class="p-3 sm:p-4 md:p-6">
             <!-- Ratings (Static for now as requested by original design) -->
-            <div class="flex justify-center text-yellow-400 text-sm mb-3">
+            <div class="flex justify-center text-yellow-400 text-xs sm:text-sm mb-2 sm:mb-3">
                 <span v-for="i in 5" :key="i">★</span>
             </div>
 
             <!-- Title -->
-            <h2 class="text-xl font-bold text-gray-900 mb-4 group-hover:text-emerald-600 transition-colors text-center line-clamp-2">
+            <h2 class="text-sm sm:text-base md:text-xl font-bold text-gray-900 mb-2 sm:mb-4 group-hover:text-emerald-600 transition-colors text-center line-clamp-2">
                 {{ article.title }}
             </h2>
 
-            <!-- Cook Times - Horizontal with vertical lines -->
-            <div v-if="showTime && hasTimeInfo" class="flex items-center justify-center gap-3 mb-4 py-3 border-y border-emerald-100 bg-emerald-50/30">
-                <div v-if="article.prep_time" class="flex items-center gap-1.5">
-                    <span class="text-[10px] uppercase text-gray-500 font-bold tracking-wider">Prep:</span>
-                    <span class="text-sm font-bold text-gray-900">{{ article.prep_time }}</span>
+            <!-- Cook Times - Horizontal with vertical lines (hidden on very small screens for compact cards) -->
+            <div v-if="showTime && hasTimeInfo" class="hidden sm:flex items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-4 py-2 sm:py-3 border-y border-emerald-100 bg-emerald-50/30">
+                <div v-if="article.prep_time" class="flex items-center gap-1">
+                    <span class="text-[8px] sm:text-[10px] uppercase text-gray-500 font-bold tracking-wider">Prep:</span>
+                    <span class="text-xs sm:text-sm font-bold text-gray-900">{{ article.prep_time }}</span>
                 </div>
-                <div v-if="article.cook_time && article.prep_time" class="h-4 w-px bg-gray-300"></div>
-                <div v-if="article.cook_time" class="flex items-center gap-1.5">
-                    <span class="text-[10px] uppercase text-gray-500 font-bold tracking-wider">Cook:</span>
-                    <span class="text-sm font-bold text-gray-900">{{ article.cook_time }}</span>
+                <div v-if="article.cook_time && article.prep_time" class="h-3 sm:h-4 w-px bg-gray-300"></div>
+                <div v-if="article.cook_time" class="flex items-center gap-1">
+                    <span class="text-[8px] sm:text-[10px] uppercase text-gray-500 font-bold tracking-wider">Cook:</span>
+                    <span class="text-xs sm:text-sm font-bold text-gray-900">{{ article.cook_time }}</span>
                 </div>
-                <div v-if="article.total_time && (article.prep_time || article.cook_time)" class="h-4 w-px bg-gray-300"></div>
-                <div v-if="article.total_time" class="flex items-center gap-1.5">
-                    <span class="text-[10px] uppercase text-gray-500 font-bold tracking-wider">Total:</span>
-                    <span class="text-sm font-bold text-gray-900">{{ article.total_time }}</span>
+                <div v-if="article.total_time && (article.prep_time || article.cook_time)" class="h-3 sm:h-4 w-px bg-gray-300"></div>
+                <div v-if="article.total_time" class="flex items-center gap-1">
+                    <span class="text-[8px] sm:text-[10px] uppercase text-gray-500 font-bold tracking-wider">Total:</span>
+                    <span class="text-xs sm:text-sm font-bold text-gray-900">{{ article.total_time }}</span>
                 </div>
             </div>
 
-            <!-- Tags -->
-            <div v-if="article.meta_tags && article.meta_tags.length > 0" class="flex flex-wrap justify-center gap-1.5 mb-4">
+            <!-- Tags (hidden on mobile for compact view) -->
+            <div v-if="showTags && article.meta_tags && article.meta_tags.length > 0" class="hidden sm:flex flex-wrap justify-center gap-1.5 mb-2 sm:mb-4">
                 <span 
                     v-for="(tag, index) in article.meta_tags.slice(0, 3)" 
                     :key="index"
@@ -65,7 +65,7 @@
             </div>
 
             <!-- Footer Info -->
-            <div v-if="showDate" class="flex items-center justify-center text-[11px] text-gray-400">
+            <div v-if="showDate" class="flex items-center justify-center text-[10px] sm:text-[11px] text-gray-400">
                 <time :datetime="article.published_at">
                     {{ formatDate(article.published_at) }}
                 </time>
@@ -89,6 +89,10 @@ const props = defineProps({
     showDate: {
         type: Boolean,
         default: false
+    },
+    showTags: {
+        type: Boolean,
+        default: true
     }
 });
 
