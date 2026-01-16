@@ -28,12 +28,22 @@ class PinterestPin extends Model
         'subheadline_color',
         'overlay_color',
         'overlay_opacity',
+        'frame_design',
+        'frame_settings',
         'status',
         'error_message',
     ];
 
     protected $casts = [
         'overlay_opacity' => 'integer',
+        'frame_settings' => 'array',
+    ];
+
+    /**
+     * Available frame designs (we'll add more step by step).
+     */
+    public const FRAME_DESIGNS = [
+        'simple_center' => 'Simple Center Text',
     ];
 
     protected $appends = ['generated_image_url', 'top_image_url', 'bottom_image_url'];

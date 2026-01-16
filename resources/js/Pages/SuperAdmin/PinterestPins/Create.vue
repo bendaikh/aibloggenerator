@@ -17,7 +17,6 @@ const props = defineProps({
 });
 
 const selectedArticle = ref(null);
-const showPreview = ref(false);
 
 const form = useForm({
     article_id: '',
@@ -27,6 +26,7 @@ const form = useForm({
     subheadline_color: '#d4a574',
     overlay_color: '#000000',
     overlay_opacity: 70,
+    frame_design: 'simple_center',
 });
 
 // When article is selected, auto-populate headline/subheadline
@@ -80,7 +80,7 @@ const submitForm = () => {
                 </Link>
                 <div>
                     <h1 class="text-3xl font-bold text-white">Create Pinterest Pin</h1>
-                    <p class="text-gray-400 mt-1">Design a Pinterest pin image from an article</p>
+                    <p class="text-gray-400 mt-1">Design a Pinterest pin image from an article (512 x 1024px)</p>
                 </div>
             </div>
 
@@ -267,10 +267,10 @@ const submitForm = () => {
                             Live Preview
                         </h3>
 
-                        <!-- Pin Preview (2:3 ratio) -->
-                        <div class="relative bg-[#0a0a0a] rounded-xl overflow-hidden" style="aspect-ratio: 2/3;">
+                        <!-- Pin Preview (1:2 ratio = 512x1024) -->
+                        <div class="relative bg-[#0a0a0a] rounded-xl overflow-hidden mx-auto" style="aspect-ratio: 1/2; max-width: 256px;">
                             <!-- Top Image -->
-                            <div class="absolute top-0 left-0 right-0 h-[40%] overflow-hidden">
+                            <div class="absolute top-0 left-0 right-0 h-[42.7%] overflow-hidden">
                                 <img
                                     v-if="selectedArticle?.featured_image"
                                     :src="selectedArticle.featured_image.startsWith('http') ? selectedArticle.featured_image : '/' + selectedArticle.featured_image"
@@ -285,17 +285,17 @@ const submitForm = () => {
                             <!-- Text Overlay -->
                             <div 
                                 class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
-                                style="top: 40%; height: 15%;"
+                                style="top: 42.7%; height: 14.6%;"
                                 :style="{ backgroundColor: previewStyles.overlayBg }"
                             >
                                 <p 
-                                    class="text-center text-xl font-bold lowercase tracking-wide"
+                                    class="text-center text-sm font-bold lowercase tracking-wide"
                                     :style="{ color: previewStyles.headlineColor }"
                                 >
                                     {{ form.headline_text || 'cozy cinnamon' }}
                                 </p>
                                 <p 
-                                    class="text-center text-2xl italic"
+                                    class="text-center text-base italic"
                                     style="font-family: 'Georgia', serif;"
                                     :style="{ color: previewStyles.subheadlineColor }"
                                 >
@@ -304,7 +304,7 @@ const submitForm = () => {
                             </div>
 
                             <!-- Bottom Image -->
-                            <div class="absolute bottom-0 left-0 right-0 h-[45%] overflow-hidden">
+                            <div class="absolute bottom-0 left-0 right-0 h-[42.7%] overflow-hidden">
                                 <img
                                     v-if="selectedArticle?.secondary_image || selectedArticle?.featured_image"
                                     :src="(selectedArticle.secondary_image || selectedArticle.featured_image).startsWith('http') ? (selectedArticle.secondary_image || selectedArticle.featured_image) : '/' + (selectedArticle.secondary_image || selectedArticle.featured_image)"
@@ -318,7 +318,7 @@ const submitForm = () => {
                         </div>
 
                         <p class="text-center text-gray-500 text-sm mt-4">
-                            Preview dimensions: 1000 × 1500px (Pinterest 2:3 ratio)
+                            Output: 512 x 1024px (Pinterest 1:2 ratio)
                         </p>
                     </div>
 

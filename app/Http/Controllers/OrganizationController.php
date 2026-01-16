@@ -709,6 +709,9 @@ HTML;
             'website_ids.*' => 'exists:websites,id',
         ]);
 
+        // Replace hyphens with spaces in the topic (title)
+        $validated['topic'] = str_replace('-', ' ', $validated['topic']);
+
         $websiteIds = $validated['website_ids'];
         $generationJobIds = [];
 

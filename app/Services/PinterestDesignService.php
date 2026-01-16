@@ -10,12 +10,26 @@ use Illuminate\Support\Facades\File;
 
 class PinterestDesignService
 {
-    // Pinterest recommended dimensions (2:3 ratio)
-    const PIN_WIDTH = 1000;
-    const PIN_HEIGHT = 1500;
+    // Pinterest dimensions (1:2 ratio for optimal Pinterest display)
+    const PIN_WIDTH = 512;
+    const PIN_HEIGHT = 1024;
     
     // Text overlay bar height
-    const TEXT_BAR_HEIGHT = 220;
+    const TEXT_BAR_HEIGHT = 150;
+
+    /**
+     * Available frame designs with their configurations.
+     */
+    public static function getFrameDesigns(): array
+    {
+        return [
+            'simple_center' => [
+                'name' => 'Simple Center Text',
+                'description' => 'Text on white background with images',
+                'preview_colors' => ['bg' => '#ffffff', 'primary' => '#8B4513', 'secondary' => '#CD853F'],
+            ],
+        ];
+    }
 
     /**
      * Generate a Pinterest pin image from an article.
@@ -32,6 +46,8 @@ class PinterestDesignService
             }
 
             // Create the Pinterest pin image
+            $frameDesign = $pin->frame_design ?? 'simple_center';
+            
             $pinImage = $this->createPinImage(
                 $topImagePath,
                 $bottomImagePath,
@@ -40,7 +56,8 @@ class PinterestDesignService
                 $pin->headline_color ?? '#ffffff',
                 $pin->subheadline_color ?? '#d4a574',
                 $pin->overlay_color ?? '#000000',
-                $pin->overlay_opacity ?? 70
+                $pin->overlay_opacity ?? 70,
+                $frameDesign
             );
 
             // Save the generated image
@@ -62,7 +79,8 @@ class PinterestDesignService
 
             Log::info('Pinterest pin image generated successfully', [
                 'pin_id' => $pin->id,
-                'path' => $relativePath
+                'path' => $relativePath,
+                'frame_design' => $frameDesign
             ]);
 
             return $relativePath;
@@ -79,7 +97,7 @@ class PinterestDesignService
     }
 
     /**
-     * Create the Pinterest pin image combining two images with text overlay.
+     * Create the Pinterest pin image based on frame design.
      */
     private function createPinImage(
         string $topImagePath,
@@ -89,7 +107,8 @@ class PinterestDesignService
         string $headlineColor,
         string $subheadlineColor,
         string $overlayColor,
-        int $overlayOpacity
+        int $overlayOpacity,
+        string $frameDesign = 'simple_center'
     ) {
         // Create the main canvas
         $canvas = imagecreatetruecolor(self::PIN_WIDTH, self::PIN_HEIGHT);
@@ -98,33 +117,18 @@ class PinterestDesignService
         imagealphablending($canvas, true);
         imagesavealpha($canvas, true);
 
-        // Calculate image heights (each image takes half minus half the text bar)
-        $imageHeight = (self::PIN_HEIGHT - self::TEXT_BAR_HEIGHT) / 2;
-        $topImageStartY = 0;
-        $textBarStartY = $imageHeight;
-        $bottomImageStartY = $imageHeight + self::TEXT_BAR_HEIGHT;
+        // Fill with white background
+        $white = imagecolorallocate($canvas, 255, 255, 255);
+        imagefill($canvas, 0, 0, $white);
 
-        // Load and place top image
-        $topImage = $this->loadImage($topImagePath);
-        if ($topImage) {
-            $this->placeImage($canvas, $topImage, 0, $topImageStartY, self::PIN_WIDTH, $imageHeight);
-            imagedestroy($topImage);
-        }
-
-        // Load and place bottom image
-        $bottomImage = $this->loadImage($bottomImagePath);
-        if ($bottomImage) {
-            $this->placeImage($canvas, $bottomImage, 0, $bottomImageStartY, self::PIN_WIDTH, $imageHeight);
-            imagedestroy($bottomImage);
-        }
-
-        // Draw the text overlay bar
-        $this->drawTextOverlay(
-            $canvas,
-            $textBarStartY,
-            $headlineText,
-            $subheadlineText,
-            $headlineColor,
+        // For now, use simple center frame (we'll add more step by step)
+        $this->drawSimpleCenterFrame(
+            $canvas, 
+            $topImagePath, 
+            $bottomImagePath, 
+            $headlineText, 
+            $subheadlineText, 
+            $headlineColor, 
             $subheadlineColor,
             $overlayColor,
             $overlayOpacity
@@ -134,23 +138,35 @@ class PinterestDesignService
     }
 
     /**
-     * Draw the text overlay bar with styled text.
+     * Frame: Simple Center Text with images top and bottom
      */
-    private function drawTextOverlay(
-        $canvas,
-        int $startY,
-        string $headlineText,
-        string $subheadlineText,
-        string $headlineColor,
-        string $subheadlineColor,
-        string $overlayColor,
-        int $overlayOpacity
+    private function drawSimpleCenterFrame(
+        $canvas, 
+        $topImagePath, 
+        $bottomImagePath, 
+        $headline, 
+        $subheadline, 
+        $headlineColor = '#8B4513', 
+        $subheadlineColor = '#CD853F',
+        $overlayColor = '#000000',
+        $overlayOpacity = 70
     ): void {
-        // Parse overlay color
+        // Calculate layout proportions
+        $imageHeight = (self::PIN_HEIGHT - self::TEXT_BAR_HEIGHT) / 2;
+        $topImageStartY = 0;
+        $textBarStartY = $imageHeight;
+        $bottomImageStartY = $imageHeight + self::TEXT_BAR_HEIGHT;
+
+        // Top image (40% of height)
+        $topImage = $this->loadImage($topImagePath);
+        if ($topImage) {
+            $this->placeImage($canvas, $topImage, 0, (int)$topImageStartY, self::PIN_WIDTH, (int)$imageHeight);
+            imagedestroy($topImage);
+        }
+
+        // Text overlay bar with semi-transparent background
         $overlayRgb = $this->hexToRgb($overlayColor);
-        $alphaValue = (int) ((100 - $overlayOpacity) * 1.27); // Convert percentage to 0-127 range
-        
-        // Create semi-transparent overlay
+        $alphaValue = (int) ((100 - $overlayOpacity) * 1.27);
         $overlayAlphaColor = imagecolorallocatealpha(
             $canvas,
             $overlayRgb['r'],
@@ -158,66 +174,55 @@ class PinterestDesignService
             $overlayRgb['b'],
             $alphaValue
         );
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $overlayAlphaColor);
 
-        // Draw the overlay rectangle
-        imagefilledrectangle(
-            $canvas,
-            0,
-            $startY,
-            self::PIN_WIDTH,
-            $startY + self::TEXT_BAR_HEIGHT,
-            $overlayAlphaColor
-        );
-
-        // Parse text colors
+        // Draw text
         $headlineRgb = $this->hexToRgb($headlineColor);
         $subheadlineRgb = $this->hexToRgb($subheadlineColor);
-
         $headlineTextColor = imagecolorallocate($canvas, $headlineRgb['r'], $headlineRgb['g'], $headlineRgb['b']);
         $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
 
-        // Font paths - using system fonts or fallback to built-in
         $fontPath = $this->getFontPath('sans-serif');
         $scriptFontPath = $this->getFontPath('script');
-
         $centerX = self::PIN_WIDTH / 2;
-        $textCenterY = $startY + (self::TEXT_BAR_HEIGHT / 2);
+        $textCenterY = $textBarStartY + (self::TEXT_BAR_HEIGHT / 2);
 
-        // Draw headline text (lowercase, simple font)
-        if (!empty($headlineText)) {
-            $headlineFontSize = 42;
-            $headlineText = strtolower($headlineText);
-            
-            if ($fontPath && file_exists($fontPath)) {
-                $bbox = imagettfbbox($headlineFontSize, 0, $fontPath, $headlineText);
-                $textWidth = abs($bbox[2] - $bbox[0]);
-                $textX = $centerX - ($textWidth / 2);
-                $textY = $textCenterY - 20;
-                imagettftext($canvas, $headlineFontSize, 0, (int)$textX, (int)$textY, $headlineTextColor, $fontPath, $headlineText);
-            } else {
-                // Fallback to built-in font
-                $textWidth = strlen($headlineText) * imagefontwidth(5);
-                $textX = $centerX - ($textWidth / 2);
-                imagestring($canvas, 5, (int)$textX, (int)($textCenterY - 30), $headlineText, $headlineTextColor);
-            }
+        // Headline (bold, lowercase)
+        if (!empty($headline)) {
+            $this->drawCenteredText($canvas, strtolower($headline), $fontPath, 28, $centerX, $textCenterY - 15, $headlineTextColor);
         }
 
-        // Draw subheadline text (script font style)
-        if (!empty($subheadlineText)) {
-            $subheadlineFontSize = 52;
-            
-            if ($scriptFontPath && file_exists($scriptFontPath)) {
-                $bbox = imagettfbbox($subheadlineFontSize, 0, $scriptFontPath, $subheadlineText);
-                $textWidth = abs($bbox[2] - $bbox[0]);
-                $textX = $centerX - ($textWidth / 2);
-                $textY = $textCenterY + 50;
-                imagettftext($canvas, $subheadlineFontSize, 0, (int)$textX, (int)$textY, $subheadlineTextColor, $scriptFontPath, $subheadlineText);
-            } else {
-                // Fallback to built-in font
-                $textWidth = strlen($subheadlineText) * imagefontwidth(5);
-                $textX = $centerX - ($textWidth / 2);
-                imagestring($canvas, 5, (int)$textX, (int)($textCenterY + 20), $subheadlineText, $subheadlineTextColor);
-            }
+        // Subheadline (italic/script)
+        if (!empty($subheadline)) {
+            $this->drawCenteredText($canvas, $subheadline, $scriptFontPath ?? $fontPath, 22, $centerX, $textCenterY + 25, $subheadlineTextColor);
+        }
+
+        // Bottom image
+        $bottomImage = $this->loadImage($bottomImagePath);
+        if ($bottomImage) {
+            $this->placeImage($canvas, $bottomImage, 0, (int)$bottomImageStartY, self::PIN_WIDTH, (int)$imageHeight);
+            imagedestroy($bottomImage);
+        }
+    }
+
+    /**
+     * Helper: Draw centered text.
+     */
+    private function drawCenteredText($canvas, string $text, ?string $fontPath, int $fontSize, float $centerX, float $y, $color): void
+    {
+        if (empty($text)) return;
+
+        if ($fontPath && file_exists($fontPath)) {
+            $bbox = imagettfbbox($fontSize, 0, $fontPath, $text);
+            $textWidth = abs($bbox[2] - $bbox[0]);
+            $textX = $centerX - ($textWidth / 2);
+            imagettftext($canvas, $fontSize, 0, (int)$textX, (int)$y, $color, $fontPath, $text);
+        } else {
+            // Fallback to built-in font
+            $font = min(5, max(1, (int)($fontSize / 8)));
+            $textWidth = strlen($text) * imagefontwidth($font);
+            $textX = $centerX - ($textWidth / 2);
+            imagestring($canvas, $font, (int)$textX, (int)($y - imagefontheight($font) / 2), $text, $color);
         }
     }
 
@@ -405,7 +410,7 @@ class PinterestDesignService
     /**
      * Create a Pinterest pin from an article.
      */
-    public static function createFromArticle(Article $article, ?string $headlineOverride = null, ?string $subheadlineOverride = null): ?PinterestPin
+    public static function createFromArticle(Article $article, ?string $headlineOverride = null, ?string $subheadlineOverride = null, string $frameDesign = 'simple_center'): ?PinterestPin
     {
         // Get images from article
         $topImage = $article->featured_image;
@@ -436,6 +441,7 @@ class PinterestDesignService
             'bottom_image' => $bottomImage,
             'headline_text' => $headline,
             'subheadline_text' => $subheadline,
+            'frame_design' => $frameDesign,
             'status' => 'pending',
         ]);
 

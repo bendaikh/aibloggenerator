@@ -101,6 +101,7 @@ class PinterestPinController extends Controller
             'subheadline_color' => 'nullable|string|max:20',
             'overlay_color' => 'nullable|string|max:20',
             'overlay_opacity' => 'nullable|integer|min:0|max:100',
+            'frame_design' => 'nullable|string|max:50',
         ]);
 
         // Verify article belongs to website
@@ -130,6 +131,7 @@ class PinterestPinController extends Controller
                 'subheadline_color' => $validated['subheadline_color'] ?? '#d4a574',
                 'overlay_color' => $validated['overlay_color'] ?? '#000000',
                 'overlay_opacity' => $validated['overlay_opacity'] ?? 70,
+                'frame_design' => $validated['frame_design'] ?? 'simple_center',
                 'status' => 'pending',
             ]);
 
@@ -190,6 +192,7 @@ class PinterestPinController extends Controller
             'subheadline_color' => 'nullable|string|max:20',
             'overlay_color' => 'nullable|string|max:20',
             'overlay_opacity' => 'nullable|integer|min:0|max:100',
+            'frame_design' => 'nullable|string|max:50',
         ]);
 
         try {

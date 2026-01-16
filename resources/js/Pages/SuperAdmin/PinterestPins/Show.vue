@@ -26,6 +26,7 @@ const form = useForm({
     subheadline_color: props.pin.subheadline_color,
     overlay_color: props.pin.overlay_color,
     overlay_opacity: props.pin.overlay_opacity,
+    frame_design: props.pin.frame_design || 'simple_center',
 });
 
 const regeneratePin = () => {
@@ -88,7 +89,7 @@ const getStatusBadgeClass = (status) => {
                 </Link>
                 <div class="flex-1">
                     <h1 class="text-3xl font-bold text-white">{{ pin.title }}</h1>
-                    <p class="text-gray-400 mt-1">Pinterest Pin Details</p>
+                    <p class="text-gray-400 mt-1">Pinterest Pin Details (512 x 1024px)</p>
                 </div>
                 <span :class="['px-3 py-1 text-sm font-medium rounded-lg border', getStatusBadgeClass(pin.status)]">
                     {{ pin.status }}
@@ -133,7 +134,8 @@ const getStatusBadgeClass = (status) => {
                         </div>
                     </div>
 
-                    <div class="relative bg-[#0a0a0a] rounded-xl overflow-hidden" style="aspect-ratio: 2/3;">
+                    <!-- 1:2 aspect ratio container -->
+                    <div class="relative bg-[#0a0a0a] rounded-xl overflow-hidden mx-auto" style="aspect-ratio: 1/2; max-width: 256px;">
                         <img
                             v-if="pin.generated_image_url"
                             :src="pin.generated_image_url"
@@ -165,6 +167,10 @@ const getStatusBadgeClass = (status) => {
                             </div>
                         </div>
                     </div>
+                    
+                    <p class="text-center text-gray-500 text-sm mt-4">
+                        512 x 1024px (Pinterest 1:2 ratio)
+                    </p>
                 </div>
 
                 <!-- Pin Details -->
