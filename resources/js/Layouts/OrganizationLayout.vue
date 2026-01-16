@@ -1,11 +1,13 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import AIJobsNotification from '@/Components/AIJobsNotification.vue';
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user);
 const websites = computed(() => page.props.websites || []);
+
+const sidebarOpen = ref(false);
 
 const isActive = (routeName) => {
     return route().current(routeName);
@@ -14,12 +16,52 @@ const isActive = (routeName) => {
 const isActivePrefix = (prefix) => {
     return route().current()?.startsWith(prefix);
 };
+
+const toggleSidebar = () => {
+    sidebarOpen.value = !sidebarOpen.value;
+};
+
+const closeSidebar = () => {
+    sidebarOpen.value = false;
+};
+
+// Close sidebar when clicking a link (for mobile UX)
+const handleNavClick = () => {
+    if (window.innerWidth < 1024) {
+        sidebarOpen.value = false;
+    }
+};
+
+// Close sidebar on escape key
+const handleKeydown = (e) => {
+    if (e.key === 'Escape' && sidebarOpen.value) {
+        sidebarOpen.value = false;
+    }
+};
+
+onMounted(() => {
+    document.addEventListener('keydown', handleKeydown);
+});
+
+onUnmounted(() => {
+    document.removeEventListener('keydown', handleKeydown);
+});
 </script>
 
 <template>
     <div class="min-h-screen bg-[#0f0f0f] flex">
+        <!-- Mobile Overlay -->
+        <div 
+            v-if="sidebarOpen" 
+            @click="closeSidebar"
+            class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+        ></div>
+
         <!-- Sidebar -->
-        <aside class="w-64 bg-[#141414] border-r border-[#2a2a2a] flex flex-col fixed h-full">
+        <aside :class="[
+            'w-64 bg-[#141414] border-r border-[#2a2a2a] flex flex-col fixed h-full z-50 transition-transform duration-300 ease-in-out',
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        ]">
             <!-- Logo -->
             <div class="p-4 border-b border-[#2a2a2a]">
                 <Link href="/" class="flex items-center gap-2">
@@ -54,6 +96,7 @@ const isActivePrefix = (prefix) => {
                     <!-- Dashboard -->
                     <Link 
                         :href="route('organization.dashboard')" 
+                        @click="handleNavClick"
                         :class="[
                             'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                             isActive('organization.dashboard') 
@@ -70,6 +113,7 @@ const isActivePrefix = (prefix) => {
                     <!-- Websites -->
                     <Link 
                         :href="route('organization.websites.index')" 
+                        @click="handleNavClick"
                         :class="[
                             'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                             isActivePrefix('organization.websites') 
@@ -86,6 +130,7 @@ const isActivePrefix = (prefix) => {
                     <!-- Global Settings -->
                     <Link 
                         :href="route('organization.settings')" 
+                        @click="handleNavClick"
                         :class="[
                             'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                             isActive('organization.settings') 
@@ -103,6 +148,7 @@ const isActivePrefix = (prefix) => {
                     <!-- Global Articles -->
                     <Link 
                         :href="route('organization.global-articles.index')" 
+                        @click="handleNavClick"
                         :class="[
                             'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                             isActive('organization.global-articles.index') 
@@ -125,6 +171,7 @@ const isActivePrefix = (prefix) => {
                             v-for="website in websites"
                             :key="website.id"
                             :href="route('superadmin.dashboard', { website: website.id })"
+                            @click="handleNavClick"
                             class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors text-gray-400 hover:bg-[#1a1a1a] hover:text-white group"
                         >
                             <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-[#252525]">
@@ -171,13 +218,22 @@ const isActivePrefix = (prefix) => {
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 ml-64">
+        <main class="flex-1 lg:ml-64">
             <!-- Top Header Bar -->
-            <header class="sticky top-0 z-40 bg-[#0f0f0f]/95 backdrop-blur border-b border-[#2a2a2a]">
-                <div class="flex items-center justify-between px-8 py-3">
-                    <!-- Left: Page Context -->
+            <header class="sticky top-0 z-30 bg-[#0f0f0f]/95 backdrop-blur border-b border-[#2a2a2a]">
+                <div class="flex items-center justify-between px-4 lg:px-8 py-3">
+                    <!-- Left: Hamburger + Page Context -->
                     <div class="flex items-center gap-3">
-                        <span class="text-gray-500 text-sm">Organization Overview</span>
+                        <!-- Mobile Hamburger Button -->
+                        <button 
+                            @click="toggleSidebar"
+                            class="lg:hidden p-2 text-gray-400 hover:text-white hover:bg-[#1a1a1a] rounded-lg transition-colors"
+                        >
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
+                        <span class="text-gray-500 text-sm hidden sm:block">Organization Overview</span>
                     </div>
                     
                     <!-- Right: Actions -->

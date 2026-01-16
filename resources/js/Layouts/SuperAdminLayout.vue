@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
 import AIJobsNotification from '@/Components/AIJobsNotification.vue';
 
@@ -17,6 +17,7 @@ const websites = computed(() => page.props.websites || []);
 
 const contentManagementOpen = ref(true);
 const websiteDropdownOpen = ref(false);
+const sidebarOpen = ref(false);
 
 const isActive = (routeName) => {
     return route().current(routeName);
@@ -30,12 +31,52 @@ const switchWebsite = (website) => {
     websiteDropdownOpen.value = false;
     router.get(route('superadmin.dashboard', { website: website.id }));
 };
+
+const toggleSidebar = () => {
+    sidebarOpen.value = !sidebarOpen.value;
+};
+
+const closeSidebar = () => {
+    sidebarOpen.value = false;
+};
+
+// Close sidebar when clicking a link (for mobile UX)
+const handleNavClick = () => {
+    if (window.innerWidth < 1024) {
+        sidebarOpen.value = false;
+    }
+};
+
+// Close sidebar on escape key
+const handleKeydown = (e) => {
+    if (e.key === 'Escape' && sidebarOpen.value) {
+        sidebarOpen.value = false;
+    }
+};
+
+onMounted(() => {
+    document.addEventListener('keydown', handleKeydown);
+});
+
+onUnmounted(() => {
+    document.removeEventListener('keydown', handleKeydown);
+});
 </script>
 
 <template>
     <div class="min-h-screen bg-[#0f0f0f] flex">
+        <!-- Mobile Overlay -->
+        <div 
+            v-if="sidebarOpen" 
+            @click="closeSidebar"
+            class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+        ></div>
+
         <!-- Sidebar -->
-        <aside class="w-64 bg-[#141414] border-r border-[#2a2a2a] flex flex-col fixed h-full">
+        <aside :class="[
+            'w-64 bg-[#141414] border-r border-[#2a2a2a] flex flex-col fixed h-full z-50 transition-transform duration-300 ease-in-out',
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        ]">
             <!-- Logo -->
             <div class="p-4 border-b border-[#2a2a2a]">
                 <Link :href="route('organization.dashboard')" class="flex items-center gap-2">
@@ -148,6 +189,7 @@ const switchWebsite = (website) => {
                     <!-- Overview -->
                     <Link 
                         :href="currentWebsite ? route('superadmin.dashboard', { website: currentWebsite.id }) : '#'" 
+                        @click="handleNavClick"
                         :class="[
                             'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                             isActive('superadmin.dashboard') 
@@ -229,6 +271,7 @@ const switchWebsite = (website) => {
                     <!-- Settings -->
                     <Link 
                         :href="currentWebsite ? route('superadmin.settings', { website: currentWebsite.id }) : '#'" 
+                        @click="handleNavClick"
                         :class="[
                             'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                             isActive('superadmin.settings') 
@@ -246,6 +289,7 @@ const switchWebsite = (website) => {
                     <!-- Appearance -->
                     <Link 
                         :href="currentWebsite ? route('superadmin.appearance', { website: currentWebsite.id }) : '#'" 
+                        @click="handleNavClick"
                         :class="[
                             'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                             isActive('superadmin.appearance') 
@@ -262,6 +306,7 @@ const switchWebsite = (website) => {
                     <!-- Social Media -->
                     <Link 
                         :href="currentWebsite ? route('superadmin.social-media', { website: currentWebsite.id }) : '#'" 
+                        @click="handleNavClick"
                         :class="[
                             'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                             isActive('superadmin.social-media') 
@@ -278,6 +323,7 @@ const switchWebsite = (website) => {
                     <!-- Pinterest Designs -->
                     <Link 
                         :href="currentWebsite ? route('superadmin.pinterest-pins.index', { website: currentWebsite.id }) : '#'" 
+                        @click="handleNavClick"
                         :class="[
                             'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                             isActivePrefix('superadmin.pinterest-pins') 
@@ -294,6 +340,7 @@ const switchWebsite = (website) => {
                     <!-- Assets -->
                     <Link 
                         :href="currentWebsite ? route('superadmin.assets', { website: currentWebsite.id }) : '#'" 
+                        @click="handleNavClick"
                         :class="[
                             'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                             isActive('superadmin.assets') 
@@ -310,6 +357,7 @@ const switchWebsite = (website) => {
                     <!-- Deployment -->
                     <Link 
                         :href="currentWebsite ? route('superadmin.deployment', { website: currentWebsite.id }) : '#'" 
+                        @click="handleNavClick"
                         :class="[
                             'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                             isActive('superadmin.deployment') 
@@ -326,6 +374,7 @@ const switchWebsite = (website) => {
                     <!-- Ads Management -->
                     <Link 
                         :href="currentWebsite ? route('superadmin.ads', { website: currentWebsite.id }) : '#'" 
+                        @click="handleNavClick"
                         :class="[
                             'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                             isActive('superadmin.ads') 
@@ -366,17 +415,26 @@ const switchWebsite = (website) => {
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 ml-64">
+        <main class="flex-1 lg:ml-64">
             <!-- Top Header Bar -->
-            <header class="sticky top-0 z-40 bg-[#0f0f0f]/95 backdrop-blur border-b border-[#2a2a2a]">
-                <div class="flex items-center justify-between px-8 py-3">
-                    <!-- Left: Page Context -->
+            <header class="sticky top-0 z-30 bg-[#0f0f0f]/95 backdrop-blur border-b border-[#2a2a2a]">
+                <div class="flex items-center justify-between px-4 lg:px-8 py-3">
+                    <!-- Left: Hamburger + Page Context -->
                     <div class="flex items-center gap-3">
-                        <span class="text-gray-500 text-sm">{{ currentWebsite?.name || 'Website' }}</span>
+                        <!-- Mobile Hamburger Button -->
+                        <button 
+                            @click="toggleSidebar"
+                            class="lg:hidden p-2 text-gray-400 hover:text-white hover:bg-[#1a1a1a] rounded-lg transition-colors"
+                        >
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
+                        <span class="text-gray-500 text-sm hidden sm:block">{{ currentWebsite?.name || 'Website' }}</span>
                     </div>
                     
                     <!-- Right: Actions -->
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2 sm:gap-4">
                         <!-- AI Jobs Notification -->
                         <AIJobsNotification />
                         
@@ -384,12 +442,13 @@ const switchWebsite = (website) => {
                         <Link 
                             v-if="currentWebsite"
                             :href="route('superadmin.ai-articles.index', { website: currentWebsite.id })"
-                            class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white text-sm font-medium rounded-lg transition-all"
+                            class="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white text-xs sm:text-sm font-medium rounded-lg transition-all"
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
-                            Generate AI Article
+                            <span class="hidden sm:inline">Generate AI Article</span>
+                            <span class="sm:hidden">AI</span>
                         </Link>
                     </div>
                 </div>
