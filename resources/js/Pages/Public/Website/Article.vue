@@ -289,7 +289,7 @@
 
 <script setup>
 import { Head } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted, nextTick } from 'vue';
 import PublicWebsiteLayout from '@/Layouts/PublicWebsiteLayout.vue';
 import RecipeCard from '@/Components/RecipeCard.vue';
 
@@ -297,6 +297,37 @@ const props = defineProps({
     website: Object,
     article: Object,
     relatedArticles: Array
+});
+
+// Trigger HBAgency to refresh ads after Vue renders the ad divs
+onMounted(() => {
+    nextTick(() => {
+        // Wait a bit for all ad divs to be in the DOM
+        setTimeout(() => {
+            // Try to trigger HBAgency ad refresh if available
+            if (typeof window !== 'undefined') {
+                // Method 1: Dispatch a custom event that HBAgency might listen to
+                window.dispatchEvent(new Event('load'));
+                
+                // Method 2: If HBAgency has a refresh function
+                if (window.hbagency && typeof window.hbagency.refresh === 'function') {
+                    window.hbagency.refresh();
+                }
+                
+                // Method 3: If using pbjs (Prebid.js)
+                if (window.pbjs && typeof window.pbjs.requestBids === 'function') {
+                    window.pbjs.que = window.pbjs.que || [];
+                    window.pbjs.que.push(function() {
+                        window.pbjs.requestBids({
+                            bidsBackHandler: function() {
+                                // Ads should load now
+                            }
+                        });
+                    });
+                }
+            }
+        }, 1000); // Wait 1 second for HBAgency script to be ready
+    });
 });
 
 // Get font family from website theme settings
