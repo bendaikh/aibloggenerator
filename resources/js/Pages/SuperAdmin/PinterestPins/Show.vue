@@ -24,10 +24,27 @@ const form = useForm({
     subheadline_text: props.pin.subheadline_text,
     headline_color: props.pin.headline_color,
     subheadline_color: props.pin.subheadline_color,
+    headline_font: props.pin.headline_font || 'sans-serif',
+    subheadline_font: props.pin.subheadline_font || 'script',
+    headline_font_size: props.pin.headline_font_size || 28,
+    subheadline_font_size: props.pin.subheadline_font_size || 22,
     overlay_color: props.pin.overlay_color,
     overlay_opacity: props.pin.overlay_opacity,
     frame_design: props.pin.frame_design || 'simple_center',
 });
+
+// Font options - Only include fonts that are available on Windows
+const fontOptions = {
+    'sans-serif': [
+        { id: 'sans-serif', name: 'Default Sans (Arial)' },
+        { id: 'arial', name: 'Arial Bold' },
+    ],
+    'script': [
+        { id: 'script', name: 'Default Script (Georgia)' },
+        { id: 'georgia', name: 'Georgia' },
+        { id: 'times', name: 'Times New Roman' },
+    ]
+};
 
 // Available frame designs
 const frameDesigns = [
@@ -256,6 +273,14 @@ const getStatusBadgeClass = (status) => {
                                 <label class="block text-sm font-medium text-gray-400 mb-1">Overlay Opacity</label>
                                 <span class="text-white text-sm">{{ pin.overlay_opacity }}%</span>
                             </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Headline Font & Size</label>
+                                <span class="text-white text-sm">{{ pin.headline_font }} ({{ pin.headline_font_size }}px)</span>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Subheadline Font & Size</label>
+                                <span class="text-white text-sm">{{ pin.subheadline_font }} ({{ pin.subheadline_font_size }}px)</span>
+                            </div>
                         </div>
                     </div>
 
@@ -320,6 +345,37 @@ const getStatusBadgeClass = (status) => {
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">Opacity: {{ form.overlay_opacity }}%</label>
                             <input v-model="form.overlay_opacity" type="range" min="0" max="100" class="w-full" />
+                        </div>
+                    </div>
+
+                    <!-- Font Settings -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Headline Font</label>
+                            <select v-model="form.headline_font" class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white text-sm">
+                                <optgroup label="Sans Serif">
+                                    <option v-for="font in fontOptions['sans-serif']" :key="font.id" :value="font.id">{{ font.name }}</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Subheadline Font</label>
+                            <select v-model="form.subheadline_font" class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white text-sm">
+                                <optgroup label="Serif / Script">
+                                    <option v-for="font in fontOptions['script']" :key="font.id" :value="font.id">{{ font.name }}</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Headline Size: {{ form.headline_font_size }}px</label>
+                            <input v-model="form.headline_font_size" type="range" min="12" max="60" class="w-full" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Subheadline Size: {{ form.subheadline_font_size }}px</label>
+                            <input v-model="form.subheadline_font_size" type="range" min="12" max="60" class="w-full" />
                         </div>
                     </div>
 

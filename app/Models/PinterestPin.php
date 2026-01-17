@@ -24,6 +24,8 @@ class PinterestPin extends Model
         'subheadline_text',
         'headline_font',
         'subheadline_font',
+        'headline_font_size',
+        'subheadline_font_size',
         'headline_color',
         'subheadline_color',
         'overlay_color',

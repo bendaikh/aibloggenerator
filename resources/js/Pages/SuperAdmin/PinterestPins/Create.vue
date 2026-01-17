@@ -24,10 +24,28 @@ const form = useForm({
     subheadline_text: '',
     headline_color: '#ffffff',
     subheadline_color: '#d4a574',
+    headline_font: 'sans-serif',
+    subheadline_font: 'script',
+    headline_font_size: 28,
+    subheadline_font_size: 22,
     overlay_color: '#000000',
     overlay_opacity: 70,
     frame_design: 'simple_center',
 });
+
+// Font options - Only include fonts that are available on Windows
+// Sans-serif fonts (for headlines)
+const fontOptions = {
+    'sans-serif': [
+        { id: 'sans-serif', name: 'Default Sans (Arial)' },
+        { id: 'arial', name: 'Arial Bold' },
+    ],
+    'script': [
+        { id: 'script', name: 'Default Script (Georgia)' },
+        { id: 'georgia', name: 'Georgia' },
+        { id: 'times', name: 'Times New Roman' },
+    ]
+};
 
 // Available frame designs
 const frameDesigns = [
@@ -56,7 +74,23 @@ const previewStyles = computed(() => ({
     overlayBg: `rgba(${hexToRgb(form.overlay_color)}, ${form.overlay_opacity / 100})`,
     headlineColor: form.headline_color,
     subheadlineColor: form.subheadline_color,
+    headlineFontSize: `${form.headline_font_size / 2}px`,
+    subheadlineFontSize: `${form.subheadline_font_size / 2}px`,
+    headlineFontFamily: getFontFamily(form.headline_font),
+    subheadlineFontFamily: getFontFamily(form.subheadline_font),
 }));
+
+const getFontFamily = (fontId) => {
+    // Map font IDs to CSS font families that match Windows system fonts
+    switch (fontId) {
+        case 'arial': return 'Arial, Helvetica, sans-serif';
+        case 'sans-serif': return 'Arial, Helvetica, sans-serif';
+        case 'georgia': return 'Georgia, "Times New Roman", serif';
+        case 'times': return '"Times New Roman", Times, serif';
+        case 'script': return 'Georgia, "Times New Roman", serif';
+        default: return 'Arial, sans-serif';
+    }
+};
 
 const hexToRgb = (hex) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -209,6 +243,63 @@ const submitForm = () => {
                                 </div>
                             </div>
 
+                            <!-- Font Settings -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">
+                                        Headline Font
+                                    </label>
+                                    <select
+                                        v-model="form.headline_font"
+                                        class="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white text-sm focus:ring-2 focus:ring-pink-500"
+                                    >
+                                        <optgroup label="Sans Serif">
+                                            <option v-for="font in fontOptions['sans-serif']" :key="font.id" :value="font.id">{{ font.name }}</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">
+                                        Subheadline Font
+                                    </label>
+                                    <select
+                                        v-model="form.subheadline_font"
+                                        class="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white text-sm focus:ring-2 focus:ring-pink-500"
+                                    >
+                                        <optgroup label="Serif / Script">
+                                            <option v-for="font in fontOptions['script']" :key="font.id" :value="font.id">{{ font.name }}</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">
+                                        Headline Size ({{ form.headline_font_size }}px)
+                                    </label>
+                                    <input
+                                        v-model="form.headline_font_size"
+                                        type="range"
+                                        min="12"
+                                        max="60"
+                                        class="w-full h-3 bg-[#2a2a2a] rounded-lg appearance-none cursor-pointer accent-pink-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">
+                                        Subheadline Size ({{ form.subheadline_font_size }}px)
+                                    </label>
+                                    <input
+                                        v-model="form.subheadline_font_size"
+                                        type="range"
+                                        min="12"
+                                        max="60"
+                                        class="w-full h-3 bg-[#2a2a2a] rounded-lg appearance-none cursor-pointer accent-pink-500"
+                                    />
+                                </div>
+                            </div>
+
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-300 mb-2">
@@ -330,9 +421,9 @@ const submitForm = () => {
                         </h3>
 
                         <!-- Pin Preview (1:2 ratio = 512x1024) -->
-                        <div class="relative bg-[#0a0a0a] rounded-xl overflow-hidden mx-auto" style="aspect-ratio: 1/2; max-width: 256px;">
+                        <div class="relative bg-white rounded-xl overflow-hidden mx-auto" style="aspect-ratio: 1/2; max-width: 256px;">
                             <!-- Top Image -->
-                            <div class="absolute top-0 left-0 right-0 h-[42.7%] overflow-hidden">
+                            <div class="absolute top-0 left-0 right-0 h-[40.2%] overflow-hidden">
                                 <img
                                     v-if="selectedArticle?.featured_image"
                                     :src="selectedArticle.featured_image.startsWith('http') ? selectedArticle.featured_image : '/' + selectedArticle.featured_image"
@@ -347,20 +438,31 @@ const submitForm = () => {
                             <!-- Text Overlay - Simple Center -->
                             <div 
                                 v-if="form.frame_design === 'simple_center'"
-                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
-                                style="top: 42.7%; height: 14.6%;"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-2 overflow-hidden"
+                                style="top: 40.2%; height: 19.6%;"
                                 :style="{ backgroundColor: previewStyles.overlayBg }"
                             >
                                 <p 
-                                    class="text-center text-sm font-bold lowercase tracking-wide"
-                                    :style="{ color: previewStyles.headlineColor }"
+                                    class="text-center font-bold lowercase tracking-wide leading-tight w-full px-1"
+                                    :style="{ 
+                                        color: previewStyles.headlineColor, 
+                                        fontSize: previewStyles.headlineFontSize,
+                                        fontFamily: previewStyles.headlineFontFamily,
+                                        wordWrap: 'break-word',
+                                        overflowWrap: 'break-word'
+                                    }"
                                 >
                                     {{ form.headline_text || 'cozy cinnamon' }}
                                 </p>
                                 <p 
-                                    class="text-center text-base italic"
-                                    style="font-family: 'Georgia', serif;"
-                                    :style="{ color: previewStyles.subheadlineColor }"
+                                    class="text-center italic leading-tight w-full px-1 mt-1"
+                                    :style="{ 
+                                        color: previewStyles.subheadlineColor, 
+                                        fontSize: previewStyles.subheadlineFontSize,
+                                        fontFamily: previewStyles.subheadlineFontFamily,
+                                        wordWrap: 'break-word',
+                                        overflowWrap: 'break-word'
+                                    }"
                                 >
                                     {{ form.subheadline_text || 'Sugar donut bread' }}
                                 </p>
@@ -370,7 +472,7 @@ const submitForm = () => {
                             <div 
                                 v-else-if="form.frame_design === 'black_christmas'"
                                 class="absolute left-0 right-0 flex flex-col items-center justify-center px-4 bg-black"
-                                style="top: 42.7%; height: 14.6%;"
+                                style="top: 40.2%; height: 19.6%;"
                             >
                                 <!-- Top decorative line -->
                                 <div class="absolute top-2 left-0 right-0 h-0.5 bg-white"></div>
@@ -391,7 +493,7 @@ const submitForm = () => {
                             <div 
                                 v-else-if="form.frame_design === 'green_dashed'"
                                 class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
-                                style="top: 42.7%; height: 14.6%; background-color: #22c55e;"
+                                style="top: 40.2%; height: 19.6%; background-color: #22c55e;"
                             >
                                 <!-- Top dashed line -->
                                 <div class="absolute top-2 left-0 right-0 flex gap-1.5 px-1">
@@ -410,7 +512,7 @@ const submitForm = () => {
                             </div>
 
                             <!-- Bottom Image -->
-                            <div class="absolute bottom-0 left-0 right-0 h-[42.7%] overflow-hidden">
+                            <div class="absolute bottom-0 left-0 right-0 h-[40.2%] overflow-hidden">
                                 <img
                                     v-if="selectedArticle?.secondary_image || selectedArticle?.featured_image"
                                     :src="(selectedArticle.secondary_image || selectedArticle.featured_image).startsWith('http') ? (selectedArticle.secondary_image || selectedArticle.featured_image) : '/' + (selectedArticle.secondary_image || selectedArticle.featured_image)"
@@ -425,6 +527,9 @@ const submitForm = () => {
 
                         <p class="text-center text-gray-500 text-sm mt-4">
                             Output: 512 x 1024px (Pinterest 1:2 ratio)
+                        </p>
+                        <p class="text-center text-gray-600 text-xs mt-2">
+                            ⚡ Font sizes auto-scale if text is too long
                         </p>
                     </div>
 
