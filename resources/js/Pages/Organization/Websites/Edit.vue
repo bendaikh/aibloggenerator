@@ -17,6 +17,7 @@ const form = useForm({
     domain: props.website.domain || '',
     subdomain: props.website.subdomain || '',
     description: props.website.description || '',
+    hbagency_script: props.website.hbagency_script || '',
     is_active: props.website.is_active,
     logo: null,
     favicon: null,
@@ -278,6 +279,27 @@ const submit = () => {
                             placeholder="A brief description of your website..."
                         ></textarea>
                         <p v-if="form.errors.description" class="mt-1 text-sm text-red-500">{{ form.errors.description }}</p>
+                    </div>
+
+                    <!-- HBAgency Ads Script -->
+                    <div>
+                        <label for="hbagency_script" class="block text-sm font-medium text-gray-300 mb-2">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                HBAgency Ads Script (Optional)
+                            </div>
+                        </label>
+                        <textarea
+                            id="hbagency_script"
+                            v-model="form.hbagency_script"
+                            rows="4"
+                            class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono text-sm"
+                            placeholder='<script src="https://d3u598arehftfk.cloudfront.net/prebid_hb_XXXXX_XXXXX.js" async></script>'
+                        ></textarea>
+                        <p class="mt-1 text-xs text-gray-500">Paste the complete script tag from HBAgency. This enables ads monetization for this website.</p>
+                        <p v-if="form.errors.hbagency_script" class="mt-1 text-sm text-red-500">{{ form.errors.hbagency_script }}</p>
                     </div>
 
                     <!-- Logo Upload -->

@@ -24,6 +24,7 @@ class Website extends Model
         'theme',
         'theme_settings',
         'social_media',
+        'hbagency_script',
         'is_active',
         'published_at',
     ];

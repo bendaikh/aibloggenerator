@@ -602,6 +602,7 @@ HTML;
             'domain' => 'nullable|string|max:255',
             'subdomain' => 'nullable|string|max:255|unique:websites,subdomain,' . $website->id,
             'description' => 'nullable|string',
+            'hbagency_script' => 'nullable|string',
             'is_active' => 'boolean',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:5120',
             'favicon' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,ico|max:2048',

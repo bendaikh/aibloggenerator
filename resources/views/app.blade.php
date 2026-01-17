@@ -14,6 +14,11 @@
         <!-- Font Awesome -->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
+        <!-- HBAgency Ads Script (per website) -->
+        @if(isset($website) && $website->hbagency_script)
+            {!! $website->hbagency_script !!}
+        @endif
+
         <!-- Scripts -->
         @routes
         @vite(['resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"])

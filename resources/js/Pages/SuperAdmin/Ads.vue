@@ -71,7 +71,7 @@ import { Head } from '@inertiajs/vue3';
                     </div>
                 </div>
 
-                <!-- HBAgency -->
+                <!-- HBAgency Info Card -->
                 <div class="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6">
                     <div class="flex items-center gap-4 mb-4">
                         <div class="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
@@ -82,29 +82,21 @@ import { Head } from '@inertiajs/vue3';
                         </div>
                         <div class="flex-1">
                             <h3 class="text-white font-semibold">HBAgency</h3>
-                            <p class="text-gray-500 text-sm">Not configured</p>
+                            <p class="text-emerald-400 text-sm">Configured per website</p>
                         </div>
                     </div>
                     <div class="space-y-3">
-                        <div>
-                            <label class="text-gray-400 text-sm block mb-2">Account ID</label>
-                            <input 
-                                type="text" 
-                                placeholder="Enter your HBAgency account ID"
-                                class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            />
+                        <div class="bg-[#252525] rounded-lg p-4">
+                            <div class="flex items-start gap-3">
+                                <svg class="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div>
+                                    <p class="text-gray-300 text-sm">HBAgency scripts are now configured individually for each website.</p>
+                                    <p class="text-gray-500 text-xs mt-2">Go to <span class="text-orange-400">Organization → Websites → Edit</span> to add your HBAgency script for each site.</p>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label class="text-gray-400 text-sm block mb-2">API Key</label>
-                            <input 
-                                type="password" 
-                                placeholder="Enter your API key"
-                                class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            />
-                        </div>
-                        <button class="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg font-medium transition-colors">
-                            Connect HBAgency
-                        </button>
                     </div>
                 </div>
             </div>
