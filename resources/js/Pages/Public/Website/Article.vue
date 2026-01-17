@@ -119,6 +119,11 @@
                                 </div>
                             </div>
 
+                            <!-- ========== AD PLACEMENT 1: After Share Buttons (Top of Article) ========== -->
+                            <div v-if="website.hbagency_placements?.top_banner" class="ad-placement mb-8 flex justify-center">
+                                <div :id="'hbagency_space_' + website.hbagency_placements.top_banner" class="min-h-[90px] w-full max-w-[728px]"></div>
+                            </div>
+
                             <!-- Article Excerpt -->
                             <div v-if="article.excerpt" class="relative mb-12">
                                 <div class="absolute -left-4 top-0 bottom-0 w-1 bg-emerald-500 rounded-full"></div>
@@ -127,8 +132,18 @@
                                 </div>
                             </div>
 
+                            <!-- ========== AD PLACEMENT 2: Before Article Content ========== -->
+                            <div v-if="website.hbagency_placements?.in_article_1" class="ad-placement mb-8 flex justify-center">
+                                <div :id="'hbagency_space_' + website.hbagency_placements.in_article_1" class="min-h-[250px] w-full max-w-[336px]"></div>
+                            </div>
+
                             <!-- Article Content (with recipe sections removed) -->
                             <div class="prose prose-emerald prose-lg max-w-none article-body mb-12" :style="{ fontFamily: articleFontFamily }" v-html="contentWithoutRecipeSections"></div>
+
+                            <!-- ========== AD PLACEMENT 3: After Article Content ========== -->
+                            <div v-if="website.hbagency_placements?.in_article_2" class="ad-placement mb-8 flex justify-center">
+                                <div :id="'hbagency_space_' + website.hbagency_placements.in_article_2" class="min-h-[250px] w-full max-w-[336px]"></div>
+                            </div>
 
             <!-- Tags Card -->
             <div v-if="article.meta_tags && article.meta_tags.length > 0" class="mb-12 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-8 shadow-sm border border-emerald-100">
@@ -183,6 +198,11 @@
                                 ref="recipeCard"
                             />
 
+                            <!-- ========== AD PLACEMENT 5: After Recipe Card (Bottom) ========== -->
+                            <div v-if="website.hbagency_placements?.bottom_banner" class="ad-placement mt-12 flex justify-center">
+                                <div :id="'hbagency_space_' + website.hbagency_placements.bottom_banner" class="min-h-[90px] w-full max-w-[728px]"></div>
+                            </div>
+
                         </div>
 
                         <!-- Sidebar -->
@@ -213,6 +233,13 @@
                                         <button class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold uppercase tracking-widest hover:bg-emerald-600 transition shadow-lg shadow-emerald-200">
                                             Follow on Social
                                         </button>
+                                    </div>
+                                </div>
+
+                                <!-- ========== AD PLACEMENT 4: Sidebar Ad (300x600) ========== -->
+                                <div v-if="website.hbagency_placements?.sidebar" class="ad-placement">
+                                    <div :id="'hbagency_space_' + website.hbagency_placements.sidebar" class="min-h-[600px] w-full max-w-[300px] mx-auto">
+                                        <!-- HBAgency will inject ad here -->
                                     </div>
                                 </div>
 

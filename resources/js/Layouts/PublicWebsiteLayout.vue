@@ -286,6 +286,18 @@
                 </div>
             </div>
         </footer>
+
+        <!-- ========== AD PLACEMENT: Sticky Footer Ad (728x90) ========== -->
+        <div v-if="website.hbagency_placements?.sticky_footer" class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-lg py-2">
+            <div class="container mx-auto px-4 flex justify-center">
+                <div :id="'hbagency_space_' + website.hbagency_placements.sticky_footer" class="min-h-[90px] w-full max-w-[728px]">
+                    <!-- HBAgency will inject sticky footer ad here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Spacer for sticky footer ad -->
+        <div v-if="website.hbagency_placements?.sticky_footer" class="h-[100px]"></div>
     </div>
 </template>
 

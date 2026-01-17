@@ -25,6 +25,7 @@ class Website extends Model
         'theme_settings',
         'social_media',
         'hbagency_script',
+        'hbagency_placements',
         'is_active',
         'published_at',
     ];
@@ -34,6 +35,7 @@ class Website extends Model
     protected $casts = [
         'theme_settings' => 'array',
         'social_media' => 'array',
+        'hbagency_placements' => 'array',
         'is_active' => 'boolean',
         'published_at' => 'datetime',
     ];

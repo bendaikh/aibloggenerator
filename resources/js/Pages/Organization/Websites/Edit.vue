@@ -12,12 +12,23 @@ const showDomainInstructions = ref(false);
 const logoPreview = ref(props.website.logo_url || '');
 const faviconPreview = ref(props.website.favicon_url || '');
 
+const showPlacementsSection = ref(false);
+
 const form = useForm({
     name: props.website.name,
     domain: props.website.domain || '',
     subdomain: props.website.subdomain || '',
     description: props.website.description || '',
     hbagency_script: props.website.hbagency_script || '',
+    hbagency_placements: {
+        in_image: props.website.hbagency_placements?.in_image || '',
+        in_article_1: props.website.hbagency_placements?.in_article_1 || '',
+        in_article_2: props.website.hbagency_placements?.in_article_2 || '',
+        sidebar: props.website.hbagency_placements?.sidebar || '',
+        sticky_footer: props.website.hbagency_placements?.sticky_footer || '',
+        top_banner: props.website.hbagency_placements?.top_banner || '',
+        bottom_banner: props.website.hbagency_placements?.bottom_banner || '',
+    },
     is_active: props.website.is_active,
     logo: null,
     favicon: null,
@@ -300,6 +311,156 @@ const submit = () => {
                         ></textarea>
                         <p class="mt-1 text-xs text-gray-500">Paste the complete script tag from HBAgency. This enables ads monetization for this website.</p>
                         <p v-if="form.errors.hbagency_script" class="mt-1 text-sm text-red-500">{{ form.errors.hbagency_script }}</p>
+                        
+                        <!-- Toggle Placements Section -->
+                        <button 
+                            type="button"
+                            @click="showPlacementsSection = !showPlacementsSection"
+                            class="mt-3 text-sm text-amber-400 hover:text-amber-300 flex items-center gap-1"
+                        >
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showPlacementsSection }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                            {{ showPlacementsSection ? 'Hide' : 'Configure' }} Ad Placements
+                        </button>
+                    </div>
+
+                    <!-- HBAgency Ad Placements Configuration -->
+                    <div v-if="showPlacementsSection" class="bg-gradient-to-r from-amber-900/20 to-orange-900/20 border border-amber-800/50 rounded-xl p-5">
+                        <div class="flex items-start gap-3 mb-4">
+                            <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="text-white font-semibold text-lg">HBAgency Ad Placements</h4>
+                                <p class="text-amber-200/70 text-sm">Enter the placement IDs from HBAgency (e.g., 264555)</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- In Image Placement -->
+                            <div>
+                                <label class="text-gray-300 text-sm block mb-2">
+                                    <span class="flex items-center gap-2">
+                                        <span class="w-2 h-2 bg-emerald-400 rounded-full"></span>
+                                        In Image (Inimage)
+                                    </span>
+                                </label>
+                                <input 
+                                    v-model="form.hbagency_placements.in_image"
+                                    type="text" 
+                                    placeholder="e.g., 264555"
+                                    class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono text-sm"
+                                />
+                            </div>
+
+                            <!-- Top Banner Placement -->
+                            <div>
+                                <label class="text-gray-300 text-sm block mb-2">
+                                    <span class="flex items-center gap-2">
+                                        <span class="w-2 h-2 bg-blue-400 rounded-full"></span>
+                                        Top Banner (728x90)
+                                    </span>
+                                </label>
+                                <input 
+                                    v-model="form.hbagency_placements.top_banner"
+                                    type="text" 
+                                    placeholder="e.g., 264556"
+                                    class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono text-sm"
+                                />
+                            </div>
+
+                            <!-- In Article 1 Placement -->
+                            <div>
+                                <label class="text-gray-300 text-sm block mb-2">
+                                    <span class="flex items-center gap-2">
+                                        <span class="w-2 h-2 bg-purple-400 rounded-full"></span>
+                                        In Article - Before Content
+                                    </span>
+                                </label>
+                                <input 
+                                    v-model="form.hbagency_placements.in_article_1"
+                                    type="text" 
+                                    placeholder="e.g., 264556"
+                                    class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono text-sm"
+                                />
+                            </div>
+
+                            <!-- In Article 2 Placement -->
+                            <div>
+                                <label class="text-gray-300 text-sm block mb-2">
+                                    <span class="flex items-center gap-2">
+                                        <span class="w-2 h-2 bg-pink-400 rounded-full"></span>
+                                        In Article - After Content
+                                    </span>
+                                </label>
+                                <input 
+                                    v-model="form.hbagency_placements.in_article_2"
+                                    type="text" 
+                                    placeholder="e.g., 264556"
+                                    class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono text-sm"
+                                />
+                            </div>
+
+                            <!-- Sidebar Placement -->
+                            <div>
+                                <label class="text-gray-300 text-sm block mb-2">
+                                    <span class="flex items-center gap-2">
+                                        <span class="w-2 h-2 bg-teal-400 rounded-full"></span>
+                                        Sidebar (300x600)
+                                    </span>
+                                </label>
+                                <input 
+                                    v-model="form.hbagency_placements.sidebar"
+                                    type="text" 
+                                    placeholder="e.g., 264553"
+                                    class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono text-sm"
+                                />
+                            </div>
+
+                            <!-- Bottom Banner Placement -->
+                            <div>
+                                <label class="text-gray-300 text-sm block mb-2">
+                                    <span class="flex items-center gap-2">
+                                        <span class="w-2 h-2 bg-orange-400 rounded-full"></span>
+                                        Bottom Banner (After Recipe)
+                                    </span>
+                                </label>
+                                <input 
+                                    v-model="form.hbagency_placements.bottom_banner"
+                                    type="text" 
+                                    placeholder="e.g., 264557"
+                                    class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono text-sm"
+                                />
+                            </div>
+
+                            <!-- Sticky Footer Placement -->
+                            <div class="md:col-span-2">
+                                <label class="text-gray-300 text-sm block mb-2">
+                                    <span class="flex items-center gap-2">
+                                        <span class="w-2 h-2 bg-red-400 rounded-full"></span>
+                                        Sticky Footer (728x90)
+                                    </span>
+                                </label>
+                                <input 
+                                    v-model="form.hbagency_placements.sticky_footer"
+                                    type="text" 
+                                    placeholder="e.g., 264552"
+                                    class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono text-sm"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="mt-4 p-3 bg-[#0a0a0a]/50 rounded-lg">
+                            <p class="text-amber-200 text-xs flex items-start gap-2">
+                                <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>Get placement IDs from HBAgency: Click "Placement code" → copy the number from <code class="bg-black/30 px-1 rounded">hbagency_space_XXXXXX</code></span>
+                            </p>
+                        </div>
                     </div>
 
                     <!-- Logo Upload -->
