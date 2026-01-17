@@ -29,6 +29,13 @@ const form = useForm({
     frame_design: 'simple_center',
 });
 
+// Available frame designs
+const frameDesigns = [
+    { id: 'simple_center', name: 'Simple Center', description: 'Classic text overlay on images', bgColor: '#000000', textColor: '#ffffff' },
+    { id: 'black_christmas', name: 'Black Christmas', description: 'Elegant black with white lines', bgColor: '#000000', textColor: '#ffffff' },
+    { id: 'green_dashed', name: 'Green Dashed', description: 'Vibrant green with dashed border', bgColor: '#22c55e', textColor: '#ffffff' },
+];
+
 // When article is selected, auto-populate headline/subheadline
 watch(() => form.article_id, (articleId) => {
     if (articleId) {
@@ -236,6 +243,61 @@ const submitForm = () => {
                             </div>
                         </div>
 
+                        <!-- Frame Design Selection -->
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                                <svg class="w-5 h-5 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                                </svg>
+                                Frame Design
+                            </h3>
+
+                            <div class="grid grid-cols-3 gap-3">
+                                <button
+                                    v-for="frame in frameDesigns"
+                                    :key="frame.id"
+                                    type="button"
+                                    @click="form.frame_design = frame.id"
+                                    :class="[
+                                        'relative p-3 rounded-xl border-2 transition-all text-left',
+                                        form.frame_design === frame.id 
+                                            ? 'border-pink-500 bg-pink-500/10' 
+                                            : 'border-[#2a2a2a] hover:border-[#3a3a3a] bg-[#0a0a0a]'
+                                    ]"
+                                >
+                                    <!-- Frame Preview Mini -->
+                                    <div 
+                                        class="w-full aspect-[1/2] rounded-lg mb-2 overflow-hidden flex flex-col"
+                                        :style="{ backgroundColor: frame.id === 'simple_center' ? '#1a1a1a' : frame.bgColor }"
+                                    >
+                                        <div class="flex-1 bg-gray-700"></div>
+                                        <div 
+                                            class="h-[15%] flex items-center justify-center"
+                                            :style="{ backgroundColor: frame.bgColor }"
+                                        >
+                                            <div 
+                                                class="w-8 h-0.5 rounded"
+                                                :style="{ backgroundColor: frame.textColor }"
+                                            ></div>
+                                        </div>
+                                        <div class="flex-1 bg-gray-600"></div>
+                                    </div>
+                                    <p class="text-white text-xs font-medium truncate">{{ frame.name }}</p>
+                                    <p class="text-gray-500 text-[10px] truncate">{{ frame.description }}</p>
+                                    
+                                    <!-- Selected indicator -->
+                                    <div 
+                                        v-if="form.frame_design === frame.id"
+                                        class="absolute top-2 right-2 w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center"
+                                    >
+                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- Submit -->
                         <div class="flex justify-end pt-6 border-t border-[#2a2a2a]">
                             <button
@@ -282,8 +344,9 @@ const submitForm = () => {
                                 </div>
                             </div>
 
-                            <!-- Text Overlay -->
+                            <!-- Text Overlay - Simple Center -->
                             <div 
+                                v-if="form.frame_design === 'simple_center'"
                                 class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
                                 style="top: 42.7%; height: 14.6%;"
                                 :style="{ backgroundColor: previewStyles.overlayBg }"
@@ -300,6 +363,49 @@ const submitForm = () => {
                                     :style="{ color: previewStyles.subheadlineColor }"
                                 >
                                     {{ form.subheadline_text || 'Sugar donut bread' }}
+                                </p>
+                            </div>
+
+                            <!-- Text Overlay - Black Christmas -->
+                            <div 
+                                v-else-if="form.frame_design === 'black_christmas'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4 bg-black"
+                                style="top: 42.7%; height: 14.6%;"
+                            >
+                                <!-- Top decorative line -->
+                                <div class="absolute top-2 left-0 right-0 h-0.5 bg-white"></div>
+                                <!-- Bottom decorative line -->
+                                <div class="absolute bottom-2 left-0 right-0 h-0.5 bg-white"></div>
+                                <p class="text-center text-sm font-bold text-white tracking-wide capitalize">
+                                    {{ form.headline_text || 'White Christmas' }}
+                                </p>
+                                <p class="text-center text-sm text-white mt-0.5 capitalize">
+                                    {{ form.subheadline_text || 'Mojitos' }}
+                                </p>
+                                <p class="text-center text-xs italic text-white/90 mt-1" style="font-family: 'Georgia', serif;">
+                                    perfect festive
+                                </p>
+                            </div>
+
+                            <!-- Text Overlay - Green Dashed -->
+                            <div 
+                                v-else-if="form.frame_design === 'green_dashed'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
+                                style="top: 42.7%; height: 14.6%; background-color: #22c55e;"
+                            >
+                                <!-- Top dashed line -->
+                                <div class="absolute top-2 left-0 right-0 flex gap-1.5 px-1">
+                                    <div v-for="i in 20" :key="'top-'+i" class="flex-1 h-1 bg-white rounded-sm"></div>
+                                </div>
+                                <!-- Bottom dashed line -->
+                                <div class="absolute bottom-2 left-0 right-0 flex gap-1.5 px-1">
+                                    <div v-for="i in 20" :key="'bottom-'+i" class="flex-1 h-1 bg-white rounded-sm"></div>
+                                </div>
+                                <p class="text-center text-sm font-bold text-white lowercase tracking-wide">
+                                    {{ form.headline_text || 'chicken street tacos' }}
+                                </p>
+                                <p class="text-center text-xs italic mt-1" style="font-family: 'Georgia', serif; color: #166534;">
+                                    {{ form.subheadline_text || 'easy to make' }}
                                 </p>
                             </div>
 

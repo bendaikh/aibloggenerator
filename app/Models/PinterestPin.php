@@ -44,6 +44,8 @@ class PinterestPin extends Model
      */
     public const FRAME_DESIGNS = [
         'simple_center' => 'Simple Center Text',
+        'black_christmas' => 'Black Christmas (Elegant)',
+        'green_dashed' => 'Green Dashed Border',
     ];
 
     protected $appends = ['generated_image_url', 'top_image_url', 'bottom_image_url'];

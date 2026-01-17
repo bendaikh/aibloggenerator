@@ -29,6 +29,13 @@ const form = useForm({
     frame_design: props.pin.frame_design || 'simple_center',
 });
 
+// Available frame designs
+const frameDesigns = [
+    { id: 'simple_center', name: 'Simple Center', description: 'Classic text overlay' },
+    { id: 'black_christmas', name: 'Black Christmas', description: 'Elegant black with lines' },
+    { id: 'green_dashed', name: 'Green Dashed', description: 'Vibrant green dashed border' },
+];
+
 const regeneratePin = () => {
     form.post(route('superadmin.pinterest-pins.regenerate', {
         website: props.currentWebsite.id,
@@ -313,6 +320,27 @@ const getStatusBadgeClass = (status) => {
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">Opacity: {{ form.overlay_opacity }}%</label>
                             <input v-model="form.overlay_opacity" type="range" min="0" max="100" class="w-full" />
+                        </div>
+                    </div>
+
+                    <!-- Frame Design Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Frame Design</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button
+                                v-for="frame in frameDesigns"
+                                :key="frame.id"
+                                type="button"
+                                @click="form.frame_design = frame.id"
+                                :class="[
+                                    'p-2 rounded-lg border-2 transition-all text-center',
+                                    form.frame_design === frame.id 
+                                        ? 'border-pink-500 bg-pink-500/10' 
+                                        : 'border-[#3a3a3a] hover:border-[#4a4a4a] bg-[#252525]'
+                                ]"
+                            >
+                                <p class="text-white text-xs font-medium">{{ frame.name }}</p>
+                            </button>
                         </div>
                     </div>
                     

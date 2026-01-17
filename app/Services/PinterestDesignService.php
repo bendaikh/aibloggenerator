@@ -28,6 +28,16 @@ class PinterestDesignService
                 'description' => 'Text on white background with images',
                 'preview_colors' => ['bg' => '#ffffff', 'primary' => '#8B4513', 'secondary' => '#CD853F'],
             ],
+            'black_christmas' => [
+                'name' => 'Black Christmas (Elegant)',
+                'description' => 'Black background with white text and decorative lines',
+                'preview_colors' => ['bg' => '#000000', 'primary' => '#ffffff', 'secondary' => '#ffffff'],
+            ],
+            'green_dashed' => [
+                'name' => 'Green Dashed Border',
+                'description' => 'Green background with dashed border effect',
+                'preview_colors' => ['bg' => '#22c55e', 'primary' => '#ffffff', 'secondary' => '#166534'],
+            ],
         ];
     }
 
@@ -121,18 +131,40 @@ class PinterestDesignService
         $white = imagecolorallocate($canvas, 255, 255, 255);
         imagefill($canvas, 0, 0, $white);
 
-        // For now, use simple center frame (we'll add more step by step)
-        $this->drawSimpleCenterFrame(
-            $canvas, 
-            $topImagePath, 
-            $bottomImagePath, 
-            $headlineText, 
-            $subheadlineText, 
-            $headlineColor, 
-            $subheadlineColor,
-            $overlayColor,
-            $overlayOpacity
-        );
+        // Draw frame based on selected design
+        switch ($frameDesign) {
+            case 'black_christmas':
+                $this->drawBlackChristmasFrame(
+                    $canvas, 
+                    $topImagePath, 
+                    $bottomImagePath, 
+                    $headlineText, 
+                    $subheadlineText
+                );
+                break;
+            case 'green_dashed':
+                $this->drawGreenDashedFrame(
+                    $canvas, 
+                    $topImagePath, 
+                    $bottomImagePath, 
+                    $headlineText, 
+                    $subheadlineText
+                );
+                break;
+            default:
+                $this->drawSimpleCenterFrame(
+                    $canvas, 
+                    $topImagePath, 
+                    $bottomImagePath, 
+                    $headlineText, 
+                    $subheadlineText, 
+                    $headlineColor, 
+                    $subheadlineColor,
+                    $overlayColor,
+                    $overlayOpacity
+                );
+                break;
+        }
 
         return $canvas;
     }
@@ -206,23 +238,210 @@ class PinterestDesignService
     }
 
     /**
-     * Helper: Draw centered text.
+     * Frame: Black Christmas - Elegant black background with white text and decorative lines
+     * Based on the provided design with "White christamas Mojitos" style
+     */
+    private function drawBlackChristmasFrame(
+        $canvas, 
+        $topImagePath, 
+        $bottomImagePath, 
+        $headline, 
+        $subheadline
+    ): void {
+        // Calculate layout - images at top and bottom, text bar in middle
+        $imageHeight = (self::PIN_HEIGHT - self::TEXT_BAR_HEIGHT) / 2;
+        $topImageStartY = 0;
+        $textBarStartY = $imageHeight;
+        $bottomImageStartY = $imageHeight + self::TEXT_BAR_HEIGHT;
+
+        // Fill background with black
+        $black = imagecolorallocate($canvas, 0, 0, 0);
+        imagefill($canvas, 0, 0, $black);
+
+        // Top image
+        $topImage = $this->loadImage($topImagePath);
+        if ($topImage) {
+            $this->placeImage($canvas, $topImage, 0, (int)$topImageStartY, self::PIN_WIDTH, (int)$imageHeight);
+            imagedestroy($topImage);
+        }
+
+        // Black text bar
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $black);
+
+        // Draw decorative horizontal lines at top and bottom of text bar
+        $white = imagecolorallocate($canvas, 255, 255, 255);
+        $lineThickness = 2;
+        $linePadding = 8;
+        
+        // Top line
+        imagesetthickness($canvas, $lineThickness);
+        imageline($canvas, 0, (int)$textBarStartY + $linePadding, self::PIN_WIDTH, (int)$textBarStartY + $linePadding, $white);
+        
+        // Bottom line
+        imageline($canvas, 0, (int)($textBarStartY + self::TEXT_BAR_HEIGHT - $linePadding), self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT - $linePadding), $white);
+
+        // Draw text - headline in bold white, subheadline in italic script white
+        $fontPath = $this->getFontPath('sans-serif');
+        $scriptFontPath = $this->getFontPath('script');
+        $centerX = self::PIN_WIDTH / 2;
+        $textCenterY = $textBarStartY + (self::TEXT_BAR_HEIGHT / 2);
+
+        // Headline (bold, title case)
+        if (!empty($headline)) {
+            $this->drawCenteredText($canvas, ucwords(strtolower($headline)), $fontPath, 30, $centerX, $textCenterY - 10, $white);
+        }
+
+        // Subheadline (italic/script)
+        if (!empty($subheadline)) {
+            $this->drawCenteredText($canvas, $subheadline, $scriptFontPath ?? $fontPath, 24, $centerX, $textCenterY + 35, $white);
+        }
+
+        // Bottom image
+        $bottomImage = $this->loadImage($bottomImagePath);
+        if ($bottomImage) {
+            $this->placeImage($canvas, $bottomImage, 0, (int)$bottomImageStartY, self::PIN_WIDTH, (int)$imageHeight);
+            imagedestroy($bottomImage);
+        }
+    }
+
+    /**
+     * Frame: Green Dashed Border - Green background with dashed border effect
+     * Based on the provided design with "chicken street tacod" style
+     */
+    private function drawGreenDashedFrame(
+        $canvas, 
+        $topImagePath, 
+        $bottomImagePath, 
+        $headline, 
+        $subheadline
+    ): void {
+        // Calculate layout - images at top and bottom, text bar in middle
+        $imageHeight = (self::PIN_HEIGHT - self::TEXT_BAR_HEIGHT) / 2;
+        $topImageStartY = 0;
+        $textBarStartY = $imageHeight;
+        $bottomImageStartY = $imageHeight + self::TEXT_BAR_HEIGHT;
+
+        // Fill background with white
+        $white = imagecolorallocate($canvas, 255, 255, 255);
+        imagefill($canvas, 0, 0, $white);
+
+        // Top image
+        $topImage = $this->loadImage($topImagePath);
+        if ($topImage) {
+            $this->placeImage($canvas, $topImage, 0, (int)$topImageStartY, self::PIN_WIDTH, (int)$imageHeight);
+            imagedestroy($topImage);
+        }
+
+        // Green text bar - vibrant green like the design
+        $green = imagecolorallocate($canvas, 34, 197, 94); // #22c55e - Tailwind green-500
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $green);
+
+        // Draw dashed border effect at top and bottom of green bar
+        $darkGreen = imagecolorallocate($canvas, 21, 128, 61); // #15803d - Tailwind green-700
+        $dashWidth = 12;
+        $gapWidth = 8;
+        $dashHeight = 4;
+        $borderOffset = 6;
+
+        // Top dashed line
+        for ($x = 0; $x < self::PIN_WIDTH; $x += ($dashWidth + $gapWidth)) {
+            imagefilledrectangle(
+                $canvas, 
+                $x, 
+                (int)$textBarStartY + $borderOffset, 
+                min($x + $dashWidth, self::PIN_WIDTH), 
+                (int)$textBarStartY + $borderOffset + $dashHeight, 
+                $white
+            );
+        }
+
+        // Bottom dashed line
+        for ($x = 0; $x < self::PIN_WIDTH; $x += ($dashWidth + $gapWidth)) {
+            imagefilledrectangle(
+                $canvas, 
+                $x, 
+                (int)($textBarStartY + self::TEXT_BAR_HEIGHT - $borderOffset - $dashHeight), 
+                min($x + $dashWidth, self::PIN_WIDTH), 
+                (int)($textBarStartY + self::TEXT_BAR_HEIGHT - $borderOffset), 
+                $white
+            );
+        }
+
+        // Draw text - headline in white, subheadline in dark green script
+        $fontPath = $this->getFontPath('sans-serif');
+        $scriptFontPath = $this->getFontPath('script');
+        $centerX = self::PIN_WIDTH / 2;
+        $textCenterY = $textBarStartY + (self::TEXT_BAR_HEIGHT / 2);
+
+        // Headline (lowercase, white)
+        if (!empty($headline)) {
+            $this->drawCenteredText($canvas, strtolower($headline), $fontPath, 28, $centerX, $textCenterY - 10, $white);
+        }
+
+        // Subheadline (italic/script, dark green)
+        if (!empty($subheadline)) {
+            $this->drawCenteredText($canvas, $subheadline, $scriptFontPath ?? $fontPath, 22, $centerX, $textCenterY + 30, $darkGreen);
+        }
+
+        // Bottom image
+        $bottomImage = $this->loadImage($bottomImagePath);
+        if ($bottomImage) {
+            $this->placeImage($canvas, $bottomImage, 0, (int)$bottomImageStartY, self::PIN_WIDTH, (int)$imageHeight);
+            imagedestroy($bottomImage);
+        }
+    }
+
+    /**
+     * Helper: Draw centered text with proper sizing.
      */
     private function drawCenteredText($canvas, string $text, ?string $fontPath, int $fontSize, float $centerX, float $y, $color): void
     {
         if (empty($text)) return;
 
         if ($fontPath && file_exists($fontPath)) {
+            // Use TTF font for proper text rendering
             $bbox = imagettfbbox($fontSize, 0, $fontPath, $text);
             $textWidth = abs($bbox[2] - $bbox[0]);
             $textX = $centerX - ($textWidth / 2);
             imagettftext($canvas, $fontSize, 0, (int)$textX, (int)$y, $color, $fontPath, $text);
         } else {
-            // Fallback to built-in font
-            $font = min(5, max(1, (int)($fontSize / 8)));
-            $textWidth = strlen($text) * imagefontwidth($font);
-            $textX = $centerX - ($textWidth / 2);
-            imagestring($canvas, $font, (int)$textX, (int)($y - imagefontheight($font) / 2), $text, $color);
+            // Improved fallback - use larger built-in font and scale text properly
+            // GD built-in fonts are small, so we need to draw the text using a workaround
+            // Use maximum built-in font size and calculate positioning accordingly
+            $font = 5; // Largest built-in font
+            $charWidth = imagefontwidth($font);
+            $charHeight = imagefontheight($font);
+            
+            // For better visibility, we'll draw text larger by repeating/scaling
+            // Calculate scale factor based on desired font size
+            $scaleFactor = max(1, $fontSize / 10); // Approximate scale
+            
+            // Create a temporary canvas with the text
+            $textWidth = strlen($text) * $charWidth;
+            $textHeight = $charHeight;
+            
+            // Create temp canvas for text
+            $tempCanvas = imagecreatetruecolor($textWidth + 20, $textHeight + 10);
+            $bgColor = imagecolorallocate($tempCanvas, 0, 0, 0);
+            imagecolortransparent($tempCanvas, $bgColor);
+            imagefill($tempCanvas, 0, 0, $bgColor);
+            
+            // Draw text on temp canvas
+            $tempColor = imagecolorallocate($tempCanvas, 
+                ($color >> 16) & 0xFF, 
+                ($color >> 8) & 0xFF, 
+                $color & 0xFF
+            );
+            imagestring($tempCanvas, $font, 10, 5, $text, $tempColor);
+            
+            // Scale up the text
+            $newWidth = (int)($textWidth * $scaleFactor);
+            $newHeight = (int)($textHeight * $scaleFactor);
+            $destX = (int)($centerX - ($newWidth / 2));
+            $destY = (int)($y - ($newHeight / 2));
+            
+            imagecopyresized($canvas, $tempCanvas, $destX, $destY, 0, 0, $newWidth, $newHeight, $textWidth + 20, $textHeight + 10);
+            imagedestroy($tempCanvas);
         }
     }
 
@@ -353,27 +572,57 @@ class PinterestDesignService
 
         switch ($fontFamily) {
             case 'sans-serif':
-                // Try common sans-serif fonts
+                // Try common sans-serif fonts - expanded for various environments
                 $fonts = [
+                    // Application bundled fonts (highest priority)
                     $fontsDir . '/OpenSans-Bold.ttf',
                     $fontsDir . '/Roboto-Bold.ttf',
                     $fontsDir . '/Arial-Bold.ttf',
-                    'C:/Windows/Fonts/arial.ttf',
+                    $fontsDir . '/DejaVuSans-Bold.ttf',
+                    // Windows fonts
                     'C:/Windows/Fonts/arialbd.ttf',
+                    'C:/Windows/Fonts/arial.ttf',
+                    'C:/Windows/Fonts/calibrib.ttf',
+                    'C:/Windows/Fonts/segoeui.ttf',
+                    // Linux fonts (common locations)
                     '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+                    '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf',
+                    '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+                    '/usr/share/fonts/liberation/LiberationSans-Bold.ttf',
+                    '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf',
+                    '/usr/share/fonts/truetype/ubuntu/Ubuntu-Bold.ttf',
+                    '/usr/share/fonts/google-noto/NotoSans-Bold.ttf',
+                    '/usr/share/fonts/noto/NotoSans-Bold.ttf',
+                    // macOS fonts
                     '/System/Library/Fonts/Helvetica.ttc',
+                    '/Library/Fonts/Arial Bold.ttf',
                 ];
                 break;
             case 'script':
-                // Try script/cursive fonts
+                // Try script/cursive fonts - expanded for various environments
                 $fonts = [
+                    // Application bundled fonts (highest priority)
                     $fontsDir . '/GreatVibes-Regular.ttf',
                     $fontsDir . '/DancingScript-Bold.ttf',
                     $fontsDir . '/Pacifico-Regular.ttf',
-                    'C:/Windows/Fonts/segoepr.ttf', // Segoe Print
+                    $fontsDir . '/DejaVuSerif-Italic.ttf',
+                    // Windows fonts
+                    'C:/Windows/Fonts/segoepr.ttf',
+                    'C:/Windows/Fonts/segoesc.ttf',
                     'C:/Windows/Fonts/comic.ttf',
+                    'C:/Windows/Fonts/georgia.ttf',
+                    'C:/Windows/Fonts/times.ttf',
+                    // Linux fonts (common locations)
                     '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Italic.ttf',
+                    '/usr/share/fonts/dejavu/DejaVuSerif-Italic.ttf',
+                    '/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf',
+                    '/usr/share/fonts/liberation/LiberationSerif-Italic.ttf',
+                    '/usr/share/fonts/truetype/freefont/FreeSerifItalic.ttf',
+                    '/usr/share/fonts/truetype/ubuntu/Ubuntu-Italic.ttf',
+                    '/usr/share/fonts/google-noto/NotoSerif-Italic.ttf',
+                    // macOS fonts
                     '/System/Library/Fonts/Apple Chancery.ttc',
+                    '/Library/Fonts/Georgia Italic.ttf',
                 ];
                 break;
             default:
@@ -382,10 +631,12 @@ class PinterestDesignService
 
         foreach ($fonts as $font) {
             if (file_exists($font)) {
+                Log::debug('Font found', ['family' => $fontFamily, 'path' => $font]);
                 return $font;
             }
         }
 
+        Log::warning('No font found for family', ['family' => $fontFamily, 'searched' => count($fonts) . ' locations']);
         return null;
     }
 

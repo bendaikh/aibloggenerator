@@ -12,13 +12,14 @@
                     <p class="text-gray-500">Find the perfect recipe for any meal of the day</p>
                 </div>
 
-                <!-- Circular Category Icons - Grid layout for better mobile organization -->
-                <div class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-6 gap-4 sm:gap-6 md:gap-8 max-w-4xl mx-auto mb-8">
+                <!-- Circular Category Icons - Flexbox for proper centering -->
+                <div class="flex flex-wrap justify-center gap-4 sm:gap-6 md:gap-8 max-w-5xl mx-auto mb-8">
                     <a
                         v-for="category in website.categories?.slice(0, 6)"
                         :key="category.id"
                         :href="category.url"
-                        class="group text-center"
+                        class="group text-center flex-shrink-0"
+                        style="width: 100px; max-width: calc(33.333% - 1rem);"
                     >
                         <div class="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 mx-auto rounded-full overflow-hidden mb-2 sm:mb-3 ring-4 ring-transparent group-hover:ring-emerald-400 transition-all duration-300 shadow-lg">
                             <img
