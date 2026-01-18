@@ -337,6 +337,23 @@ onUnmounted(() => {
                         Pinterest Designs
                     </Link>
 
+                    <!-- Email Subscribers -->
+                    <Link 
+                        :href="currentWebsite ? route('superadmin.subscribers.index', { website: currentWebsite.id }) : '#'" 
+                        @click="handleNavClick"
+                        :class="[
+                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                            isActivePrefix('superadmin.subscribers') 
+                                ? 'bg-[#1f1f1f] text-white' 
+                                : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
+                        ]"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        Email Subscribers
+                    </Link>
+
                     <!-- Assets -->
                     <Link 
                         :href="currentWebsite ? route('superadmin.assets', { website: currentWebsite.id }) : '#'" 

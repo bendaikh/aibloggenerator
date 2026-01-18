@@ -343,4 +343,177 @@ class PinterestPinController extends Controller
             'image_url' => $pin->generated_image_url,
         ]);
     }
+
+    /**
+     * Generate AI headline and subheadline for an article.
+     */
+    public function generateHeadlines(Request $request, Website $website)
+    {
+        $this->authorize('view', $website);
+
+        $validated = $request->validate([
+            'article_id' => 'required|exists:articles,id',
+        ]);
+
+        $article = Article::findOrFail($validated['article_id']);
+        if ($article->website_id !== $website->id) {
+            return response()->json(['error' => 'Article does not belong to this website.'], 403);
+        }
+
+        $user = auth()->user();
+
+        if (empty($user->openai_api_key)) {
+            return response()->json(['error' => 'Please configure your OpenAI API key in Global Settings first.'], 400);
+        }
+
+        try {
+            $client = \OpenAI::client($user->openai_api_key);
+            $model = $user->ai_model ?? 'gpt-4o';
+
+            $prompt = <<<PROMPT
+You are a Pinterest marketing expert. Create an attractive, eye-catching headline and subheadline for a Pinterest pin based on this article.
+
+Article Title: "{$article->title}"
+Article Description: "{$article->meta_description}"
+
+Requirements:
+- Headline should be 2-4 words, catchy and intriguing (lowercase preferred)
+- Subheadline should be 2-5 words, descriptive and appetizing
+- Make them Pinterest-friendly (engaging, visual, action-oriented)
+- For recipes: focus on taste, ease, or special occasion
+- Avoid generic phrases like "delicious" alone
+
+Respond in this exact JSON format:
+{
+    "headline": "your headline here",
+    "subheadline": "your subheadline here"
+}
+PROMPT;
+
+            $result = $client->chat()->create([
+                'model' => $model,
+                'messages' => [
+                    ['role' => 'system', 'content' => 'You are a Pinterest marketing expert who creates engaging pin copy.'],
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+                'max_tokens' => 100,
+                'temperature' => 0.8,
+            ]);
+
+            $content = $result->choices[0]->message->content ?? '';
+            
+            // Parse JSON response
+            $jsonMatch = preg_match('/\{[^}]+\}/', $content, $matches);
+            if ($jsonMatch) {
+                $data = json_decode($matches[0], true);
+                if ($data && isset($data['headline']) && isset($data['subheadline'])) {
+                    return response()->json([
+                        'headline' => $data['headline'],
+                        'subheadline' => $data['subheadline'],
+                    ]);
+                }
+            }
+
+            return response()->json(['error' => 'Failed to parse AI response.'], 500);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to generate AI headlines', [
+                'error' => $e->getMessage(),
+                'article_id' => $article->id
+            ]);
+            
+            return response()->json(['error' => 'Failed to generate headlines: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Generate AI copy info for Pinterest posting.
+     */
+    public function generateCopyInfo(Request $request, Website $website, PinterestPin $pin)
+    {
+        $this->authorize('view', $website);
+
+        if ($pin->website_id !== $website->id) {
+            abort(404);
+        }
+
+        $user = auth()->user();
+
+        if (empty($user->openai_api_key)) {
+            return response()->json(['error' => 'Please configure your OpenAI API key in Global Settings first.'], 400);
+        }
+
+        try {
+            $client = \OpenAI::client($user->openai_api_key);
+            $model = $user->ai_model ?? 'gpt-4o';
+
+            $article = $pin->article;
+            $articleContent = $article ? strip_tags(substr($article->content ?? '', 0, 500)) : '';
+
+            $prompt = <<<PROMPT
+You are a Pinterest SEO and marketing expert. Generate optimized Pinterest pin copy for this content.
+
+Pin Title: "{$pin->title}"
+Pin Description: "{$pin->description}"
+Article Content Preview: "{$articleContent}"
+Link: "{$pin->link}"
+
+Generate Pinterest-optimized copy with:
+1. **Title** (max 100 chars): Compelling, keyword-rich title
+2. **Description** (max 500 chars): SEO-friendly, includes relevant keywords, call-to-action, and hashtags
+3. **Alt Text** (max 100 chars): Descriptive text for accessibility and SEO
+
+Requirements:
+- Include 3-5 relevant hashtags in the description
+- Make it engaging and click-worthy
+- Include a call-to-action
+- Use keywords naturally
+
+Respond in this exact JSON format:
+{
+    "title": "Pinterest-optimized title here",
+    "description": "Full description with hashtags here",
+    "alt_text": "Descriptive alt text here",
+    "hashtags": ["hashtag1", "hashtag2", "hashtag3"]
+}
+PROMPT;
+
+            $result = $client->chat()->create([
+                'model' => $model,
+                'messages' => [
+                    ['role' => 'system', 'content' => 'You are a Pinterest SEO expert who creates high-performing pin copy.'],
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+                'max_tokens' => 500,
+                'temperature' => 0.7,
+            ]);
+
+            $content = $result->choices[0]->message->content ?? '';
+            
+            // Parse JSON response
+            $jsonMatch = preg_match('/\{[\s\S]*\}/', $content, $matches);
+            if ($jsonMatch) {
+                $data = json_decode($matches[0], true);
+                if ($data) {
+                    return response()->json([
+                        'title' => $data['title'] ?? $pin->title,
+                        'description' => $data['description'] ?? $pin->description,
+                        'alt_text' => $data['alt_text'] ?? '',
+                        'hashtags' => $data['hashtags'] ?? [],
+                        'link' => $pin->link,
+                    ]);
+                }
+            }
+
+            return response()->json(['error' => 'Failed to parse AI response.'], 500);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to generate AI copy info', [
+                'error' => $e->getMessage(),
+                'pin_id' => $pin->id
+            ]);
+            
+            return response()->json(['error' => 'Failed to generate copy info: ' . $e->getMessage()], 500);
+        }
+    }
 }

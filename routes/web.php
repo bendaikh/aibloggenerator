@@ -35,6 +35,7 @@ if (!$isLocalDev) {
         Route::get('/recipes/{article}', [PublicWebsiteController::class, 'showArticleByDomain'])->name('article.show.subdomain');
         Route::get('/page/{page}', [PublicWebsiteController::class, 'showPageByDomain'])->name('website.page.subdomain');
         Route::get('/search', [PublicWebsiteController::class, 'search'])->name('website.search.subdomain');
+        Route::post('/subscribe', [\App\Http\Controllers\SubscriberController::class, 'subscribeByDomain'])->name('website.subscribe.subdomain');
     });
 }
 
@@ -119,6 +120,13 @@ $registerMainAppRoutes = function () {
         Route::post('/{website}/pinterest-pins/bulk-generate', [PinterestPinController::class, 'bulkGenerate'])->name('superadmin.pinterest-pins.bulk-generate');
         Route::get('/{website}/pinterest-pins/{pin}/download', [PinterestPinController::class, 'download'])->name('superadmin.pinterest-pins.download');
         Route::get('/{website}/pinterest-pins/{pin}/data', [PinterestPinController::class, 'getPinData'])->name('superadmin.pinterest-pins.data');
+        Route::post('/{website}/pinterest-pins/generate-headlines', [PinterestPinController::class, 'generateHeadlines'])->name('superadmin.pinterest-pins.generate-headlines');
+        Route::post('/{website}/pinterest-pins/{pin}/generate-copy-info', [PinterestPinController::class, 'generateCopyInfo'])->name('superadmin.pinterest-pins.generate-copy-info');
+
+        // Subscribers Routes
+        Route::get('/{website}/subscribers', [\App\Http\Controllers\SubscriberController::class, 'index'])->name('superadmin.subscribers.index');
+        Route::delete('/{website}/subscribers/{subscriber}', [\App\Http\Controllers\SubscriberController::class, 'destroy'])->name('superadmin.subscribers.destroy');
+        Route::post('/{website}/subscribers/export', [\App\Http\Controllers\SubscriberController::class, 'export'])->name('superadmin.subscribers.export');
 
         Route::get('/{website}/appearance', [WebsiteController::class, 'appearance'])->name('superadmin.appearance');
         Route::put('/{website}/appearance', [WebsiteController::class, 'updateAppearance'])->name('superadmin.appearance.update');
@@ -166,6 +174,7 @@ $registerMainAppRoutes = function () {
     Route::get('/site/{website}/recipes/{article}', [PublicWebsiteController::class, 'showArticle'])->name('article.show');
     Route::get('/site/{website}/page/{page}', [PublicWebsiteController::class, 'showPage'])->name('website.page');
     Route::get('/site/{website}/search', [PublicWebsiteController::class, 'searchLegacy'])->name('website.search');
+    Route::post('/site/{website}/subscribe', [\App\Http\Controllers\SubscriberController::class, 'subscribe'])->name('website.subscribe');
     
     // Auth routes
     require __DIR__.'/auth.php';
@@ -196,5 +205,6 @@ if (!$isLocalDev) {
         Route::get('/recipes/{article}', [PublicWebsiteController::class, 'showArticleByDomain'])->name('article.show.custom');
         Route::get('/page/{page}', [PublicWebsiteController::class, 'showPageByDomain'])->name('website.page.custom');
         Route::get('/search', [PublicWebsiteController::class, 'search'])->name('website.search.custom');
+        Route::post('/subscribe', [\App\Http\Controllers\SubscriberController::class, 'subscribeByDomain'])->name('website.subscribe.custom');
     });
 }

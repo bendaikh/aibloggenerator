@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import axios from 'axios';
 
 const page = usePage();
 
@@ -17,6 +18,8 @@ const props = defineProps({
 });
 
 const selectedArticle = ref(null);
+const isGeneratingHeadlines = ref(false);
+const aiError = ref('');
 
 const form = useForm({
     article_id: '',
@@ -54,16 +57,41 @@ const frameDesigns = [
     { id: 'green_dashed', name: 'Green Dashed', description: 'Vibrant green with dashed border', bgColor: '#22c55e', textColor: '#ffffff' },
 ];
 
-// When article is selected, auto-populate headline/subheadline
-watch(() => form.article_id, (articleId) => {
+// Generate AI headlines
+const generateAIHeadlines = async () => {
+    if (!form.article_id) return;
+    
+    isGeneratingHeadlines.value = true;
+    aiError.value = '';
+    
+    try {
+        const response = await axios.post(route('superadmin.pinterest-pins.generate-headlines', { 
+            website: props.currentWebsite.id 
+        }), {
+            article_id: form.article_id
+        });
+        
+        if (response.data.headline) {
+            form.headline_text = response.data.headline;
+        }
+        if (response.data.subheadline) {
+            form.subheadline_text = response.data.subheadline;
+        }
+    } catch (error) {
+        console.error('Failed to generate headlines:', error);
+        aiError.value = error.response?.data?.error || 'Failed to generate headlines. Please try again.';
+    } finally {
+        isGeneratingHeadlines.value = false;
+    }
+};
+
+// When article is selected, auto-generate AI headlines
+watch(() => form.article_id, async (articleId) => {
     if (articleId) {
         selectedArticle.value = props.articles.find(a => a.id === parseInt(articleId));
         if (selectedArticle.value) {
-            const title = selectedArticle.value.title;
-            const words = title.split(' ');
-            const midPoint = Math.ceil(words.length / 2);
-            form.headline_text = words.slice(0, midPoint).join(' ').toLowerCase();
-            form.subheadline_text = words.slice(midPoint).join(' ');
+            // Auto-generate AI headlines
+            await generateAIHeadlines();
         }
     } else {
         selectedArticle.value = null;
@@ -160,12 +188,44 @@ const submitForm = () => {
 
                         <!-- Text Content -->
                         <div class="space-y-4">
-                            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                                <svg class="w-5 h-5 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+                                    </svg>
+                                    Text Overlay
+                                </h3>
+                                <button
+                                    v-if="form.article_id"
+                                    type="button"
+                                    @click="generateAIHeadlines"
+                                    :disabled="isGeneratingHeadlines"
+                                    class="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white text-xs font-medium rounded-lg transition-all disabled:opacity-50"
+                                >
+                                    <svg v-if="isGeneratingHeadlines" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                    {{ isGeneratingHeadlines ? 'Generating...' : 'AI Generate' }}
+                                </button>
+                            </div>
+
+                            <!-- AI Error Message -->
+                            <div v-if="aiError" class="bg-red-900/30 border border-red-500/50 text-red-300 px-4 py-3 rounded-lg text-sm">
+                                {{ aiError }}
+                            </div>
+
+                            <!-- AI Loading Indicator -->
+                            <div v-if="isGeneratingHeadlines" class="bg-purple-900/30 border border-purple-500/50 text-purple-300 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+                                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
-                                Text Overlay
-                            </h3>
+                                AI is generating attractive headlines...
+                            </div>
                             
                             <div>
                                 <label class="block text-sm font-medium text-gray-300 mb-2">

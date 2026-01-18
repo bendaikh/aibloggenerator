@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import axios from 'axios';
 
 const page = usePage();
 
@@ -24,6 +25,14 @@ const showDeleteModal = ref(false);
 const pinToDelete = ref(null);
 const selectedPins = ref([]);
 const showBulkActions = computed(() => selectedPins.value.length > 0);
+
+// Copy Info Modal
+const showCopyInfoModal = ref(false);
+const copyInfoPin = ref(null);
+const copyInfoData = ref(null);
+const isGeneratingCopyInfo = ref(false);
+const copyInfoError = ref('');
+const copySuccess = ref('');
 
 // Bulk generate modal
 const showBulkGenerateModal = ref(false);
@@ -108,9 +117,53 @@ const downloadPin = (pin) => {
 };
 
 const copyPinInfo = async (pin) => {
-    const text = `Title: ${pin.title}\nDescription: ${pin.description || ''}\nLink: ${pin.link || ''}`;
-    await navigator.clipboard.writeText(text);
-    // Show toast or feedback
+    copyInfoPin.value = pin;
+    copyInfoData.value = null;
+    copyInfoError.value = '';
+    copySuccess.value = '';
+    showCopyInfoModal.value = true;
+    isGeneratingCopyInfo.value = true;
+    
+    try {
+        const response = await axios.post(route('superadmin.pinterest-pins.generate-copy-info', {
+            website: props.currentWebsite.id,
+            pin: pin.id
+        }));
+        
+        copyInfoData.value = response.data;
+    } catch (error) {
+        console.error('Failed to generate copy info:', error);
+        copyInfoError.value = error.response?.data?.error || 'Failed to generate copy info. Please try again.';
+    } finally {
+        isGeneratingCopyInfo.value = false;
+    }
+};
+
+const closeCopyInfoModal = () => {
+    showCopyInfoModal.value = false;
+    copyInfoPin.value = null;
+    copyInfoData.value = null;
+    copyInfoError.value = '';
+    copySuccess.value = '';
+};
+
+const copyToClipboard = async (text, field) => {
+    try {
+        await navigator.clipboard.writeText(text);
+        copySuccess.value = `${field} copied to clipboard!`;
+        setTimeout(() => {
+            copySuccess.value = '';
+        }, 2000);
+    } catch (error) {
+        console.error('Failed to copy:', error);
+    }
+};
+
+const copyAllInfo = async () => {
+    if (!copyInfoData.value) return;
+    
+    const text = `Title: ${copyInfoData.value.title}\n\nDescription: ${copyInfoData.value.description}\n\nAlt Text: ${copyInfoData.value.alt_text}\n\nLink: ${copyInfoData.value.link}`;
+    await copyToClipboard(text, 'All info');
 };
 
 const getStatusBadgeClass = (status) => {
@@ -432,6 +485,171 @@ const getStatusBadgeClass = (status) => {
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
                             <span>{{ isGenerating ? 'Generating...' : 'Generate Pins' }}</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Copy Info Modal -->
+        <div v-if="showCopyInfoModal" class="fixed inset-0 z-50 flex items-center justify-center">
+            <div class="absolute inset-0 bg-black/70" @click="closeCopyInfoModal"></div>
+            <div class="relative bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-xl font-semibold text-white flex items-center gap-2">
+                            <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            AI-Generated Pinterest Copy
+                        </h3>
+                        <p class="text-gray-400 text-sm mt-1">Copy this optimized content for your Pinterest pin</p>
+                    </div>
+                    <button @click="closeCopyInfoModal" class="text-gray-400 hover:text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Success Message -->
+                <div v-if="copySuccess" class="bg-emerald-900/50 border border-emerald-500 text-emerald-200 px-4 py-3 rounded-xl mb-4">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {{ copySuccess }}
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div v-if="isGeneratingCopyInfo" class="py-12 text-center">
+                    <svg class="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p class="text-gray-400">AI is generating optimized Pinterest copy...</p>
+                </div>
+
+                <!-- Error State -->
+                <div v-else-if="copyInfoError" class="bg-red-900/30 border border-red-500/50 text-red-300 px-4 py-6 rounded-xl text-center">
+                    <svg class="w-12 h-12 text-red-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p class="mb-4">{{ copyInfoError }}</p>
+                    <button
+                        @click="copyPinInfo(copyInfoPin)"
+                        class="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors"
+                    >
+                        Try Again
+                    </button>
+                </div>
+
+                <!-- Copy Info Content -->
+                <div v-else-if="copyInfoData" class="space-y-4">
+                    <!-- Title -->
+                    <div class="bg-[#252525] rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-sm font-medium text-gray-400">Pin Title</label>
+                            <button
+                                @click="copyToClipboard(copyInfoData.title, 'Title')"
+                                class="flex items-center gap-1 px-2 py-1 text-xs bg-[#1a1a1a] hover:bg-[#2a2a2a] text-gray-300 rounded transition-colors"
+                            >
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                Copy
+                            </button>
+                        </div>
+                        <p class="text-white">{{ copyInfoData.title }}</p>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="bg-[#252525] rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-sm font-medium text-gray-400">Pin Description (with hashtags)</label>
+                            <button
+                                @click="copyToClipboard(copyInfoData.description, 'Description')"
+                                class="flex items-center gap-1 px-2 py-1 text-xs bg-[#1a1a1a] hover:bg-[#2a2a2a] text-gray-300 rounded transition-colors"
+                            >
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                Copy
+                            </button>
+                        </div>
+                        <p class="text-white whitespace-pre-wrap">{{ copyInfoData.description }}</p>
+                    </div>
+
+                    <!-- Alt Text -->
+                    <div class="bg-[#252525] rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-sm font-medium text-gray-400">Alt Text (for accessibility)</label>
+                            <button
+                                @click="copyToClipboard(copyInfoData.alt_text, 'Alt text')"
+                                class="flex items-center gap-1 px-2 py-1 text-xs bg-[#1a1a1a] hover:bg-[#2a2a2a] text-gray-300 rounded transition-colors"
+                            >
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                Copy
+                            </button>
+                        </div>
+                        <p class="text-white">{{ copyInfoData.alt_text }}</p>
+                    </div>
+
+                    <!-- Link -->
+                    <div class="bg-[#252525] rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-sm font-medium text-gray-400">Destination Link</label>
+                            <button
+                                @click="copyToClipboard(copyInfoData.link, 'Link')"
+                                class="flex items-center gap-1 px-2 py-1 text-xs bg-[#1a1a1a] hover:bg-[#2a2a2a] text-gray-300 rounded transition-colors"
+                            >
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                Copy
+                            </button>
+                        </div>
+                        <a :href="copyInfoData.link" target="_blank" class="text-pink-400 hover:text-pink-300 underline break-all">{{ copyInfoData.link }}</a>
+                    </div>
+
+                    <!-- Hashtags -->
+                    <div v-if="copyInfoData.hashtags && copyInfoData.hashtags.length > 0" class="bg-[#252525] rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-sm font-medium text-gray-400">Suggested Hashtags</label>
+                            <button
+                                @click="copyToClipboard(copyInfoData.hashtags.map(h => '#' + h).join(' '), 'Hashtags')"
+                                class="flex items-center gap-1 px-2 py-1 text-xs bg-[#1a1a1a] hover:bg-[#2a2a2a] text-gray-300 rounded transition-colors"
+                            >
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                Copy All
+                            </button>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <span
+                                v-for="tag in copyInfoData.hashtags"
+                                :key="tag"
+                                class="px-2 py-1 bg-pink-500/20 text-pink-300 rounded-lg text-sm"
+                            >
+                                #{{ tag }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Copy All Button -->
+                    <div class="pt-4 border-t border-[#2a2a2a]">
+                        <button
+                            @click="copyAllInfo"
+                            class="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            Copy All Information
                         </button>
                     </div>
                 </div>

@@ -188,7 +188,7 @@
         </main>
 
         <!-- Newsletter Section -->
-        <section class="bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 py-10 md:py-16">
+        <section id="subscribe" class="bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 py-10 md:py-16">
             <div class="container mx-auto px-4">
                 <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-8 md:gap-12">
                     <div class="flex-1 text-white text-center md:text-left">
@@ -199,13 +199,34 @@
                     <div class="flex-1 w-full max-w-md">
                         <div class="bg-white p-6 md:p-8 rounded-2xl shadow-2xl">
                             <p class="text-gray-600 text-sm mb-3 md:mb-4">Enter your email address:</p>
+                            
+                            <!-- Success Message -->
+                            <div v-if="subscribeSuccess && !showSubscribePopup" class="bg-emerald-100 border border-emerald-400 text-emerald-700 px-4 py-3 rounded-lg mb-4 text-sm">
+                                {{ subscribeSuccess }}
+                            </div>
+                            
+                            <!-- Error Message -->
+                            <div v-if="subscribeError && !showSubscribePopup" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
+                                {{ subscribeError }}
+                            </div>
+                            
                             <input
+                                v-model="footerEmail"
                                 type="email"
                                 placeholder="you@example.com"
                                 class="w-full px-4 py-3 mb-3 md:mb-4 rounded-lg border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-sm sm:text-base"
+                                @keyup.enter="handleFooterSubscribe"
                             />
-                            <button class="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white px-6 py-3 md:py-4 rounded-lg font-bold hover:from-pink-600 hover:to-rose-600 transition shadow-lg text-sm sm:text-base">
-                                SUBSCRIBE NOW
+                            <button 
+                                @click="handleFooterSubscribe"
+                                :disabled="isSubscribing"
+                                class="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white px-6 py-3 md:py-4 rounded-lg font-bold hover:from-pink-600 hover:to-rose-600 transition shadow-lg text-sm sm:text-base disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                <svg v-if="isSubscribing" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                {{ isSubscribing ? 'SUBSCRIBING...' : 'SUBSCRIBE NOW' }}
                             </button>
                         </div>
                     </div>
@@ -298,11 +319,81 @@
 
         <!-- Spacer for sticky footer ad -->
         <div v-if="website.hbagency_placements?.sticky_footer" class="h-[100px]"></div>
+
+        <!-- Subscribe Popup Modal -->
+        <div v-if="showSubscribePopup" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <!-- Backdrop -->
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeSubscribePopup"></div>
+            
+            <!-- Modal -->
+            <div class="relative bg-gradient-to-br from-emerald-400 via-teal-400 to-cyan-400 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden">
+                <!-- Close button -->
+                <button 
+                    @click="closeSubscribePopup"
+                    class="absolute top-4 right-4 text-white/80 hover:text-white transition z-10"
+                >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+                
+                <!-- Content -->
+                <div class="p-8 text-center">
+                    <div class="mb-6">
+                        <h3 class="text-2xl md:text-3xl font-bold text-white mb-2">GET NEW RECIPES</h3>
+                        <p class="text-lg text-emerald-100">IN YOUR INBOX</p>
+                    </div>
+                    
+                    <!-- Success Message -->
+                    <div v-if="subscribeSuccess" class="bg-white/20 border border-white/40 text-white px-4 py-3 rounded-xl mb-4 text-sm">
+                        <div class="flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            {{ subscribeSuccess }}
+                        </div>
+                    </div>
+                    
+                    <!-- Error Message -->
+                    <div v-if="subscribeError" class="bg-red-500/20 border border-red-400/40 text-white px-4 py-3 rounded-xl mb-4 text-sm">
+                        {{ subscribeError }}
+                    </div>
+                    
+                    <div v-if="!subscribeSuccess" class="bg-white rounded-2xl p-6 shadow-xl">
+                        <p class="text-gray-600 text-sm mb-4">Enter your email address:</p>
+                        <input
+                            v-model="subscribeEmail"
+                            type="email"
+                            placeholder="you@example.com"
+                            class="w-full px-4 py-3 mb-4 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-base"
+                            @keyup.enter="handlePopupSubscribe"
+                            autofocus
+                        />
+                        <button 
+                            @click="handlePopupSubscribe"
+                            :disabled="isSubscribing"
+                            class="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white px-6 py-4 rounded-xl font-bold hover:from-pink-600 hover:to-rose-600 transition shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                            <svg v-if="isSubscribing" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            {{ isSubscribing ? 'SUBSCRIBING...' : 'SUBSCRIBE NOW' }}
+                        </button>
+                    </div>
+                    
+                    <p class="text-white/70 text-xs mt-4">
+                        We respect your privacy. Unsubscribe at any time.
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
+import axios from 'axios';
 
 const props = defineProps({
     website: {
@@ -323,6 +414,86 @@ const toggleMobileMenu = () => {
 
 const closeMobileMenu = () => {
     mobileMenuOpen.value = false;
+};
+
+// Subscribe functionality
+const showSubscribePopup = ref(false);
+const subscribeEmail = ref('');
+const footerEmail = ref('');
+const isSubscribing = ref(false);
+const subscribeSuccess = ref('');
+const subscribeError = ref('');
+
+const openSubscribePopup = () => {
+    showSubscribePopup.value = true;
+    subscribeEmail.value = '';
+    subscribeSuccess.value = '';
+    subscribeError.value = '';
+};
+
+// Expose openSubscribePopup to child components via provide
+import { provide } from 'vue';
+provide('openSubscribePopup', openSubscribePopup);
+
+const closeSubscribePopup = () => {
+    showSubscribePopup.value = false;
+};
+
+const submitSubscribe = async (email, source = 'popup') => {
+    if (!email || !email.includes('@')) {
+        subscribeError.value = 'Please enter a valid email address.';
+        return;
+    }
+    
+    isSubscribing.value = true;
+    subscribeError.value = '';
+    subscribeSuccess.value = '';
+    
+    try {
+        // Determine the correct subscribe URL based on website configuration
+        let subscribeUrl = `/site/${props.website.id}/subscribe`;
+        
+        // If we're on a subdomain or custom domain, use the domain-based route
+        const currentHost = window.location.host;
+        const baseDomain = props.website.base_domain || 'localhost';
+        
+        if (currentHost !== baseDomain && !currentHost.includes('localhost') && !currentHost.includes('127.0.0.1')) {
+            subscribeUrl = '/subscribe';
+        }
+        
+        const response = await axios.post(subscribeUrl, {
+            email: email,
+            source: source
+        });
+        
+        if (response.data.success) {
+            subscribeSuccess.value = response.data.message || 'Thank you for subscribing!';
+            subscribeEmail.value = '';
+            footerEmail.value = '';
+            
+            // Close popup after success
+            if (source === 'popup') {
+                setTimeout(() => {
+                    closeSubscribePopup();
+                }, 2000);
+            }
+        } else {
+            subscribeError.value = response.data.message || 'Something went wrong.';
+        }
+    } catch (error) {
+        console.error('Subscribe error:', error);
+        subscribeError.value = error.response?.data?.message || 'Something went wrong. Please try again.';
+    } finally {
+        isSubscribing.value = false;
+    }
+};
+
+const handleFooterSubscribe = () => {
+    submitSubscribe(footerEmail.value, 'footer');
+};
+
+const handlePopupSubscribe = () => {
+    submitSubscribe(subscribeEmail.value, 'popup');
 };
 </script>
 
