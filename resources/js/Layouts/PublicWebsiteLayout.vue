@@ -394,6 +394,7 @@
 <script setup>
 import { ref } from 'vue';
 import axios from 'axios';
+import { useSubscribePopup } from '@/composables/useSubscribePopup';
 
 const props = defineProps({
     website: {
@@ -416,28 +417,18 @@ const closeMobileMenu = () => {
     mobileMenuOpen.value = false;
 };
 
-// Subscribe functionality
-const showSubscribePopup = ref(false);
-const subscribeEmail = ref('');
+// Subscribe functionality - using shared composable
+const {
+    showSubscribePopup,
+    subscribeEmail,
+    isSubscribing,
+    subscribeSuccess,
+    subscribeError,
+    openSubscribePopup,
+    closeSubscribePopup
+} = useSubscribePopup();
+
 const footerEmail = ref('');
-const isSubscribing = ref(false);
-const subscribeSuccess = ref('');
-const subscribeError = ref('');
-
-const openSubscribePopup = () => {
-    showSubscribePopup.value = true;
-    subscribeEmail.value = '';
-    subscribeSuccess.value = '';
-    subscribeError.value = '';
-};
-
-// Expose openSubscribePopup to child components via provide
-import { provide } from 'vue';
-provide('openSubscribePopup', openSubscribePopup);
-
-const closeSubscribePopup = () => {
-    showSubscribePopup.value = false;
-};
 
 const submitSubscribe = async (email, source = 'popup') => {
     if (!email || !email.includes('@')) {

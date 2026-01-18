@@ -29,6 +29,15 @@ const form = useForm({
         show_newsletter_cta: currentThemeSettings.show_newsletter_cta !== false, // Default to true
         show_shop_cta: currentThemeSettings.show_shop_cta !== false, // Default to true
         article_font_family: currentThemeSettings.article_font_family || 'default',
+        // Newsletter CTA customization
+        newsletter_cta_title: currentThemeSettings.newsletter_cta_title || 'GET NEW RECIPES',
+        newsletter_cta_subtitle: currentThemeSettings.newsletter_cta_subtitle || 'IN YOUR INBOX',
+        newsletter_cta_button: currentThemeSettings.newsletter_cta_button || 'SUBSCRIBE NOW',
+        // Shop CTA customization
+        shop_cta_title: currentThemeSettings.shop_cta_title || 'VISIT OUR SHOP',
+        shop_cta_subtitle: currentThemeSettings.shop_cta_subtitle || 'FIND GREAT GIFT IDEAS!',
+        shop_cta_button: currentThemeSettings.shop_cta_button || 'SHOP NOW',
+        shop_cta_link: currentThemeSettings.shop_cta_link || '#shop',
         ...currentThemeSettings
     }
 });
@@ -122,54 +131,147 @@ const getFontFamily = (fontId) => {
 
                 <!-- Theme Customization -->
                 <div class="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6">
-                    <h3 class="text-lg font-semibold text-white mb-4">Theme Customization</h3>
-                    <p class="text-gray-400 text-sm mb-6">Enable or disable sections on your website</p>
+                    <h3 class="text-lg font-semibold text-white mb-4">CTA Blocks Customization</h3>
+                    <p class="text-gray-400 text-sm mb-6">Customize the Call-to-Action blocks on your homepage</p>
                     
                     <div class="space-y-6">
                         <!-- Newsletter CTA Section -->
-                        <div class="flex items-start justify-between p-4 bg-[#252525] rounded-lg border border-[#3a3a3a]">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-3 mb-2">
+                        <div class="p-4 bg-[#252525] rounded-lg border border-[#3a3a3a]">
+                            <div class="flex items-start justify-between mb-4">
+                                <div class="flex items-center gap-3">
                                     <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
                                         <span class="text-white text-xl">💌</span>
                                     </div>
                                     <div>
                                         <h4 class="text-white font-semibold">Newsletter Subscription CTA</h4>
-                                        <p class="text-gray-400 text-sm">"GET NEW RECIPES IN YOUR INBOX" section</p>
+                                        <p class="text-gray-400 text-sm">Collect email subscribers</p>
                                     </div>
                                 </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        v-model="form.theme_settings.show_newsletter_cta"
+                                        class="sr-only peer"
+                                    />
+                                    <div class="w-11 h-6 bg-[#3a3a3a] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                                </label>
                             </div>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    v-model="form.theme_settings.show_newsletter_cta"
-                                    class="sr-only peer"
-                                />
-                                <div class="w-11 h-6 bg-[#3a3a3a] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                            </label>
+                            
+                            <!-- Newsletter CTA Fields -->
+                            <div v-if="form.theme_settings.show_newsletter_cta" class="space-y-3 mt-4 pt-4 border-t border-[#3a3a3a]">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-gray-400 text-xs mb-1">Title</label>
+                                        <input
+                                            v-model="form.theme_settings.newsletter_cta_title"
+                                            type="text"
+                                            placeholder="GET NEW RECIPES"
+                                            class="w-full px-3 py-2 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-400 text-xs mb-1">Subtitle</label>
+                                        <input
+                                            v-model="form.theme_settings.newsletter_cta_subtitle"
+                                            type="text"
+                                            placeholder="IN YOUR INBOX"
+                                            class="w-full px-3 py-2 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-400 text-xs mb-1">Button Text</label>
+                                    <input
+                                        v-model="form.theme_settings.newsletter_cta_button"
+                                        type="text"
+                                        placeholder="SUBSCRIBE NOW"
+                                        class="w-full px-3 py-2 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    />
+                                </div>
+                                <!-- Preview -->
+                                <div class="mt-4 p-4 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl text-white text-center">
+                                    <h3 class="text-lg font-bold mb-0.5">{{ form.theme_settings.newsletter_cta_title || 'GET NEW RECIPES' }}</h3>
+                                    <h4 class="text-sm mb-3 text-emerald-100">{{ form.theme_settings.newsletter_cta_subtitle || 'IN YOUR INBOX' }}</h4>
+                                    <span class="inline-block bg-white text-emerald-600 px-6 py-2 rounded-full font-bold text-sm shadow-md">
+                                        {{ form.theme_settings.newsletter_cta_button || 'SUBSCRIBE NOW' }} 💌
+                                    </span>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Shop CTA Section -->
-                        <div class="flex items-start justify-between p-4 bg-[#252525] rounded-lg border border-[#3a3a3a]">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-3 mb-2">
+                        <div class="p-4 bg-[#252525] rounded-lg border border-[#3a3a3a]">
+                            <div class="flex items-start justify-between mb-4">
+                                <div class="flex items-center gap-3">
                                     <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center">
                                         <span class="text-white text-xl">🛍️</span>
                                     </div>
                                     <div>
                                         <h4 class="text-white font-semibold">Shop CTA</h4>
-                                        <p class="text-gray-400 text-sm">"VISIT OUR SHOP" section</p>
+                                        <p class="text-gray-400 text-sm">Link to your shop or store</p>
                                     </div>
                                 </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        v-model="form.theme_settings.show_shop_cta"
+                                        class="sr-only peer"
+                                    />
+                                    <div class="w-11 h-6 bg-[#3a3a3a] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                                </label>
                             </div>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    v-model="form.theme_settings.show_shop_cta"
-                                    class="sr-only peer"
-                                />
-                                <div class="w-11 h-6 bg-[#3a3a3a] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                            </label>
+                            
+                            <!-- Shop CTA Fields -->
+                            <div v-if="form.theme_settings.show_shop_cta" class="space-y-3 mt-4 pt-4 border-t border-[#3a3a3a]">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-gray-400 text-xs mb-1">Title</label>
+                                        <input
+                                            v-model="form.theme_settings.shop_cta_title"
+                                            type="text"
+                                            placeholder="VISIT OUR SHOP"
+                                            class="w-full px-3 py-2 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-400 text-xs mb-1">Subtitle</label>
+                                        <input
+                                            v-model="form.theme_settings.shop_cta_subtitle"
+                                            type="text"
+                                            placeholder="FIND GREAT GIFT IDEAS!"
+                                            class="w-full px-3 py-2 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        />
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-gray-400 text-xs mb-1">Button Text</label>
+                                        <input
+                                            v-model="form.theme_settings.shop_cta_button"
+                                            type="text"
+                                            placeholder="SHOP NOW"
+                                            class="w-full px-3 py-2 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-400 text-xs mb-1">Button Link (URL)</label>
+                                        <input
+                                            v-model="form.theme_settings.shop_cta_link"
+                                            type="text"
+                                            placeholder="https://yourshop.com"
+                                            class="w-full px-3 py-2 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        />
+                                    </div>
+                                </div>
+                                <!-- Preview -->
+                                <div class="mt-4 p-4 bg-gradient-to-br from-pink-400 to-rose-500 rounded-xl text-white text-center">
+                                    <h3 class="text-lg font-bold mb-0.5">{{ form.theme_settings.shop_cta_title || 'VISIT OUR SHOP' }}</h3>
+                                    <h4 class="text-sm mb-3 text-pink-100">{{ form.theme_settings.shop_cta_subtitle || 'FIND GREAT GIFT IDEAS!' }}</h4>
+                                    <span class="inline-block bg-white text-pink-600 px-6 py-2 rounded-full font-bold text-sm shadow-md">
+                                        {{ form.theme_settings.shop_cta_button || 'SHOP NOW' }} 🛍️
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
