@@ -716,6 +716,7 @@ class PinterestDesignService
 
     /**
      * Get font path based on font family.
+     * Priority: 1. Project fonts (resources/fonts), 2. System fonts
      */
     private function getFontPath(string $fontFamily): ?string
     {
@@ -734,34 +735,40 @@ class PinterestDesignService
         switch ($fontFamily) {
             case 'arial':
                 $fonts = [
-                    $fontsDir . '/Arial-Bold.ttf',
+                    // Project fonts first (these will work on production)
                     $fontsDir . '/arialbd.ttf',
+                    $fontsDir . '/arial.ttf',
+                    $fontsDir . '/ariblk.ttf',
+                    // Windows fallback
                     $winFonts . '\\arialbd.ttf',
                     $winFonts . '\\arial.ttf',
-                    $winFonts . '\\ARIALBD.TTF',
-                    $winFonts . '\\ARIAL.TTF',
+                    // Linux fallback
                     '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
                 ];
                 break;
             case 'georgia':
                 $fonts = [
-                    $fontsDir . '/Georgia.ttf',
+                    // Project fonts first
+                    $fontsDir . '/georgiab.ttf',
                     $fontsDir . '/georgia.ttf',
+                    $fontsDir . '/georgiai.ttf',
+                    // Windows fallback
                     $winFonts . '\\georgia.ttf',
                     $winFonts . '\\georgiab.ttf',
-                    $winFonts . '\\GEORGIA.TTF',
-                    $winFonts . '\\GEORGIAB.TTF',
+                    // Linux fallback
                     '/usr/share/fonts/truetype/freefont/FreeSerif.ttf',
                 ];
                 break;
             case 'times':
                 $fonts = [
-                    $fontsDir . '/Times.ttf',
+                    // Project fonts first
+                    $fontsDir . '/timesbd.ttf',
                     $fontsDir . '/times.ttf',
+                    $fontsDir . '/timesi.ttf',
+                    // Windows fallback
                     $winFonts . '\\times.ttf',
                     $winFonts . '\\timesbd.ttf',
-                    $winFonts . '\\TIMES.TTF',
-                    $winFonts . '\\TIMESBD.TTF',
+                    // Linux fallback
                     '/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf',
                 ];
                 break;
@@ -769,62 +776,83 @@ class PinterestDesignService
                 $fonts = [
                     $fontsDir . '/Roboto-Bold.ttf',
                     $fontsDir . '/Roboto-Regular.ttf',
-                    $winFonts . '\\arialbd.ttf', // Fallback to Arial on Windows
+                    // Fallback to Arial (project first, then system)
+                    $fontsDir . '/arialbd.ttf',
+                    $winFonts . '\\arialbd.ttf',
                 ];
                 break;
             case 'open-sans':
                 $fonts = [
                     $fontsDir . '/OpenSans-Bold.ttf',
                     $fontsDir . '/OpenSans-Regular.ttf',
-                    $winFonts . '\\arialbd.ttf', // Fallback to Arial on Windows
+                    // Fallback to Arial (project first, then system)
+                    $fontsDir . '/arialbd.ttf',
+                    $winFonts . '\\arialbd.ttf',
                 ];
                 break;
             case 'dancing-script':
                 $fonts = [
                     $fontsDir . '/DancingScript-Bold.ttf',
                     $fontsDir . '/DancingScript-Regular.ttf',
-                    $winFonts . '\\georgia.ttf', // Fallback to Georgia on Windows
+                    // Fallback to Georgia italic (project first, then system)
+                    $fontsDir . '/georgiai.ttf',
+                    $fontsDir . '/georgia.ttf',
+                    $winFonts . '\\georgiai.ttf',
+                    $winFonts . '\\georgia.ttf',
                 ];
                 break;
             case 'pacifico':
                 $fonts = [
                     $fontsDir . '/Pacifico-Regular.ttf',
-                    $winFonts . '\\georgia.ttf', // Fallback to Georgia on Windows
+                    // Fallback to Georgia italic (project first, then system)
+                    $fontsDir . '/georgiai.ttf',
+                    $fontsDir . '/georgia.ttf',
+                    $winFonts . '\\georgiai.ttf',
+                    $winFonts . '\\georgia.ttf',
                 ];
                 break;
             case 'sans-serif':
                 $fonts = [
+                    // Project fonts first (bundled with the app)
+                    $fontsDir . '/arialbd.ttf',
+                    $fontsDir . '/arial.ttf',
+                    $fontsDir . '/ariblk.ttf',
                     $fontsDir . '/OpenSans-Bold.ttf',
                     $fontsDir . '/Roboto-Bold.ttf',
-                    $fontsDir . '/Arial-Bold.ttf',
                     $fontsDir . '/DejaVuSans-Bold.ttf',
+                    // Windows fallback
                     $winFonts . '\\arialbd.ttf',
                     $winFonts . '\\arial.ttf',
                     $winFonts . '\\segoeuib.ttf',
-                    $winFonts . '\\segoeui.ttf',
-                    $winFonts . '\\ARIALBD.TTF',
-                    $winFonts . '\\ARIAL.TTF',
+                    // Linux fallback
                     '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
                     '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
                 ];
                 break;
             case 'script':
                 $fonts = [
+                    // Project fonts first
+                    $fontsDir . '/georgiai.ttf',
+                    $fontsDir . '/georgia.ttf',
+                    $fontsDir . '/timesi.ttf',
                     $fontsDir . '/GreatVibes-Regular.ttf',
                     $fontsDir . '/DancingScript-Bold.ttf',
                     $fontsDir . '/Pacifico-Regular.ttf',
-                    $winFonts . '\\georgia.ttf',
+                    // Windows fallback
                     $winFonts . '\\georgiai.ttf',
-                    $winFonts . '\\times.ttf',
+                    $winFonts . '\\georgia.ttf',
                     $winFonts . '\\timesi.ttf',
-                    $winFonts . '\\GEORGIA.TTF',
-                    $winFonts . '\\GEORGIAI.TTF',
+                    // Linux fallback
                     '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Italic.ttf',
                 ];
                 break;
             default:
-                // Unknown font, try to find ANY available font
-                $fonts = [];
+                // Unknown font, try project fonts first then system
+                $fonts = [
+                    $fontsDir . '/arialbd.ttf',
+                    $fontsDir . '/arial.ttf',
+                    $fontsDir . '/georgia.ttf',
+                ];
         }
 
         // Try to find the requested font
@@ -835,14 +863,19 @@ class PinterestDesignService
             }
         }
 
-        // Fallback: try common Windows fonts if specific font not found
+        // Fallback: try project fonts first, then system fonts
         $fallbackFonts = [
+            // Project fonts (these will work on any server)
+            $fontsDir . '/arialbd.ttf',
+            $fontsDir . '/arial.ttf',
+            $fontsDir . '/georgia.ttf',
+            $fontsDir . '/times.ttf',
+            // Windows system fonts
             $winFonts . '\\arialbd.ttf',
             $winFonts . '\\arial.ttf',
             $winFonts . '\\georgia.ttf',
             $winFonts . '\\times.ttf',
-            $winFonts . '\\ARIALBD.TTF',
-            $winFonts . '\\ARIAL.TTF',
+            // Linux system fonts
             '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
             '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
         ];
