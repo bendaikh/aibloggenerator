@@ -6,6 +6,7 @@ const subscribeEmail = ref('');
 const isSubscribing = ref(false);
 const subscribeSuccess = ref('');
 const subscribeError = ref('');
+const showEmailField = ref(false);
 
 export function useSubscribePopup() {
     const openSubscribePopup = () => {
@@ -13,10 +14,16 @@ export function useSubscribePopup() {
         subscribeEmail.value = '';
         subscribeSuccess.value = '';
         subscribeError.value = '';
+        showEmailField.value = false; // Reset email field visibility when popup opens
     };
 
     const closeSubscribePopup = () => {
         showSubscribePopup.value = false;
+        showEmailField.value = false; // Reset when closing
+    };
+
+    const revealEmailField = () => {
+        showEmailField.value = true;
     };
 
     return {
@@ -25,7 +32,9 @@ export function useSubscribePopup() {
         isSubscribing,
         subscribeSuccess,
         subscribeError,
+        showEmailField,
         openSubscribePopup,
-        closeSubscribePopup
+        closeSubscribePopup,
+        revealEmailField
     };
 }

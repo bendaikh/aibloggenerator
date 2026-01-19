@@ -377,17 +377,22 @@
                             </div>
                             
                             <div v-if="!subscribeSuccess" class="bg-white rounded-2xl p-6 shadow-xl">
-                                <p class="text-gray-600 text-sm mb-4">Enter your email address:</p>
-                                <input
-                                    v-model="subscribeEmail"
-                                    type="email"
-                                    placeholder="you@example.com"
-                                    class="w-full px-4 py-3 mb-4 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-base"
-                                    @keyup.enter="handlePopupSubscribe"
-                                    autofocus
-                                />
+                                <!-- Email field - HIDDEN by default, only shown after button click -->
+                                <template v-if="showEmailField">
+                                    <p class="text-gray-600 text-sm mb-4">Enter your email address:</p>
+                                    <input
+                                        v-model="subscribeEmail"
+                                        type="email"
+                                        placeholder="you@example.com"
+                                        class="w-full px-4 py-3 mb-4 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-base"
+                                        @keyup.enter="handlePopupSubscribe"
+                                        autofocus
+                                    />
+                                </template>
+                                
+                                <!-- Button - reveals email field on first click, submits on second click -->
                                 <button 
-                                    @click="handlePopupSubscribe"
+                                    @click="showEmailField ? handlePopupSubscribe() : revealEmailField()"
                                     :disabled="isSubscribing"
                                     class="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white px-6 py-4 rounded-xl font-bold hover:from-pink-600 hover:to-rose-600 transition shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
@@ -450,8 +455,10 @@ const {
     isSubscribing,
     subscribeSuccess,
     subscribeError,
+    showEmailField,
     openSubscribePopup,
-    closeSubscribePopup
+    closeSubscribePopup,
+    revealEmailField
 } = useSubscribePopup();
 
 const footerEmail = ref('');
