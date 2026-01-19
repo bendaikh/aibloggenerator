@@ -326,7 +326,7 @@
             <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeSubscribePopup"></div>
             
             <!-- Modal -->
-            <div class="relative bg-gradient-to-br from-emerald-400 via-teal-400 to-cyan-400 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div class="relative bg-gradient-to-br from-emerald-400 via-teal-400 to-cyan-400 rounded-3xl shadow-2xl max-w-4xl w-full overflow-hidden">
                 <!-- Close button -->
                 <button 
                     @click="closeSubscribePopup"
@@ -337,54 +337,73 @@
                     </svg>
                 </button>
                 
-                <!-- Content -->
-                <div class="p-8 text-center">
-                    <div class="mb-6">
-                        <h3 class="text-2xl md:text-3xl font-bold text-white mb-2">GET NEW RECIPES</h3>
-                        <p class="text-lg text-emerald-100">IN YOUR INBOX</p>
-                    </div>
-                    
-                    <!-- Success Message -->
-                    <div v-if="subscribeSuccess" class="bg-white/20 border border-white/40 text-white px-4 py-3 rounded-xl mb-4 text-sm">
-                        <div class="flex items-center justify-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            {{ subscribeSuccess }}
+                <!-- Content with image on left -->
+                <div class="p-6 md:p-8">
+                    <div class="flex flex-col md:flex-row gap-6 md:gap-8 items-center md:items-start">
+                        <!-- Prize Image on left (desktop) / top (mobile) - Takes more space -->
+                        <div v-if="subscriptionPopupImage" class="flex-shrink-0 w-full md:w-2/5 flex justify-center md:justify-start">
+                            <img 
+                                :src="subscriptionPopupImage" 
+                                alt="Subscribe prize" 
+                                class="w-full max-w-xs md:max-w-none md:w-full h-auto md:h-[400px] object-cover rounded-xl shadow-2xl border-2 border-white/30"
+                            />
+                        </div>
+                        
+                        <!-- Content on right -->
+                        <div class="flex-1 md:w-3/5 text-center md:text-left">
+                            <div class="mb-4">
+                                <h3 class="text-2xl md:text-3xl font-bold text-white mb-2">{{ subscriptionPopupTitle }}</h3>
+                                <p class="text-lg text-emerald-100">{{ subscriptionPopupSubtitle }}</p>
+                            </div>
+                            
+                            <!-- Description -->
+                            <p v-if="subscriptionPopupDescription" class="text-white/90 text-sm mb-4">
+                                {{ subscriptionPopupDescription }}
+                            </p>
+                            
+                            <!-- Success Message -->
+                            <div v-if="subscribeSuccess" class="bg-white/20 border border-white/40 text-white px-4 py-3 rounded-xl mb-4 text-sm">
+                                <div class="flex items-center justify-center md:justify-start gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    {{ subscribeSuccess }}
+                                </div>
+                            </div>
+                            
+                            <!-- Error Message -->
+                            <div v-if="subscribeError" class="bg-red-500/20 border border-red-400/40 text-white px-4 py-3 rounded-xl mb-4 text-sm">
+                                {{ subscribeError }}
+                            </div>
+                            
+                            <div v-if="!subscribeSuccess" class="bg-white rounded-2xl p-6 shadow-xl">
+                                <p class="text-gray-600 text-sm mb-4">Enter your email address:</p>
+                                <input
+                                    v-model="subscribeEmail"
+                                    type="email"
+                                    placeholder="you@example.com"
+                                    class="w-full px-4 py-3 mb-4 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-base"
+                                    @keyup.enter="handlePopupSubscribe"
+                                    autofocus
+                                />
+                                <button 
+                                    @click="handlePopupSubscribe"
+                                    :disabled="isSubscribing"
+                                    class="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white px-6 py-4 rounded-xl font-bold hover:from-pink-600 hover:to-rose-600 transition shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    <svg v-if="isSubscribing" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    {{ isSubscribing ? 'SUBSCRIBING...' : 'SUBSCRIBE NOW' }}
+                                </button>
+                            </div>
+                            
+                            <p class="text-white/70 text-xs mt-4">
+                                We respect your privacy. Unsubscribe at any time.
+                            </p>
                         </div>
                     </div>
-                    
-                    <!-- Error Message -->
-                    <div v-if="subscribeError" class="bg-red-500/20 border border-red-400/40 text-white px-4 py-3 rounded-xl mb-4 text-sm">
-                        {{ subscribeError }}
-                    </div>
-                    
-                    <div v-if="!subscribeSuccess" class="bg-white rounded-2xl p-6 shadow-xl">
-                        <p class="text-gray-600 text-sm mb-4">Enter your email address:</p>
-                        <input
-                            v-model="subscribeEmail"
-                            type="email"
-                            placeholder="you@example.com"
-                            class="w-full px-4 py-3 mb-4 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-base"
-                            @keyup.enter="handlePopupSubscribe"
-                            autofocus
-                        />
-                        <button 
-                            @click="handlePopupSubscribe"
-                            :disabled="isSubscribing"
-                            class="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white px-6 py-4 rounded-xl font-bold hover:from-pink-600 hover:to-rose-600 transition shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
-                        >
-                            <svg v-if="isSubscribing" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            {{ isSubscribing ? 'SUBSCRIBING...' : 'SUBSCRIBE NOW' }}
-                        </button>
-                    </div>
-                    
-                    <p class="text-white/70 text-xs mt-4">
-                        We respect your privacy. Unsubscribe at any time.
-                    </p>
                 </div>
             </div>
         </div>
@@ -392,7 +411,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import axios from 'axios';
 import { useSubscribePopup } from '@/composables/useSubscribePopup';
 
@@ -406,6 +425,13 @@ const props = defineProps({
         default: ''
     }
 });
+
+// Get subscription popup settings
+const themeSettings = computed(() => props.website?.theme_settings || {});
+const subscriptionPopupTitle = computed(() => themeSettings.value.subscription_popup_title || 'GET NEW RECIPES');
+const subscriptionPopupSubtitle = computed(() => themeSettings.value.subscription_popup_subtitle || 'IN YOUR INBOX');
+const subscriptionPopupDescription = computed(() => themeSettings.value.subscription_popup_description || 'Join to receive our email series which contains a round-up of some of our quick and easy family favorite recipes.');
+const subscriptionPopupImage = computed(() => themeSettings.value.subscription_popup_image || '');
 
 const mobileMenuOpen = ref(false);
 

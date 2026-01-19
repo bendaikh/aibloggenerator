@@ -292,12 +292,31 @@ import { Head } from '@inertiajs/vue3';
 import { computed, ref, onMounted, nextTick } from 'vue';
 import PublicWebsiteLayout from '@/Layouts/PublicWebsiteLayout.vue';
 import RecipeCard from '@/Components/RecipeCard.vue';
+import { useSubscribePopup } from '@/composables/useSubscribePopup';
 
 const props = defineProps({
     website: Object,
     article: Object,
     relatedArticles: Array
 });
+
+// Get subscription popup settings
+const themeSettings = computed(() => props.website?.theme_settings || {});
+const showSubscriptionPopup = computed(() => themeSettings.value.show_subscription_popup !== false);
+const subscriptionPopupDesktop = computed(() => themeSettings.value.subscription_popup_desktop !== false);
+const subscriptionPopupMobile = computed(() => themeSettings.value.subscription_popup_mobile !== false);
+const subscriptionPopupDelay = computed(() => parseInt(themeSettings.value.subscription_popup_delay) || 5);
+
+// Detect if user is on mobile or desktop
+const isMobile = ref(false);
+const checkDevice = () => {
+    if (typeof window !== 'undefined') {
+        isMobile.value = window.innerWidth < 768; // md breakpoint
+    }
+};
+
+// Get the openSubscribePopup function from the shared composable
+const { openSubscribePopup } = useSubscribePopup();
 
 // Trigger HBAgency to refresh ads after Vue renders the ad divs
 onMounted(() => {
@@ -327,6 +346,38 @@ onMounted(() => {
                 }
             }
         }, 1000); // Wait 1 second for HBAgency script to be ready
+        
+        // Check device type
+        checkDevice();
+        
+        // Listen for window resize to update device type
+        if (typeof window !== 'undefined') {
+            window.addEventListener('resize', checkDevice);
+        }
+        
+        // Show subscription popup after delay if enabled
+        if (showSubscriptionPopup.value) {
+            // Check if popup should be shown based on device type
+            const shouldShowOnDevice = isMobile.value ? subscriptionPopupMobile.value : subscriptionPopupDesktop.value;
+            
+            if (shouldShowOnDevice) {
+                const delaySeconds = subscriptionPopupDelay.value * 1000; // Convert to milliseconds
+                setTimeout(() => {
+                    // Re-check device type in case user resized window
+                    checkDevice();
+                    const shouldShowNow = isMobile.value ? subscriptionPopupMobile.value : subscriptionPopupDesktop.value;
+                    
+                    if (shouldShowNow) {
+                        // Check if popup was already shown (stored in sessionStorage)
+                        const popupShown = sessionStorage.getItem('subscription_popup_shown');
+                        if (!popupShown) {
+                            openSubscribePopup();
+                            sessionStorage.setItem('subscription_popup_shown', 'true');
+                        }
+                    }
+                }, delaySeconds);
+            }
+        }
     });
 });
 
