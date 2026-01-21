@@ -31,6 +31,7 @@ const form = useForm({
     overlay_color: props.pin.overlay_color,
     overlay_opacity: props.pin.overlay_opacity,
     frame_design: props.pin.frame_design || 'simple_center',
+    domain_name: props.pin.frame_settings?.domain_name || props.currentWebsite?.domain || (props.currentWebsite?.slug ? props.currentWebsite.slug + '.com' : ''),
 });
 
 // Font options - Only include fonts that are available on Windows
@@ -51,6 +52,7 @@ const frameDesigns = [
     { id: 'simple_center', name: 'Simple Center', description: 'Classic text overlay' },
     { id: 'black_christmas', name: 'Black Christmas', description: 'Elegant black with lines' },
     { id: 'green_dashed', name: 'Green Dashed', description: 'Vibrant green dashed border' },
+    { id: 'ribbon_banner', name: 'Ribbon Banner', description: 'Cream banner with brown ribbon' },
 ];
 
 const regeneratePin = () => {
@@ -382,6 +384,19 @@ const getStatusBadgeClass = (status) => {
                     <!-- Frame Design Selection -->
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Frame Design</label>
+                        
+                        <!-- Domain Name Field (Only for Ribbon Banner) -->
+                        <div v-if="form.frame_design === 'ribbon_banner'" class="bg-pink-500/5 border border-pink-500/20 rounded-lg p-3 mb-3">
+                            <label class="block text-xs font-medium text-gray-400 mb-1">
+                                Domain Name (shown in ribbon)
+                            </label>
+                            <input
+                                v-model="form.domain_name"
+                                type="text"
+                                class="w-full px-3 py-1.5 bg-[#0a0a0a] border border-[#2a2a2a] rounded text-white text-sm"
+                            />
+                        </div>
+
                         <div class="grid grid-cols-3 gap-2">
                             <button
                                 v-for="frame in frameDesigns"

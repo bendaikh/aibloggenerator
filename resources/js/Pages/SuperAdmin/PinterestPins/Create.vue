@@ -34,6 +34,7 @@ const form = useForm({
     overlay_color: '#000000',
     overlay_opacity: 70,
     frame_design: 'simple_center',
+    domain_name: props.currentWebsite?.domain || (props.currentWebsite?.slug ? props.currentWebsite.slug + '.com' : ''),
 });
 
 // Font options - Only include fonts that are available on Windows
@@ -55,6 +56,7 @@ const frameDesigns = [
     { id: 'simple_center', name: 'Simple Center', description: 'Classic text overlay on images', bgColor: '#000000', textColor: '#ffffff' },
     { id: 'black_christmas', name: 'Black Christmas', description: 'Elegant black with white lines', bgColor: '#000000', textColor: '#ffffff' },
     { id: 'green_dashed', name: 'Green Dashed', description: 'Vibrant green with dashed border', bgColor: '#22c55e', textColor: '#ffffff' },
+    { id: 'ribbon_banner', name: 'Ribbon Banner', description: 'Cream banner with brown ribbon', bgColor: '#fef9e7', textColor: '#8b4513' },
 ];
 
 // Generate AI headlines
@@ -403,6 +405,20 @@ const submitForm = () => {
                                 Frame Design
                             </h3>
 
+                            <!-- Domain Name Field (Only for Ribbon Banner) -->
+                            <div v-if="form.frame_design === 'ribbon_banner'" class="bg-pink-500/5 border border-pink-500/20 rounded-xl p-4 mb-4">
+                                <label class="block text-sm font-medium text-gray-300 mb-2">
+                                    Domain Name (displayed in ribbon)
+                                </label>
+                                <input
+                                    v-model="form.domain_name"
+                                    type="text"
+                                    placeholder="e.g., WWW.HADIK.COM"
+                                    class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:ring-2 focus:ring-pink-500"
+                                />
+                                <p class="mt-1 text-xs text-gray-500">This will be shown in the brown ribbon at the bottom</p>
+                            </div>
+
                             <div class="grid grid-cols-3 gap-3">
                                 <button
                                     v-for="frame in frameDesigns"
@@ -531,28 +547,41 @@ const submitForm = () => {
                             <!-- Text Overlay - Black Christmas -->
                             <div 
                                 v-else-if="form.frame_design === 'black_christmas'"
-                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4 bg-black"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4 bg-black overflow-hidden"
                                 style="top: 40.2%; height: 19.6%;"
                             >
                                 <!-- Top decorative line -->
                                 <div class="absolute top-2 left-0 right-0 h-0.5 bg-white"></div>
                                 <!-- Bottom decorative line -->
                                 <div class="absolute bottom-2 left-0 right-0 h-0.5 bg-white"></div>
-                                <p class="text-center text-sm font-bold text-white tracking-wide capitalize">
+                                <p 
+                                    class="text-center font-bold text-white tracking-wide capitalize w-full px-1"
+                                    :style="{ 
+                                        fontSize: previewStyles.headlineFontSize,
+                                        fontFamily: previewStyles.headlineFontFamily,
+                                        wordWrap: 'break-word',
+                                        lineHeight: '1.1'
+                                    }"
+                                >
                                     {{ form.headline_text || 'White Christmas' }}
                                 </p>
-                                <p class="text-center text-sm text-white mt-0.5 capitalize">
+                                <p 
+                                    class="text-center text-white mt-1 capitalize w-full px-1"
+                                    :style="{ 
+                                        fontSize: previewStyles.subheadlineFontSize,
+                                        fontFamily: previewStyles.subheadlineFontFamily,
+                                        wordWrap: 'break-word',
+                                        lineHeight: '1.1'
+                                    }"
+                                >
                                     {{ form.subheadline_text || 'Mojitos' }}
-                                </p>
-                                <p class="text-center text-xs italic text-white/90 mt-1" style="font-family: 'Georgia', serif;">
-                                    perfect festive
                                 </p>
                             </div>
 
                             <!-- Text Overlay - Green Dashed -->
                             <div 
                                 v-else-if="form.frame_design === 'green_dashed'"
-                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4 overflow-hidden"
                                 style="top: 40.2%; height: 19.6%; background-color: #22c55e;"
                             >
                                 <!-- Top dashed line -->
@@ -563,12 +592,80 @@ const submitForm = () => {
                                 <div class="absolute bottom-2 left-0 right-0 flex gap-1.5 px-1">
                                     <div v-for="i in 20" :key="'bottom-'+i" class="flex-1 h-1 bg-white rounded-sm"></div>
                                 </div>
-                                <p class="text-center text-sm font-bold text-white lowercase tracking-wide">
+                                <p 
+                                    class="text-center font-bold text-white lowercase tracking-wide w-full px-1"
+                                    :style="{ 
+                                        fontSize: previewStyles.headlineFontSize,
+                                        fontFamily: previewStyles.headlineFontFamily,
+                                        wordWrap: 'break-word',
+                                        lineHeight: '1.1'
+                                    }"
+                                >
                                     {{ form.headline_text || 'chicken street tacos' }}
                                 </p>
-                                <p class="text-center text-xs italic mt-1" style="font-family: 'Georgia', serif; color: #166534;">
+                                <p 
+                                    class="text-center italic mt-1 w-full px-1"
+                                    :style="{ 
+                                        fontSize: previewStyles.subheadlineFontSize,
+                                        fontFamily: previewStyles.subheadlineFontFamily,
+                                        color: '#166534',
+                                        wordWrap: 'break-word',
+                                        lineHeight: '1.1'
+                                    }"
+                                >
                                     {{ form.subheadline_text || 'easy to make' }}
                                 </p>
+                            </div>
+
+                            <!-- Text Overlay - Ribbon Banner -->
+                            <div 
+                                v-else-if="form.frame_design === 'ribbon_banner'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-between py-2 bg-[#fffdf1] overflow-hidden"
+                                style="top: 40.2%; height: 19.6%;"
+                            >
+                                <!-- Top thick brown bar -->
+                                <div class="absolute top-0 left-0 right-0 h-4 bg-[#8b4513]"></div>
+                                
+                                <div class="flex-1 flex flex-col items-center justify-center w-full px-2 mt-4">
+                                    <p 
+                                        class="text-center font-bold text-[#8b4513] uppercase w-full leading-tight"
+                                        :style="{ 
+                                            fontSize: previewStyles.headlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.headline_text || 'BISCOFF COOKIE BUTTER' }}
+                                    </p>
+                                    <p 
+                                        class="text-center font-bold text-[#8b4513] uppercase w-full mt-1 leading-tight"
+                                        :style="{ 
+                                            fontSize: previewStyles.subheadlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.subheadline_text || 'CINNAMON ROLLS' }}
+                                    </p>
+                                </div>
+
+                                <!-- Ribbon -->
+                                <div 
+                                    class="relative w-[85%] bg-[#8b4513] flex items-center justify-center mb-2"
+                                    style="height: 18%;"
+                                >
+                                    <!-- Notch Left -->
+                                    <div class="absolute left-0 top-0 bottom-0 w-3 bg-[#fffdf1]" style="clip-path: polygon(0 0, 100% 50%, 0 100%);"></div>
+                                    <!-- Notch Right -->
+                                    <div class="absolute right-0 top-0 bottom-0 w-3 bg-[#fffdf1]" style="clip-path: polygon(100% 0, 0 50%, 100% 100%);"></div>
+                                    
+                                    <p 
+                                        class="text-center font-bold text-white uppercase tracking-wider px-4 text-[10px]"
+                                        :style="{ fontFamily: previewStyles.headlineFontFamily }"
+                                    >
+                                        {{ form.domain_name || 'WWW.HADIK.COM' }}
+                                    </p>
+                                </div>
                             </div>
 
                             <!-- Bottom Image -->

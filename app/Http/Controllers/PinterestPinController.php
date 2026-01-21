@@ -106,6 +106,7 @@ class PinterestPinController extends Controller
             'overlay_color' => 'nullable|string|max:20',
             'overlay_opacity' => 'nullable|integer|min:0|max:100',
             'frame_design' => 'nullable|string|max:50',
+            'domain_name' => 'nullable|string|max:100',
         ]);
 
         // Verify article belongs to website
@@ -140,6 +141,9 @@ class PinterestPinController extends Controller
                 'overlay_color' => $validated['overlay_color'] ?? '#000000',
                 'overlay_opacity' => $validated['overlay_opacity'] ?? 70,
                 'frame_design' => $validated['frame_design'] ?? 'simple_center',
+                'frame_settings' => [
+                    'domain_name' => $validated['domain_name'] ?? ($website->domain ?: ($website->slug ? $website->slug . '.com' : ''))
+                ],
                 'status' => 'pending',
             ]);
 
@@ -205,11 +209,23 @@ class PinterestPinController extends Controller
             'overlay_color' => 'nullable|string|max:20',
             'overlay_opacity' => 'nullable|integer|min:0|max:100',
             'frame_design' => 'nullable|string|max:50',
+            'domain_name' => 'nullable|string|max:100',
         ]);
 
         try {
+            // Prepare frame settings
+            $frameSettings = $pin->frame_settings ?? [];
+            if ($request->has('domain_name')) {
+                $frameSettings['domain_name'] = $validated['domain_name'];
+            }
+
             // Update pin with new settings
-            $pin->update(array_filter($validated));
+            $pin->update(array_merge(
+                array_filter($validated, function($key) {
+                    return $key !== 'domain_name';
+                }, ARRAY_FILTER_USE_KEY),
+                ['frame_settings' => $frameSettings]
+            ));
             $pin->update(['status' => 'pending']);
 
             // Regenerate the image

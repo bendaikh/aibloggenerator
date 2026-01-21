@@ -41,6 +41,11 @@ class PinterestDesignService
                 'description' => 'Green background with dashed border effect',
                 'preview_colors' => ['bg' => '#22c55e', 'primary' => '#ffffff', 'secondary' => '#166534'],
             ],
+            'ribbon_banner' => [
+                'name' => 'Ribbon Banner',
+                'description' => 'Elegant cream banner with a brown ribbon',
+                'preview_colors' => ['bg' => '#fef9e7', 'primary' => '#8B4513', 'secondary' => '#ffffff'],
+            ],
         ];
     }
 
@@ -85,7 +90,8 @@ class PinterestDesignService
                 $headlineFont,
                 $subheadlineFont,
                 $pin->headline_font_size ?? 28,
-                $pin->subheadline_font_size ?? 22
+                $pin->subheadline_font_size ?? 22,
+                $pin->frame_settings['domain_name'] ?? ($pin->website?->domain ?? ($pin->website?->slug ? $pin->website->slug . '.com' : ''))
             );
 
             // Save the generated image
@@ -140,7 +146,8 @@ class PinterestDesignService
         string $headlineFont = 'sans-serif',
         string $subheadlineFont = 'script',
         int $headlineFontSize = 28,
-        int $subheadlineFontSize = 22
+        int $subheadlineFontSize = 22,
+        string $domainName = ''
     ) {
         // Create the main canvas
         $canvas = imagecreatetruecolor(self::PIN_WIDTH, self::PIN_HEIGHT);
@@ -179,6 +186,20 @@ class PinterestDesignService
                     $subheadlineFont,
                     $headlineFontSize,
                     $subheadlineFontSize
+                );
+                break;
+            case 'ribbon_banner':
+                $this->drawRibbonBannerFrame(
+                    $canvas, 
+                    $topImagePath, 
+                    $bottomImagePath, 
+                    $headlineText, 
+                    $subheadlineText,
+                    $headlineFont,
+                    $subheadlineFont,
+                    $headlineFontSize,
+                    $subheadlineFontSize,
+                    $domainName
                 );
                 break;
             default:
@@ -264,32 +285,39 @@ class PinterestDesignService
         $scaledHeadlineSize = $headlineFontSize;
         $scaledSubheadlineSize = $subheadlineFontSize;
         
-        // Calculate heights and scale down if needed
-        $headlineH = $this->calculateTextHeight($headline, $fontPath, $scaledHeadlineSize);
-        $subheadlineH = $this->calculateTextHeight($subheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize);
-        $totalTextHeight = $headlineH + $subheadlineH + (!empty($headline) && !empty($subheadline) ? $gap : 0);
+        // Use the same text transformations as drawing
+        $transformedHeadline = strtolower($headline);
+        $transformedSubheadline = $subheadline;
         
-        // If text is too tall, scale down proportionally
-        while ($totalTextHeight > $availableHeight && $scaledHeadlineSize > 12) {
+        // Calculate heights and scale down if needed
+        $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
+        $subheadlineH = $this->calculateTextHeight($transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize);
+        $totalTextHeight = $headlineH + $subheadlineH + (!empty($transformedHeadline) && !empty($transformedSubheadline) ? $gap : 0);
+        
+        // If text is too tall or any line too wide, scale down proportionally
+        while (($totalTextHeight > $availableHeight || 
+               $this->isTextTooWide($transformedHeadline, $fontPath, $scaledHeadlineSize, 480) || 
+               $this->isTextTooWide($transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize, 480)) && 
+               $scaledHeadlineSize > 12) {
             $scaledHeadlineSize = max(12, $scaledHeadlineSize - 2);
             $scaledSubheadlineSize = max(10, $scaledSubheadlineSize - 2);
-            $headlineH = $this->calculateTextHeight($headline, $fontPath, $scaledHeadlineSize);
-            $subheadlineH = $this->calculateTextHeight($subheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize);
-            $totalTextHeight = $headlineH + $subheadlineH + (!empty($headline) && !empty($subheadline) ? $gap : 0);
+            $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
+            $subheadlineH = $this->calculateTextHeight($transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize);
+            $totalTextHeight = $headlineH + $subheadlineH + (!empty($transformedHeadline) && !empty($transformedSubheadline) ? $gap : 0);
         }
         
         // Start drawing from the vertically centered position
         $startY = $textBarStartY + self::TEXT_PADDING + ($availableHeight - $totalTextHeight) / 2;
 
         // Draw Headline first (at the top of the text block)
-        if (!empty($headline)) {
-            $actualHeight = $this->drawCenteredText($canvas, strtolower($headline), $fontPath, $scaledHeadlineSize, $centerX, $startY, $headlineTextColor);
+        if (!empty($transformedHeadline)) {
+            $actualHeight = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, $centerX, $startY, $headlineTextColor);
             $startY += $actualHeight + $gap;
         }
 
         // Draw Subheadline below the headline
-        if (!empty($subheadline)) {
-            $this->drawCenteredText($canvas, $subheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize, $centerX, $startY, $subheadlineTextColor);
+        if (!empty($transformedSubheadline)) {
+            $this->drawCenteredText($canvas, $transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize, $centerX, $startY, $subheadlineTextColor);
         }
 
         // Bottom image
@@ -360,29 +388,36 @@ class PinterestDesignService
         $scaledHeadlineSize = $headlineFontSize;
         $scaledSubheadlineSize = $subheadlineFontSize;
         
-        $headlineH = $this->calculateTextHeight($headline, $fontPath, $scaledHeadlineSize);
-        $subheadlineH = $this->calculateTextHeight($subheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize);
-        $totalTextHeight = $headlineH + $subheadlineH + (!empty($headline) && !empty($subheadline) ? $gap : 0);
+        // Use the same text transformations as drawing
+        $transformedHeadline = ucwords(strtolower($headline));
+        $transformedSubheadline = $subheadline;
         
-        while ($totalTextHeight > $availableHeight && $scaledHeadlineSize > 12) {
+        $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
+        $subheadlineH = $this->calculateTextHeight($transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize);
+        $totalTextHeight = $headlineH + $subheadlineH + (!empty($transformedHeadline) && !empty($transformedSubheadline) ? $gap : 0);
+        
+        while (($totalTextHeight > $availableHeight || 
+               $this->isTextTooWide($transformedHeadline, $fontPath, $scaledHeadlineSize, 480) || 
+               $this->isTextTooWide($transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize, 480)) && 
+               $scaledHeadlineSize > 12) {
             $scaledHeadlineSize = max(12, $scaledHeadlineSize - 2);
             $scaledSubheadlineSize = max(10, $scaledSubheadlineSize - 2);
-            $headlineH = $this->calculateTextHeight($headline, $fontPath, $scaledHeadlineSize);
-            $subheadlineH = $this->calculateTextHeight($subheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize);
-            $totalTextHeight = $headlineH + $subheadlineH + (!empty($headline) && !empty($subheadline) ? $gap : 0);
+            $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
+            $subheadlineH = $this->calculateTextHeight($transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize);
+            $totalTextHeight = $headlineH + $subheadlineH + (!empty($transformedHeadline) && !empty($transformedSubheadline) ? $gap : 0);
         }
         
         $startY = $textBarStartY + self::TEXT_PADDING + ($availableHeight - $totalTextHeight) / 2;
 
         // Headline (bold, title case)
-        if (!empty($headline)) {
-            $actualHeight = $this->drawCenteredText($canvas, ucwords(strtolower($headline)), $fontPath, $scaledHeadlineSize, $centerX, $startY, $white);
+        if (!empty($transformedHeadline)) {
+            $actualHeight = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, $centerX, $startY, $white);
             $startY += $actualHeight + $gap;
         }
 
         // Subheadline (italic/script)
-        if (!empty($subheadline)) {
-            $this->drawCenteredText($canvas, $subheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize, $centerX, $startY, $white);
+        if (!empty($transformedSubheadline)) {
+            $this->drawCenteredText($canvas, $transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize, $centerX, $startY, $white);
         }
 
         // Bottom image
@@ -473,29 +508,36 @@ class PinterestDesignService
         $scaledHeadlineSize = $headlineFontSize;
         $scaledSubheadlineSize = $subheadlineFontSize;
         
-        $headlineH = $this->calculateTextHeight($headline, $fontPath, $scaledHeadlineSize);
-        $subheadlineH = $this->calculateTextHeight($subheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize);
-        $totalTextHeight = $headlineH + $subheadlineH + (!empty($headline) && !empty($subheadline) ? $gap : 0);
+        // Use the same text transformations as drawing
+        $transformedHeadline = strtolower($headline);
+        $transformedSubheadline = $subheadline;
         
-        while ($totalTextHeight > $availableHeight && $scaledHeadlineSize > 12) {
+        $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
+        $subheadlineH = $this->calculateTextHeight($transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize);
+        $totalTextHeight = $headlineH + $subheadlineH + (!empty($transformedHeadline) && !empty($transformedSubheadline) ? $gap : 0);
+        
+        while (($totalTextHeight > $availableHeight || 
+               $this->isTextTooWide($transformedHeadline, $fontPath, $scaledHeadlineSize, 480) || 
+               $this->isTextTooWide($transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize, 480)) && 
+               $scaledHeadlineSize > 12) {
             $scaledHeadlineSize = max(12, $scaledHeadlineSize - 2);
             $scaledSubheadlineSize = max(10, $scaledSubheadlineSize - 2);
-            $headlineH = $this->calculateTextHeight($headline, $fontPath, $scaledHeadlineSize);
-            $subheadlineH = $this->calculateTextHeight($subheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize);
-            $totalTextHeight = $headlineH + $subheadlineH + (!empty($headline) && !empty($subheadline) ? $gap : 0);
+            $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
+            $subheadlineH = $this->calculateTextHeight($transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize);
+            $totalTextHeight = $headlineH + $subheadlineH + (!empty($transformedHeadline) && !empty($transformedSubheadline) ? $gap : 0);
         }
         
         $startY = $textBarStartY + self::TEXT_PADDING + ($availableHeight - $totalTextHeight) / 2;
 
         // Headline (lowercase, white)
-        if (!empty($headline)) {
-            $actualHeight = $this->drawCenteredText($canvas, strtolower($headline), $fontPath, $scaledHeadlineSize, $centerX, $startY, $white);
+        if (!empty($transformedHeadline)) {
+            $actualHeight = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, $centerX, $startY, $white);
             $startY += $actualHeight + $gap;
         }
 
         // Subheadline (italic/script, dark green)
-        if (!empty($subheadline)) {
-            $this->drawCenteredText($canvas, $subheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize, $centerX, $startY, $darkGreen);
+        if (!empty($transformedSubheadline)) {
+            $this->drawCenteredText($canvas, $transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize, $centerX, $startY, $darkGreen);
         }
 
         // Bottom image
@@ -504,6 +546,156 @@ class PinterestDesignService
             $this->placeImage($canvas, $bottomImage, 0, (int)$bottomImageStartY, self::PIN_WIDTH, (int)$imageHeight);
             imagedestroy($bottomImage);
         }
+    }
+
+    /**
+     * Frame: Ribbon Banner - Elegant cream banner with a brown ribbon
+     * Based on the provided design with "BISCOFF COOKIE BUTTER" style
+     */
+    private function drawRibbonBannerFrame(
+        $canvas, 
+        $topImagePath, 
+        $bottomImagePath, 
+        $headline, 
+        $subheadline,
+        $headlineFont = 'sans-serif',
+        $subheadlineFont = 'script',
+        int $headlineFontSize = 28,
+        int $subheadlineFontSize = 22,
+        string $domainName = ''
+    ): void {
+        // Calculate layout
+        $imageHeight = (self::PIN_HEIGHT - self::TEXT_BAR_HEIGHT) / 2;
+        $topImageStartY = 0;
+        $textBarStartY = $imageHeight;
+        $bottomImageStartY = $imageHeight + self::TEXT_BAR_HEIGHT;
+
+        // Colors
+        $cream = imagecolorallocate($canvas, 255, 253, 241); // #fffdf1
+        $brown = imagecolorallocate($canvas, 139, 69, 19);    // #8b4513
+        $white = imagecolorallocate($canvas, 255, 255, 255);
+
+        // Top image
+        $topImage = $this->loadImage($topImagePath);
+        if ($topImage) {
+            $this->placeImage($canvas, $topImage, 0, (int)$topImageStartY, self::PIN_WIDTH, (int)$imageHeight);
+            imagedestroy($topImage);
+        }
+
+        // 1. Draw the cream background for the text area
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $cream);
+
+        // 2. Draw the thick brown bar at the top of the text area
+        $barHeight = 25; // Thicker like the image
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + $barHeight), $brown);
+
+        // 3. Ribbon setup
+        $ribbonHeight = 45; // Taller ribbon
+        $ribbonY = $textBarStartY + self::TEXT_BAR_HEIGHT - $ribbonHeight - 20; // 20px from bottom
+        $ribbonMargin = 40;
+        $notchDepth = 15;
+
+        // Draw text
+        $fontPath = $this->getFontPath($headlineFont);
+        $scriptFontPath = $this->getFontPath($subheadlineFont);
+        $centerX = self::PIN_WIDTH / 2;
+        
+        // Available height for text (main area, excluding bar and ribbon)
+        $availableHeight = self::TEXT_BAR_HEIGHT - $barHeight - $ribbonHeight - 40; // some padding
+        $gap = 10;
+        
+        // Auto-scale headline and subheadline
+        $scaledHeadlineSize = $headlineFontSize;
+        $scaledSubheadlineSize = $subheadlineFontSize;
+        $transformedHeadline = strtoupper($headline);
+        $transformedSubheadline = strtoupper($subheadline); // Making it uppercase like the image style
+        
+        $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
+        $subheadlineH = $this->calculateTextHeight($transformedSubheadline, $fontPath, $scaledSubheadlineSize);
+        $totalTextHeight = $headlineH + $subheadlineH + (!empty($transformedHeadline) && !empty($transformedSubheadline) ? $gap : 0);
+        
+        while (($totalTextHeight > $availableHeight || 
+               $this->isTextTooWide($transformedHeadline, $fontPath, $scaledHeadlineSize, 460) ||
+               $this->isTextTooWide($transformedSubheadline, $fontPath, $scaledSubheadlineSize, 460)) && 
+               $scaledHeadlineSize > 12) {
+            $scaledHeadlineSize = max(12, $scaledHeadlineSize - 2);
+            $scaledSubheadlineSize = max(10, $scaledSubheadlineSize - 2);
+            $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
+            $subheadlineH = $this->calculateTextHeight($transformedSubheadline, $fontPath, $scaledSubheadlineSize);
+            $totalTextHeight = $headlineH + $subheadlineH + (!empty($transformedHeadline) && !empty($transformedSubheadline) ? $gap : 0);
+        }
+        
+        // Vertically center the text block in the available main area
+        $mainAreaStartY = $textBarStartY + $barHeight + 10;
+        $startY = $mainAreaStartY + ($availableHeight - $totalTextHeight) / 2;
+
+        // Draw Headline (Bold, Uppercase, Brown)
+        if (!empty($transformedHeadline)) {
+            $actualHeight = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, $centerX, $startY, $brown);
+            $startY += $actualHeight + $gap;
+        }
+
+        // Draw Subheadline (Below Headline, Brown)
+        if (!empty($transformedSubheadline)) {
+            $this->drawCenteredText($canvas, $transformedSubheadline, $fontPath, $scaledSubheadlineSize, $centerX, $startY, $brown);
+        }
+
+        // 4. Draw the ribbon (polygon points for notched ribbon)
+        $points = [
+            $ribbonMargin, (int)$ribbonY,                               // Top left
+            self::PIN_WIDTH - $ribbonMargin, (int)$ribbonY,              // Top right
+            self::PIN_WIDTH - $ribbonMargin - $notchDepth, (int)$ribbonY + ($ribbonHeight / 2), // Right notch peak
+            self::PIN_WIDTH - $ribbonMargin, (int)$ribbonY + $ribbonHeight, // Bottom right
+            $ribbonMargin, (int)$ribbonY + $ribbonHeight,                // Bottom left
+            $ribbonMargin + $notchDepth, (int)$ribbonY + ($ribbonHeight / 2), // Left notch peak
+        ];
+        imagefilledpolygon($canvas, $points, 6, $brown);
+
+        // Draw Domain Name (inside the ribbon)
+        $displayDomain = $domainName ?: 'WWW.YOURDOMAIN.COM';
+        $transformedDomain = strtoupper($displayDomain);
+        $domainFontSize = 18;
+        
+        // Auto-scale domain to fit ribbon
+        while (($this->calculateTextHeight($transformedDomain, $fontPath, $domainFontSize) > ($ribbonHeight - 10) || 
+               $this->isTextTooWide($transformedDomain, $fontPath, $domainFontSize, self::PIN_WIDTH - ($ribbonMargin * 2) - ($notchDepth * 2) - 20)) && 
+               $domainFontSize > 10) {
+            $domainFontSize -= 1;
+        }
+        
+        // Center in ribbon
+        $domainH = $this->calculateTextHeight($transformedDomain, $fontPath, $domainFontSize);
+        $ribbonTextY = $ribbonY + ($ribbonHeight - $domainH) / 2 - 2; 
+        $this->drawCenteredText($canvas, $transformedDomain, $fontPath, (int)$domainFontSize, $centerX, $ribbonTextY, $white, 400);
+
+        // Bottom image
+        $bottomImage = $this->loadImage($bottomImagePath);
+        if ($bottomImage) {
+            $this->placeImage($canvas, $bottomImage, 0, (int)$bottomImageStartY, self::PIN_WIDTH, (int)$imageHeight);
+            imagedestroy($bottomImage);
+        }
+    }
+
+    /**
+     * Helper: Check if any line of text is too wide for the max width.
+     */
+    private function isTextTooWide(string $text, ?string $fontPath, int $fontSize, int $maxWidth): bool
+    {
+        if (empty($text)) return false;
+        
+        $lines = $this->wrapText($text, $fontPath, $fontSize, $maxWidth);
+        
+        if ($fontPath && file_exists($fontPath) && function_exists('imagettfbbox')) {
+            foreach ($lines as $line) {
+                $bbox = imagettfbbox($fontSize, 0, $fontPath, $line);
+                $width = abs($bbox[2] - $bbox[0]);
+                if ($width > $maxWidth) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
     }
 
     /**
@@ -914,6 +1106,11 @@ class PinterestDesignService
      */
     public static function createFromArticle(Article $article, ?string $headlineOverride = null, ?string $subheadlineOverride = null, string $frameDesign = 'simple_center'): ?PinterestPin
     {
+        // Ensure website is loaded
+        if (!$article->relationLoaded('website')) {
+            $article->load('website');
+        }
+
         // Get images from article
         $topImage = $article->featured_image;
         $bottomImage = $article->secondary_image ?? $article->featured_image;
@@ -944,6 +1141,9 @@ class PinterestDesignService
             'headline_text' => $headline,
             'subheadline_text' => $subheadline,
             'frame_design' => $frameDesign,
+            'frame_settings' => [
+                'domain_name' => $article->website?->domain ?? ($article->website?->slug ? $article->website->slug . '.com' : '')
+            ],
             'status' => 'pending',
         ]);
 
