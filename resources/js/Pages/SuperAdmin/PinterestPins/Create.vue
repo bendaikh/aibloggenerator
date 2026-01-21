@@ -57,6 +57,7 @@ const frameDesigns = [
     { id: 'black_christmas', name: 'Black Christmas', description: 'Elegant black with white lines', bgColor: '#000000', textColor: '#ffffff' },
     { id: 'green_dashed', name: 'Green Dashed', description: 'Vibrant green with dashed border', bgColor: '#22c55e', textColor: '#ffffff' },
     { id: 'ribbon_banner', name: 'Ribbon Banner', description: 'Cream banner with brown ribbon', bgColor: '#fef9e7', textColor: '#8b4513' },
+    { id: 'star_rating', name: 'Star Rating', description: 'Orange banner with star rating', bgColor: '#eba13e', textColor: '#16120b' },
 ];
 
 // Generate AI headlines
@@ -256,6 +257,20 @@ const submitForm = () => {
                                 />
                                 <p v-if="form.errors.subheadline_text" class="mt-1 text-sm text-red-500">{{ form.errors.subheadline_text }}</p>
                             </div>
+
+                            <!-- Domain Name Field (Only for designs that use it) -->
+                            <div v-if="['ribbon_banner', 'star_rating'].includes(form.frame_design)" class="bg-pink-500/5 border border-pink-500/20 rounded-xl p-4 mt-2">
+                                <label class="block text-sm font-medium text-gray-300 mb-2">
+                                    Domain Name (displayed in design)
+                                </label>
+                                <input
+                                    v-model="form.domain_name"
+                                    type="text"
+                                    placeholder="e.g., WWW.HADIK.COM"
+                                    class="w-full px-4 py-3 bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl text-white focus:ring-2 focus:ring-pink-500"
+                                />
+                                <p class="mt-1 text-xs text-gray-500">This will be shown in the capsule or ribbon of the design</p>
+                            </div>
                         </div>
 
                         <!-- Color Settings -->
@@ -396,7 +411,6 @@ const submitForm = () => {
                             </div>
                         </div>
 
-                        <!-- Frame Design Selection -->
                         <div class="space-y-4">
                             <h3 class="text-lg font-semibold text-white flex items-center gap-2">
                                 <svg class="w-5 h-5 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -404,20 +418,6 @@ const submitForm = () => {
                                 </svg>
                                 Frame Design
                             </h3>
-
-                            <!-- Domain Name Field (Only for Ribbon Banner) -->
-                            <div v-if="form.frame_design === 'ribbon_banner'" class="bg-pink-500/5 border border-pink-500/20 rounded-xl p-4 mb-4">
-                                <label class="block text-sm font-medium text-gray-300 mb-2">
-                                    Domain Name (displayed in ribbon)
-                                </label>
-                                <input
-                                    v-model="form.domain_name"
-                                    type="text"
-                                    placeholder="e.g., WWW.HADIK.COM"
-                                    class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:ring-2 focus:ring-pink-500"
-                                />
-                                <p class="mt-1 text-xs text-gray-500">This will be shown in the brown ribbon at the bottom</p>
-                            </div>
 
                             <div class="grid grid-cols-3 gap-3">
                                 <button
@@ -661,6 +661,53 @@ const submitForm = () => {
                                     
                                     <p 
                                         class="text-center font-bold text-white uppercase tracking-wider px-4 text-[10px]"
+                                        :style="{ fontFamily: previewStyles.headlineFontFamily }"
+                                    >
+                                        {{ form.domain_name || 'WWW.HADIK.COM' }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Text Overlay - Star Rating -->
+                            <div 
+                                v-else-if="form.frame_design === 'star_rating'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center bg-[#eba13e] overflow-visible"
+                                style="top: 40.2%; height: 19.6%;"
+                            >
+                                <!-- Top Capsule with Stars -->
+                                <div class="absolute -top-3 left-1/2 -translate-x-1/2 w-24 h-6 bg-[#16120b] rounded-full flex items-center justify-center gap-0.5 px-2 z-10">
+                                    <svg v-for="i in 5" :key="i" class="w-3 h-3 text-[#e3c9ac]" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                </div>
+
+                                <div class="flex flex-col items-center justify-center w-full px-2 mt-1">
+                                    <p 
+                                        class="text-center font-bold text-[#16120b] uppercase w-full leading-tight"
+                                        :style="{ 
+                                            fontSize: previewStyles.headlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.headline_text || 'COZY CINNAMON' }}
+                                    </p>
+                                    <p 
+                                        class="text-center font-bold text-[#16120b] uppercase w-full mt-1 leading-tight"
+                                        :style="{ 
+                                            fontSize: previewStyles.subheadlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.subheadline_text || 'SUGAR DONUT BREAD' }}
+                                    </p>
+                                </div>
+
+                                <!-- Bottom Capsule for Domain -->
+                                <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 w-[80%] h-7 bg-[#16120b] rounded-full flex items-center justify-center px-3 z-10">
+                                    <p 
+                                        class="text-center font-bold text-white uppercase text-[9px] tracking-wider truncate"
                                         :style="{ fontFamily: previewStyles.headlineFontFamily }"
                                     >
                                         {{ form.domain_name || 'WWW.HADIK.COM' }}

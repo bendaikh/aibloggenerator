@@ -46,6 +46,11 @@ class PinterestDesignService
                 'description' => 'Elegant cream banner with a brown ribbon',
                 'preview_colors' => ['bg' => '#fef9e7', 'primary' => '#8B4513', 'secondary' => '#ffffff'],
             ],
+            'star_rating' => [
+                'name' => 'Star Rating',
+                'description' => 'Orange banner with star rating and capsule labels',
+                'preview_colors' => ['bg' => '#e6a23c', 'primary' => '#1a1a1a', 'secondary' => '#ffffff'],
+            ],
         ];
     }
 
@@ -190,6 +195,20 @@ class PinterestDesignService
                 break;
             case 'ribbon_banner':
                 $this->drawRibbonBannerFrame(
+                    $canvas, 
+                    $topImagePath, 
+                    $bottomImagePath, 
+                    $headlineText, 
+                    $subheadlineText,
+                    $headlineFont,
+                    $subheadlineFont,
+                    $headlineFontSize,
+                    $subheadlineFontSize,
+                    $domainName
+                );
+                break;
+            case 'star_rating':
+                $this->drawStarRatingFrame(
                     $canvas, 
                     $topImagePath, 
                     $bottomImagePath, 
@@ -674,6 +693,157 @@ class PinterestDesignService
             $this->placeImage($canvas, $bottomImage, 0, (int)$bottomImageStartY, self::PIN_WIDTH, (int)$imageHeight);
             imagedestroy($bottomImage);
         }
+    }
+
+    /**
+     * Frame: Star Rating - Orange background with star rating and capsule labels
+     * Based on the provided design with yellowish bar and black capsules
+     */
+    private function drawStarRatingFrame(
+        $canvas, 
+        $topImagePath, 
+        $bottomImagePath, 
+        $headline, 
+        $subheadline,
+        $headlineFont = 'sans-serif',
+        $subheadlineFont = 'script',
+        int $headlineFontSize = 28,
+        int $subheadlineFontSize = 22,
+        string $domainName = ''
+    ): void {
+        // Calculate layout
+        $imageHeight = (self::PIN_HEIGHT - self::TEXT_BAR_HEIGHT) / 2;
+        $topImageStartY = 0;
+        $textBarStartY = $imageHeight;
+        $bottomImageStartY = $imageHeight + self::TEXT_BAR_HEIGHT;
+
+        // Colors
+        $orange = imagecolorallocate($canvas, 235, 161, 62); // #eba13e - warm orange
+        $darkCapsule = imagecolorallocate($canvas, 22, 18, 11); // #16120b - very dark
+        $white = imagecolorallocate($canvas, 255, 255, 255);
+        $starColor = imagecolorallocate($canvas, 227, 201, 172); // #e3c9ac - light beige star
+
+        // Top image
+        $topImage = $this->loadImage($topImagePath);
+        if ($topImage) {
+            $this->placeImage($canvas, $topImage, 0, (int)$topImageStartY, self::PIN_WIDTH, (int)$imageHeight);
+            imagedestroy($topImage);
+        }
+
+        // 1. Draw the orange background for the text area
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $orange);
+
+        // 2. Draw the top capsule with stars
+        $capsuleWidth = 140;
+        $capsuleHeight = 35;
+        $capsuleX = (self::PIN_WIDTH - $capsuleWidth) / 2;
+        $capsuleY = $textBarStartY - ($capsuleHeight / 2);
+
+        // Draw rounded capsule (rectangle + circles)
+        imagefilledrectangle($canvas, (int)($capsuleX + $capsuleHeight/2), (int)$capsuleY, (int)($capsuleX + $capsuleWidth - $capsuleHeight/2), (int)($capsuleY + $capsuleHeight), $darkCapsule);
+        imagefilledellipse($canvas, (int)($capsuleX + $capsuleHeight/2), (int)($capsuleY + $capsuleHeight/2), (int)$capsuleHeight, (int)$capsuleHeight, $darkCapsule);
+        imagefilledellipse($canvas, (int)($capsuleX + $capsuleWidth - $capsuleHeight/2), (int)($capsuleY + $capsuleHeight/2), (int)$capsuleHeight, (int)$capsuleHeight, $darkCapsule);
+
+        // Draw 5 stars inside top capsule
+        $starCount = 5;
+        $starSize = 12;
+        $starGap = 5;
+        $totalStarsWidth = ($starSize * $starCount) + ($starGap * ($starCount - 1));
+        $currentStarX = self::PIN_WIDTH / 2 - $totalStarsWidth / 2 + $starSize / 2;
+        $starY = $capsuleY + $capsuleHeight / 2;
+
+        for ($i = 0; $i < $starCount; $i++) {
+            $this->drawStar($canvas, (float)$currentStarX, (float)$starY, (int)($starSize/2), (int)($starSize/4), $starColor);
+            $currentStarX += $starSize + $starGap;
+        }
+
+        // 3. Draw the bottom capsule for domain name
+        $bottomCapsuleWidth = 200;
+        $bottomCapsuleHeight = 40;
+        $bottomCapsuleX = (self::PIN_WIDTH - $bottomCapsuleWidth) / 2;
+        $bottomCapsuleY = $bottomImageStartY - ($bottomCapsuleHeight / 2);
+
+        imagefilledrectangle($canvas, (int)($bottomCapsuleX + $bottomCapsuleHeight/2), (int)$bottomCapsuleY, (int)($bottomCapsuleX + $bottomCapsuleWidth - $bottomCapsuleHeight/2), (int)($bottomCapsuleY + $bottomCapsuleHeight), $darkCapsule);
+        imagefilledellipse($canvas, (int)($bottomCapsuleX + $bottomCapsuleHeight/2), (int)($bottomCapsuleY + $bottomCapsuleHeight/2), (int)$bottomCapsuleHeight, (int)$bottomCapsuleHeight, $darkCapsule);
+        imagefilledellipse($canvas, (int)($bottomCapsuleX + $bottomCapsuleWidth - $bottomCapsuleHeight/2), (int)($bottomCapsuleY + $bottomCapsuleHeight/2), (int)$bottomCapsuleHeight, (int)$bottomCapsuleHeight, $darkCapsule);
+
+        // Draw Domain Name in bottom capsule
+        $displayDomain = strtoupper($domainName ?: 'WWW.HADIK.COM');
+        $fontPath = $this->getFontPath($headlineFont);
+        $domainSize = 14;
+        
+        while ($this->isTextTooWide($displayDomain, $fontPath, $domainSize, $bottomCapsuleWidth - 40) && $domainSize > 8) {
+            $domainSize--;
+        }
+        
+        $domainH = $this->calculateTextHeight($displayDomain, $fontPath, $domainSize);
+        $domainY = $bottomCapsuleY + ($bottomCapsuleHeight - $domainH) / 2 - 2;
+        $this->drawCenteredText($canvas, $displayDomain, $fontPath, $domainSize, self::PIN_WIDTH / 2, $domainY, $white);
+
+        // 4. Draw Headline and Subheadline in the orange area
+        $availableHeight = self::TEXT_BAR_HEIGHT - ($capsuleHeight / 2) - ($bottomCapsuleHeight / 2) - 40;
+        $mainAreaStartY = $textBarStartY + ($capsuleHeight / 2) + 20;
+        
+        $scaledHeadlineSize = $headlineFontSize;
+        $scaledSubSize = $subheadlineFontSize;
+        $gap = 10;
+        
+        $transformedHeadline = strtoupper($headline);
+        $transformedSub = strtoupper($subheadline);
+        
+        $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
+        $subH = $this->calculateTextHeight($transformedSub, $fontPath, $scaledSubSize);
+        $totalH = $headlineH + $subH + ($headline && $subheadline ? $gap : 0);
+        
+        while (($totalH > $availableHeight || 
+               $this->isTextTooWide($transformedHeadline, $fontPath, $scaledHeadlineSize, 460) ||
+               $this->isTextTooWide($transformedSub, $fontPath, $scaledSubSize, 460)) && 
+               $scaledHeadlineSize > 12) {
+            $scaledHeadlineSize = max(12, $scaledHeadlineSize - 2);
+            $scaledSubSize = max(10, $scaledSubSize - 2);
+            $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
+            $subH = $this->calculateTextHeight($transformedSub, $fontPath, $scaledSubSize);
+            $totalH = $headlineH + $subH + ($headline && $subheadline ? $gap : 0);
+        }
+        
+        $startY = $mainAreaStartY + ($availableHeight - $totalH) / 2;
+        
+        if (!empty($transformedHeadline)) {
+            $h = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, self::PIN_WIDTH / 2, $startY, $darkCapsule);
+            $startY += $h + $gap;
+        }
+        
+        if (!empty($transformedSub)) {
+            $this->drawCenteredText($canvas, $transformedSub, $fontPath, $scaledSubSize, self::PIN_WIDTH / 2, $startY, $darkCapsule);
+        }
+
+        // Bottom image
+        $bottomImage = $this->loadImage($bottomImagePath);
+        if ($bottomImage) {
+            $this->placeImage($canvas, $bottomImage, 0, (int)$bottomImageStartY, self::PIN_WIDTH, (int)$imageHeight);
+            imagedestroy($bottomImage);
+        }
+    }
+
+    /**
+     * Helper: Draw a star shape.
+     */
+    private function drawStar($canvas, float $cx, float $cy, int $outerRadius, int $innerRadius, $color): void
+    {
+        $points = [];
+        $numPoints = 5;
+        $angle = pi() / $numPoints;
+        
+        // Start from top
+        $startAngle = -pi() / 2;
+
+        for ($i = 0; $i < 2 * $numPoints; $i++) {
+            $r = ($i % 2 === 0) ? $outerRadius : $innerRadius;
+            $points[] = (int)($cx + cos($startAngle + $i * $angle) * $r);
+            $points[] = (int)($cy + sin($startAngle + $i * $angle) * $r);
+        }
+
+        imagefilledpolygon($canvas, $points, 2 * $numPoints, $color);
     }
 
     /**

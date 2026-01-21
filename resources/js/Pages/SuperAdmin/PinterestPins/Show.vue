@@ -53,6 +53,7 @@ const frameDesigns = [
     { id: 'black_christmas', name: 'Black Christmas', description: 'Elegant black with lines' },
     { id: 'green_dashed', name: 'Green Dashed', description: 'Vibrant green dashed border' },
     { id: 'ribbon_banner', name: 'Ribbon Banner', description: 'Cream banner with brown ribbon' },
+    { id: 'star_rating', name: 'Star Rating', description: 'Orange banner with star rating' },
 ];
 
 const regeneratePin = () => {
@@ -329,6 +330,20 @@ const getStatusBadgeClass = (status) => {
                             class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white"
                         />
                     </div>
+
+                    <!-- Domain Name Field (Only for designs that use it) -->
+                    <div v-if="['ribbon_banner', 'star_rating'].includes(form.frame_design)" class="bg-pink-500/5 border border-pink-500/20 rounded-lg p-4 mt-2">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            Domain Name (shown in design)
+                        </label>
+                        <input
+                            v-model="form.domain_name"
+                            type="text"
+                            class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:ring-2 focus:ring-pink-500"
+                        />
+                        <p class="mt-1 text-xs text-gray-500">This will be shown in the capsule or ribbon of the design</p>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">Headline Color</label>
@@ -385,18 +400,6 @@ const getStatusBadgeClass = (status) => {
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Frame Design</label>
                         
-                        <!-- Domain Name Field (Only for Ribbon Banner) -->
-                        <div v-if="form.frame_design === 'ribbon_banner'" class="bg-pink-500/5 border border-pink-500/20 rounded-lg p-3 mb-3">
-                            <label class="block text-xs font-medium text-gray-400 mb-1">
-                                Domain Name (shown in ribbon)
-                            </label>
-                            <input
-                                v-model="form.domain_name"
-                                type="text"
-                                class="w-full px-3 py-1.5 bg-[#0a0a0a] border border-[#2a2a2a] rounded text-white text-sm"
-                            />
-                        </div>
-
                         <div class="grid grid-cols-3 gap-2">
                             <button
                                 v-for="frame in frameDesigns"
