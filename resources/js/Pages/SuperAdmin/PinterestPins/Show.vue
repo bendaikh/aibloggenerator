@@ -55,6 +55,7 @@ const frameDesigns = [
     { id: 'ribbon_banner', name: 'Ribbon Banner', description: 'Cream banner with brown ribbon' },
     { id: 'star_rating', name: 'Star Rating', description: 'Orange banner with star rating' },
     { id: 'minimal_bold', name: 'Minimal Bold', description: 'White background with thick black borders' },
+    { id: 'crispy_orange', name: 'Crispy Orange', description: 'Orange banner with yellow accents' },
 ];
 
 const regeneratePin = () => {

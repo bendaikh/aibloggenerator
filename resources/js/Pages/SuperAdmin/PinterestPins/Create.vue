@@ -59,6 +59,7 @@ const frameDesigns = [
     { id: 'ribbon_banner', name: 'Ribbon Banner', description: 'Cream banner with brown ribbon', bgColor: '#fef9e7', textColor: '#8b4513' },
     { id: 'star_rating', name: 'Star Rating', description: 'Orange banner with star rating', bgColor: '#eba13e', textColor: '#16120b' },
     { id: 'minimal_bold', name: 'Minimal Bold', description: 'White background with thick black borders', bgColor: '#ffffff', textColor: '#000000' },
+    { id: 'crispy_orange', name: 'Crispy Orange', description: 'Orange banner with yellow accents', bgColor: '#e67e22', textColor: '#ffffff' },
 ];
 
 // Generate AI headlines
@@ -709,6 +710,40 @@ const submitForm = () => {
                                         :style="{ fontFamily: previewStyles.headlineFontFamily }"
                                     >
                                         {{ form.domain_name || 'testteha.com' }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Text Overlay - Crispy Orange -->
+                            <div 
+                                v-else-if="form.frame_design === 'crispy_orange'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center bg-[#e67e22] overflow-hidden"
+                                style="top: 40.2%; height: 19.6%;"
+                            >
+                                <!-- Top and Bottom yellow accent lines -->
+                                <div class="absolute top-0 left-0 right-0 h-1 bg-[#f1c40f]"></div>
+                                <div class="absolute bottom-0 left-0 right-0 h-1 bg-[#f1c40f]"></div>
+
+                                <div class="flex flex-col items-center justify-center w-full px-2">
+                                    <p 
+                                        class="text-center font-bold text-white uppercase w-full leading-tight"
+                                        :style="{ 
+                                            fontSize: previewStyles.headlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.headline_text || 'crispy oven roasted' }}
+                                    </p>
+                                    <p 
+                                        class="text-center text-white capitalize w-full mt-1 leading-tight"
+                                        :style="{ 
+                                            fontSize: previewStyles.subheadlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.subheadline_text || 'easy potatoes' }}
                                     </p>
                                 </div>
                             </div>

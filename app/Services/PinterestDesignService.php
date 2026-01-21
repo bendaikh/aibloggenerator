@@ -56,6 +56,11 @@ class PinterestDesignService
                 'description' => 'White background with thick black borders and domain bar',
                 'preview_colors' => ['bg' => '#ffffff', 'primary' => '#000000', 'secondary' => '#000000'],
             ],
+            'crispy_orange' => [
+                'name' => 'Crispy Orange',
+                'description' => 'Orange banner with bright yellow accent lines',
+                'preview_colors' => ['bg' => '#e67e22', 'primary' => '#ffffff', 'secondary' => '#f1c40f'],
+            ],
         ];
     }
 
@@ -238,6 +243,19 @@ class PinterestDesignService
                     $headlineFontSize,
                     $subheadlineFontSize,
                     $domainName
+                );
+                break;
+            case 'crispy_orange':
+                $this->drawCrispyOrangeFrame(
+                    $canvas, 
+                    $topImagePath, 
+                    $bottomImagePath, 
+                    $headlineText, 
+                    $subheadlineText,
+                    $headlineFont,
+                    $subheadlineFont,
+                    $headlineFontSize,
+                    $subheadlineFontSize
                 );
                 break;
             default:
@@ -957,6 +975,98 @@ class PinterestDesignService
         // Draw white domain text
         $domainTextY = $barY + ($barHeight - $domainFontSize) / 2 + $domainFontSize - 2;
         $this->drawCenteredText($canvas, $displayDomain, $fontPath, $domainFontSize, self::PIN_WIDTH / 2, $barY + ($barHeight - $domainFontSize) / 2 - 2, $white);
+    }
+
+    /**
+     * Frame: Crispy Orange - Orange background with bright yellow accent lines
+     * Based on the provided design with "CRISPY OVEN ROASTED" style
+     */
+    private function drawCrispyOrangeFrame(
+        $canvas, 
+        $topImagePath, 
+        $bottomImagePath, 
+        $headline, 
+        $subheadline,
+        $headlineFont = 'sans-serif',
+        $subheadlineFont = 'script',
+        int $headlineFontSize = 32,
+        int $subheadlineFontSize = 24
+    ): void {
+        // Calculate layout
+        $imageHeight = (self::PIN_HEIGHT - self::TEXT_BAR_HEIGHT) / 2;
+        $topImageStartY = 0;
+        $textBarStartY = $imageHeight;
+        $bottomImageStartY = $imageHeight + self::TEXT_BAR_HEIGHT;
+
+        // Colors
+        $orange = imagecolorallocate($canvas, 230, 126, 34); // #e67e22 - vibrant orange
+        $yellow = imagecolorallocate($canvas, 241, 196, 15); // #f1c40f - bright yellow
+        $white = imagecolorallocate($canvas, 255, 255, 255);
+
+        // 1. Place Images (Background)
+        $topImage = $this->loadImage($topImagePath);
+        if ($topImage) {
+            $this->placeImage($canvas, $topImage, 0, (int)$topImageStartY, self::PIN_WIDTH, (int)$imageHeight);
+            imagedestroy($topImage);
+        }
+
+        $bottomImage = $this->loadImage($bottomImagePath);
+        if ($bottomImage) {
+            $this->placeImage($canvas, $bottomImage, 0, (int)$bottomImageStartY, self::PIN_WIDTH, (int)$imageHeight);
+            imagedestroy($bottomImage);
+        }
+
+        // 2. Draw the orange background for the text area
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $orange);
+
+        // 3. Draw thin yellow accent lines at top and bottom of orange bar
+        $lineThickness = 4;
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + $lineThickness), $yellow);
+        imagefilledrectangle($canvas, 0, (int)($bottomImageStartY - $lineThickness), self::PIN_WIDTH, (int)$bottomImageStartY, $yellow);
+
+        // Draw text
+        $fontPath = $this->getFontPath($headlineFont);
+        $centerX = self::PIN_WIDTH / 2;
+        
+        // Transform text: Headline ALL CAPS, Subheadline Title Case
+        $transformedHeadline = strtoupper($headline);
+        $transformedSub = ucwords(strtolower($subheadline));
+        
+        // Available space
+        $availableHeight = self::TEXT_BAR_HEIGHT - ($lineThickness * 2) - 40;
+        $mainAreaStartY = $textBarStartY + $lineThickness + 20;
+        
+        $scaledHeadlineSize = $headlineFontSize;
+        $scaledSubSize = $subheadlineFontSize;
+        $gap = 10;
+        
+        $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
+        $subH = $this->calculateTextHeight($transformedSub, $fontPath, $scaledSubSize);
+        $totalH = $headlineH + $subH + ($headline && $subheadline ? $gap : 0);
+        
+        while (($totalH > $availableHeight || 
+               $this->isTextTooWide($transformedHeadline, $fontPath, $scaledHeadlineSize, 480) ||
+               $this->isTextTooWide($transformedSub, $fontPath, $scaledSubSize, 480)) && 
+               $scaledHeadlineSize > 12) {
+            $scaledHeadlineSize = max(12, $scaledHeadlineSize - 2);
+            $scaledSubSize = max(10, $scaledSubSize - 2);
+            $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
+            $subH = $this->calculateTextHeight($transformedSub, $fontPath, $scaledSubSize);
+            $totalH = $headlineH + $subH + ($headline && $subheadline ? $gap : 0);
+        }
+        
+        $startY = $mainAreaStartY + ($availableHeight - $totalH) / 2;
+        
+        // Draw Headline (Bold white caps)
+        if (!empty($transformedHeadline)) {
+            $h = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, self::PIN_WIDTH / 2, $startY, $white);
+            $startY += $h + $gap;
+        }
+        
+        // Draw Subheadline (White)
+        if (!empty($transformedSub)) {
+            $this->drawCenteredText($canvas, $transformedSub, $fontPath, $scaledSubSize, self::PIN_WIDTH / 2, $startY, $white);
+        }
     }
 
     /**
