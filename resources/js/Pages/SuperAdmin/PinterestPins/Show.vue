@@ -54,6 +54,7 @@ const frameDesigns = [
     { id: 'green_dashed', name: 'Green Dashed', description: 'Vibrant green dashed border' },
     { id: 'ribbon_banner', name: 'Ribbon Banner', description: 'Cream banner with brown ribbon' },
     { id: 'star_rating', name: 'Star Rating', description: 'Orange banner with star rating' },
+    { id: 'minimal_bold', name: 'Minimal Bold', description: 'White background with thick black borders' },
 ];
 
 const regeneratePin = () => {
@@ -332,7 +333,7 @@ const getStatusBadgeClass = (status) => {
                     </div>
 
                     <!-- Domain Name Field (Only for designs that use it) -->
-                    <div v-if="['ribbon_banner', 'star_rating'].includes(form.frame_design)" class="bg-pink-500/5 border border-pink-500/20 rounded-lg p-4 mt-2">
+                    <div v-if="['ribbon_banner', 'star_rating', 'minimal_bold'].includes(form.frame_design)" class="bg-pink-500/5 border border-pink-500/20 rounded-lg p-4 mt-2">
                         <label class="block text-sm font-medium text-gray-300 mb-2">
                             Domain Name (shown in design)
                         </label>

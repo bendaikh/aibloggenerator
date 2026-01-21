@@ -58,6 +58,7 @@ const frameDesigns = [
     { id: 'green_dashed', name: 'Green Dashed', description: 'Vibrant green with dashed border', bgColor: '#22c55e', textColor: '#ffffff' },
     { id: 'ribbon_banner', name: 'Ribbon Banner', description: 'Cream banner with brown ribbon', bgColor: '#fef9e7', textColor: '#8b4513' },
     { id: 'star_rating', name: 'Star Rating', description: 'Orange banner with star rating', bgColor: '#eba13e', textColor: '#16120b' },
+    { id: 'minimal_bold', name: 'Minimal Bold', description: 'White background with thick black borders', bgColor: '#ffffff', textColor: '#000000' },
 ];
 
 // Generate AI headlines
@@ -259,7 +260,7 @@ const submitForm = () => {
                             </div>
 
                             <!-- Domain Name Field (Only for designs that use it) -->
-                            <div v-if="['ribbon_banner', 'star_rating'].includes(form.frame_design)" class="bg-pink-500/5 border border-pink-500/20 rounded-xl p-4 mt-2">
+                            <div v-if="['ribbon_banner', 'star_rating', 'minimal_bold'].includes(form.frame_design)" class="bg-pink-500/5 border border-pink-500/20 rounded-xl p-4 mt-2">
                                 <label class="block text-sm font-medium text-gray-300 mb-2">
                                     Domain Name (displayed in design)
                                 </label>
@@ -668,49 +669,46 @@ const submitForm = () => {
                                 </div>
                             </div>
 
-                            <!-- Text Overlay - Star Rating -->
+                            <!-- Text Overlay - Minimal Bold -->
                             <div 
-                                v-else-if="form.frame_design === 'star_rating'"
-                                class="absolute left-0 right-0 flex flex-col items-center justify-center bg-[#eba13e] overflow-visible"
+                                v-else-if="form.frame_design === 'minimal_bold'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center bg-white overflow-visible"
                                 style="top: 40.2%; height: 19.6%;"
                             >
-                                <!-- Top Capsule with Stars -->
-                                <div class="absolute -top-3 left-1/2 -translate-x-1/2 w-24 h-6 bg-[#16120b] rounded-full flex items-center justify-center gap-0.5 px-2 z-10">
-                                    <svg v-for="i in 5" :key="i" class="w-3 h-3 text-[#e3c9ac]" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                    </svg>
-                                </div>
+                                <!-- Top and Bottom thick black lines -->
+                                <div class="absolute top-0 left-0 right-0 h-1 bg-black"></div>
+                                <div class="absolute bottom-0 left-0 right-0 h-1 bg-black"></div>
 
-                                <div class="flex flex-col items-center justify-center w-full px-2 mt-1">
+                                <div class="flex flex-col items-center justify-center w-full px-2">
                                     <p 
-                                        class="text-center font-bold text-[#16120b] uppercase w-full leading-tight"
+                                        class="text-center font-bold text-black lowercase w-full leading-tight"
                                         :style="{ 
                                             fontSize: previewStyles.headlineFontSize,
                                             fontFamily: previewStyles.headlineFontFamily,
                                             wordWrap: 'break-word'
                                         }"
                                     >
-                                        {{ form.headline_text || 'COZY CINNAMON' }}
+                                        {{ form.headline_text || 'yesy folder this' }}
                                     </p>
                                     <p 
-                                        class="text-center font-bold text-[#16120b] uppercase w-full mt-1 leading-tight"
+                                        class="text-center text-black lowercase w-full mt-1 leading-tight"
                                         :style="{ 
                                             fontSize: previewStyles.subheadlineFontSize,
                                             fontFamily: previewStyles.headlineFontFamily,
                                             wordWrap: 'break-word'
                                         }"
                                     >
-                                        {{ form.subheadline_text || 'SUGAR DONUT BREAD' }}
+                                        {{ form.subheadline_text || '' }}
                                     </p>
                                 </div>
 
-                                <!-- Bottom Capsule for Domain -->
-                                <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 w-[80%] h-7 bg-[#16120b] rounded-full flex items-center justify-center px-3 z-10">
+                                <!-- Domain Name Bar -->
+                                <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 h-6 bg-black flex items-center justify-center z-10 min-w-[100px]">
                                     <p 
-                                        class="text-center font-bold text-white uppercase text-[9px] tracking-wider truncate"
+                                        class="text-center font-bold text-white lowercase text-[9px] tracking-wider"
                                         :style="{ fontFamily: previewStyles.headlineFontFamily }"
                                     >
-                                        {{ form.domain_name || 'WWW.HADIK.COM' }}
+                                        {{ form.domain_name || 'testteha.com' }}
                                     </p>
                                 </div>
                             </div>

@@ -51,6 +51,11 @@ class PinterestDesignService
                 'description' => 'Orange banner with star rating and capsule labels',
                 'preview_colors' => ['bg' => '#e6a23c', 'primary' => '#1a1a1a', 'secondary' => '#ffffff'],
             ],
+            'minimal_bold' => [
+                'name' => 'Minimal Bold',
+                'description' => 'White background with thick black borders and domain bar',
+                'preview_colors' => ['bg' => '#ffffff', 'primary' => '#000000', 'secondary' => '#000000'],
+            ],
         ];
     }
 
@@ -209,6 +214,20 @@ class PinterestDesignService
                 break;
             case 'star_rating':
                 $this->drawStarRatingFrame(
+                    $canvas, 
+                    $topImagePath, 
+                    $bottomImagePath, 
+                    $headlineText, 
+                    $subheadlineText,
+                    $headlineFont,
+                    $subheadlineFont,
+                    $headlineFontSize,
+                    $subheadlineFontSize,
+                    $domainName
+                );
+                break;
+            case 'minimal_bold':
+                $this->drawMinimalBoldFrame(
                     $canvas, 
                     $topImagePath, 
                     $bottomImagePath, 
@@ -594,6 +613,7 @@ class PinterestDesignService
         $brown = imagecolorallocate($canvas, 139, 69, 19);    // #8b4513
         $white = imagecolorallocate($canvas, 255, 255, 255);
 
+        // 1. Place Images (Background)
         // Top image
         $topImage = $this->loadImage($topImagePath);
         if ($topImage) {
@@ -601,7 +621,14 @@ class PinterestDesignService
             imagedestroy($topImage);
         }
 
-        // 1. Draw the cream background for the text area
+        // Bottom image
+        $bottomImage = $this->loadImage($bottomImagePath);
+        if ($bottomImage) {
+            $this->placeImage($canvas, $bottomImage, 0, (int)$bottomImageStartY, self::PIN_WIDTH, (int)$imageHeight);
+            imagedestroy($bottomImage);
+        }
+
+        // 2. Draw the cream background for the text area
         imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $cream);
 
         // 2. Draw the thick brown bar at the top of the text area
@@ -686,13 +713,6 @@ class PinterestDesignService
         $domainH = $this->calculateTextHeight($transformedDomain, $fontPath, $domainFontSize);
         $ribbonTextY = $ribbonY + ($ribbonHeight - $domainH) / 2 - 2; 
         $this->drawCenteredText($canvas, $transformedDomain, $fontPath, (int)$domainFontSize, $centerX, $ribbonTextY, $white, 400);
-
-        // Bottom image
-        $bottomImage = $this->loadImage($bottomImagePath);
-        if ($bottomImage) {
-            $this->placeImage($canvas, $bottomImage, 0, (int)$bottomImageStartY, self::PIN_WIDTH, (int)$imageHeight);
-            imagedestroy($bottomImage);
-        }
     }
 
     /**
@@ -728,6 +748,13 @@ class PinterestDesignService
         if ($topImage) {
             $this->placeImage($canvas, $topImage, 0, (int)$topImageStartY, self::PIN_WIDTH, (int)$imageHeight);
             imagedestroy($topImage);
+        }
+
+        // Bottom image
+        $bottomImage = $this->loadImage($bottomImagePath);
+        if ($bottomImage) {
+            $this->placeImage($canvas, $bottomImage, 0, (int)$bottomImageStartY, self::PIN_WIDTH, (int)$imageHeight);
+            imagedestroy($bottomImage);
         }
 
         // 1. Draw the orange background for the text area
@@ -816,6 +843,40 @@ class PinterestDesignService
         if (!empty($transformedSub)) {
             $this->drawCenteredText($canvas, $transformedSub, $fontPath, $scaledSubSize, self::PIN_WIDTH / 2, $startY, $darkCapsule);
         }
+    }
+
+    /**
+     * Frame: Minimal Bold - White background with thick black borders and domain bar
+     * Based on the provided design with "yesy folder this" style
+     */
+    private function drawMinimalBoldFrame(
+        $canvas, 
+        $topImagePath, 
+        $bottomImagePath, 
+        $headline, 
+        $subheadline,
+        $headlineFont = 'sans-serif',
+        $subheadlineFont = 'script',
+        int $headlineFontSize = 28,
+        int $subheadlineFontSize = 22,
+        string $domainName = ''
+    ): void {
+        // Calculate layout
+        $imageHeight = (self::PIN_HEIGHT - self::TEXT_BAR_HEIGHT) / 2;
+        $topImageStartY = 0;
+        $textBarStartY = $imageHeight;
+        $bottomImageStartY = $imageHeight + self::TEXT_BAR_HEIGHT;
+
+        // Colors
+        $white = imagecolorallocate($canvas, 255, 255, 255);
+        $black = imagecolorallocate($canvas, 0, 0, 0);
+
+        // Top image
+        $topImage = $this->loadImage($topImagePath);
+        if ($topImage) {
+            $this->placeImage($canvas, $topImage, 0, (int)$topImageStartY, self::PIN_WIDTH, (int)$imageHeight);
+            imagedestroy($topImage);
+        }
 
         // Bottom image
         $bottomImage = $this->loadImage($bottomImagePath);
@@ -823,6 +884,79 @@ class PinterestDesignService
             $this->placeImage($canvas, $bottomImage, 0, (int)$bottomImageStartY, self::PIN_WIDTH, (int)$imageHeight);
             imagedestroy($bottomImage);
         }
+
+        // 1. Draw white background for text bar area
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $white);
+
+        // 2. Draw thick black horizontal lines at top and bottom
+        $lineThickness = 6;
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + $lineThickness), $black);
+        imagefilledrectangle($canvas, 0, (int)($bottomImageStartY - $lineThickness), self::PIN_WIDTH, (int)$bottomImageStartY, $black);
+
+        // Draw text
+        $fontPath = $this->getFontPath($headlineFont);
+        $centerX = self::PIN_WIDTH / 2;
+        
+        // Transform text: Headline lowercase, bold
+        $transformedHeadline = strtolower($headline);
+        $transformedSub = strtolower($subheadline);
+        
+        // Available space
+        $availableHeight = self::TEXT_BAR_HEIGHT - ($lineThickness * 2) - 40;
+        $mainAreaStartY = $textBarStartY + $lineThickness + 20;
+        
+        $scaledHeadlineSize = $headlineFontSize;
+        $scaledSubSize = $subheadlineFontSize;
+        $gap = 10;
+        
+        $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
+        $subH = $this->calculateTextHeight($transformedSub, $fontPath, $scaledSubSize);
+        $totalH = $headlineH + $subH + ($headline && $subheadline ? $gap : 0);
+        
+        while (($totalH > $availableHeight || 
+               $this->isTextTooWide($transformedHeadline, $fontPath, $scaledHeadlineSize, 460) ||
+               $this->isTextTooWide($transformedSub, $fontPath, $scaledSubSize, 460)) && 
+               $scaledHeadlineSize > 12) {
+            $scaledHeadlineSize = max(12, $scaledHeadlineSize - 2);
+            $scaledSubSize = max(10, $scaledSubSize - 2);
+            $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
+            $subH = $this->calculateTextHeight($transformedSub, $fontPath, $scaledSubSize);
+            $totalH = $headlineH + $subH + ($headline && $subheadline ? $gap : 0);
+        }
+        
+        $startY = $mainAreaStartY + ($availableHeight - $totalH) / 2;
+        
+        // Draw Headline
+        if (!empty($transformedHeadline)) {
+            $h = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, self::PIN_WIDTH / 2, $startY, $black);
+            $startY += $h + $gap;
+        }
+        
+        // Draw Subheadline
+        if (!empty($transformedSub)) {
+            $this->drawCenteredText($canvas, $transformedSub, $fontPath, $scaledSubSize, self::PIN_WIDTH / 2, $startY, $black);
+        }
+
+        // 3. Draw black domain bar overlapping the bottom line
+        $displayDomain = strtolower($domainName ?: 'www.yourdomain.com');
+        $domainFontSize = 16;
+        $domainPadding = 20;
+        
+        // Measure domain text width
+        $bbox = imagettfbbox($domainFontSize, 0, $fontPath, $displayDomain);
+        $domainTextWidth = abs($bbox[2] - $bbox[0]);
+        $barWidth = $domainTextWidth + ($domainPadding * 2);
+        $barHeight = 30;
+        
+        $barX = (self::PIN_WIDTH - $barWidth) / 2;
+        $barY = $bottomImageStartY - ($barHeight / 2);
+        
+        // Draw black rectangle for domain
+        imagefilledrectangle($canvas, (int)$barX, (int)$barY, (int)($barX + $barWidth), (int)($barY + $barHeight), $black);
+        
+        // Draw white domain text
+        $domainTextY = $barY + ($barHeight - $domainFontSize) / 2 + $domainFontSize - 2;
+        $this->drawCenteredText($canvas, $displayDomain, $fontPath, $domainFontSize, self::PIN_WIDTH / 2, $barY + ($barHeight - $domainFontSize) / 2 - 2, $white);
     }
 
     /**
