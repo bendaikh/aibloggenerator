@@ -61,6 +61,11 @@ class PinterestDesignService
                 'description' => 'Orange banner with bright yellow accent lines',
                 'preview_colors' => ['bg' => '#e67e22', 'primary' => '#ffffff', 'secondary' => '#f1c40f'],
             ],
+            'torn_paper' => [
+                'name' => 'Torn Paper',
+                'description' => 'White background with jagged torn paper effect',
+                'preview_colors' => ['bg' => '#ffffff', 'primary' => '#000000', 'secondary' => '#000000'],
+            ],
         ];
     }
 
@@ -247,6 +252,19 @@ class PinterestDesignService
                 break;
             case 'crispy_orange':
                 $this->drawCrispyOrangeFrame(
+                    $canvas, 
+                    $topImagePath, 
+                    $bottomImagePath, 
+                    $headlineText, 
+                    $subheadlineText,
+                    $headlineFont,
+                    $subheadlineFont,
+                    $headlineFontSize,
+                    $subheadlineFontSize
+                );
+                break;
+            case 'torn_paper':
+                $this->drawTornPaperFrame(
                     $canvas, 
                     $topImagePath, 
                     $bottomImagePath, 
@@ -1067,6 +1085,135 @@ class PinterestDesignService
         if (!empty($transformedSub)) {
             $this->drawCenteredText($canvas, $transformedSub, $fontPath, $scaledSubSize, self::PIN_WIDTH / 2, $startY, $white);
         }
+    }
+
+    /**
+     * Frame: Torn Paper - White background with jagged "torn" horizontal edges
+     * Based on the provided design with a ripped paper look
+     */
+    private function drawTornPaperFrame(
+        $canvas, 
+        $topImagePath, 
+        $bottomImagePath, 
+        $headline, 
+        $subheadline,
+        $headlineFont = 'sans-serif',
+        $subheadlineFont = 'sans-serif',
+        int $headlineFontSize = 32,
+        int $subheadlineFontSize = 32
+    ): void {
+        // Layout calculations
+        $imageHeight = (self::PIN_HEIGHT - self::TEXT_BAR_HEIGHT) / 2;
+        $topImageStartY = 0;
+        $textBarStartY = $imageHeight;
+        $bottomImageStartY = $imageHeight + self::TEXT_BAR_HEIGHT;
+
+        // Colors
+        $white = imagecolorallocate($canvas, 255, 255, 255);
+        $black = imagecolorallocate($canvas, 0, 0, 0);
+        $offWhite = imagecolorallocate($canvas, 252, 252, 252); // Very subtle difference for the "torn" area
+
+        // 1. Place Images (Background)
+        $topImage = $this->loadImage($topImagePath);
+        if ($topImage) {
+            $this->placeImage($canvas, $topImage, 0, (int)$topImageStartY, self::PIN_WIDTH, (int)$imageHeight);
+            imagedestroy($topImage);
+        }
+
+        $bottomImage = $this->loadImage($bottomImagePath);
+        if ($bottomImage) {
+            $this->placeImage($canvas, $bottomImage, 0, (int)$bottomImageStartY, self::PIN_WIDTH, (int)$imageHeight);
+            imagedestroy($bottomImage);
+        }
+
+        // 2. Draw white background for text area
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $white);
+
+        // 3. Draw jagged "torn" edges
+        $this->drawJaggedEdge($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, true, $white);
+        $this->drawJaggedEdge($canvas, 0, (int)$bottomImageStartY, self::PIN_WIDTH, false, $white);
+
+        // 4. Text Rendering
+        $fontPath = $this->getFontPath($headlineFont);
+        $centerX = self::PIN_WIDTH / 2;
+        
+        // Transform text: Bold and prominent (similar to the provided image)
+        $transformedHeadline = $headline;
+        $transformedSub = $subheadline;
+        
+        // Available space
+        $availableHeight = self::TEXT_BAR_HEIGHT - 60;
+        $mainAreaStartY = $textBarStartY + 30;
+        
+        $scaledHeadlineSize = $headlineFontSize;
+        $scaledSubSize = $subheadlineFontSize;
+        $gap = 15;
+        
+        $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
+        $subH = $this->calculateTextHeight($transformedSub, $fontPath, $scaledSubSize);
+        $totalH = $headlineH + $subH + ($headline && $subheadline ? $gap : 0);
+        
+        while (($totalH > $availableHeight || 
+               $this->isTextTooWide($transformedHeadline, $fontPath, $scaledHeadlineSize, 480) ||
+               $this->isTextTooWide($transformedSub, $fontPath, $scaledSubSize, 480)) && 
+               $scaledHeadlineSize > 12) {
+            $scaledHeadlineSize = max(12, $scaledHeadlineSize - 2);
+            $scaledSubSize = max(12, $scaledSubSize - 2);
+            $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
+            $subH = $this->calculateTextHeight($transformedSub, $fontPath, $scaledSubSize);
+            $totalH = $headlineH + $subH + ($headline && $subheadline ? $gap : 0);
+        }
+        
+        $startY = $mainAreaStartY + ($availableHeight - $totalH) / 2;
+        
+        // Draw Headline
+        if (!empty($transformedHeadline)) {
+            $h = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, $centerX, $startY, $black);
+            $startY += $h + $gap;
+        }
+        
+        // Draw Subheadline
+        if (!empty($transformedSub)) {
+            $this->drawCenteredText($canvas, $transformedSub, $fontPath, $scaledSubSize, $centerX, $startY, $black);
+        }
+    }
+
+    /**
+     * Helper: Draw a jagged "torn paper" edge
+     */
+    private function drawJaggedEdge($canvas, int $x, int $y, int $width, bool $isTop, $color): void
+    {
+        $points = [];
+        $segmentWidth = 10;
+        $jitter = 8;
+        
+        // Start point
+        $points[] = $x;
+        $points[] = $y + ($isTop ? -$jitter : $jitter);
+
+        for ($currX = $x; $currX <= $x + $width; $currX += $segmentWidth) {
+            $points[] = $currX;
+            $points[] = $y + (rand(-$jitter, $jitter));
+        }
+
+        // End point
+        $points[] = $x + $width;
+        $points[] = $y + ($isTop ? -$jitter : $jitter);
+        
+        // To fill correctly, we need to close the polygon
+        if ($isTop) {
+            $points[] = $x + $width;
+            $points[] = $y + 20; // Extend down into the white bar
+            $points[] = $x;
+            $points[] = $y + 20;
+        } else {
+            $points[] = $x + $width;
+            $points[] = $y - 20; // Extend up into the white bar
+            $points[] = $x;
+            $points[] = $y - 20;
+        }
+
+        imagefilledpolygon($canvas, $points, count($points) / 2, $color);
     }
 
     /**

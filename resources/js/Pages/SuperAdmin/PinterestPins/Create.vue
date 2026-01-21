@@ -60,6 +60,7 @@ const frameDesigns = [
     { id: 'star_rating', name: 'Star Rating', description: 'Orange banner with star rating', bgColor: '#eba13e', textColor: '#16120b' },
     { id: 'minimal_bold', name: 'Minimal Bold', description: 'White background with thick black borders', bgColor: '#ffffff', textColor: '#000000' },
     { id: 'crispy_orange', name: 'Crispy Orange', description: 'Orange banner with yellow accents', bgColor: '#e67e22', textColor: '#ffffff' },
+    { id: 'torn_paper', name: 'Torn Paper', description: 'White background with torn edges', bgColor: '#ffffff', textColor: '#000000' },
 ];
 
 // Generate AI headlines
@@ -744,6 +745,42 @@ const submitForm = () => {
                                         }"
                                     >
                                         {{ form.subheadline_text || 'easy potatoes' }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Text Overlay - Torn Paper -->
+                            <div 
+                                v-else-if="form.frame_design === 'torn_paper'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center bg-white"
+                                style="top: 40.2%; height: 19.6%;"
+                            >
+                                <!-- Jagged Edge Top -->
+                                <div class="absolute top-0 left-0 right-0 h-4 -mt-2 bg-white" style="clip-path: polygon(0% 100%, 5% 20%, 10% 80%, 15% 10%, 20% 90%, 25% 30%, 30% 70%, 35% 0%, 40% 100%, 45% 20%, 50% 80%, 55% 10%, 60% 90%, 65% 30%, 70% 70%, 75% 0%, 80% 100%, 85% 20%, 90% 80%, 95% 10%, 100% 100%);"></div>
+                                
+                                <!-- Jagged Edge Bottom -->
+                                <div class="absolute bottom-0 left-0 right-0 h-4 -mb-2 bg-white" style="clip-path: polygon(0% 0%, 5% 80%, 10% 20%, 15% 90%, 20% 10%, 25% 70%, 30% 30%, 35% 100%, 40% 0%, 45% 80%, 50% 20%, 55% 90%, 60% 10%, 65% 70%, 70% 30%, 75% 100%, 80% 0%, 85% 80%, 90% 20%, 95% 90%, 100% 0%);"></div>
+
+                                <div class="flex flex-col items-center justify-center w-full px-4 z-10">
+                                    <p 
+                                        class="text-center font-bold text-black w-full leading-tight"
+                                        :style="{ 
+                                            fontSize: previewStyles.headlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.headline_text || 'Test Folder cd' }}
+                                    </p>
+                                    <p 
+                                        class="text-center font-bold text-black w-full mt-2 leading-tight"
+                                        :style="{ 
+                                            fontSize: previewStyles.subheadlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.subheadline_text || 'Test Folder cd' }}
                                     </p>
                                 </div>
                             </div>

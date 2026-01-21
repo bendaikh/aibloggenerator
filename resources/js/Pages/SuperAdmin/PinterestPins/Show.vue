@@ -56,6 +56,7 @@ const frameDesigns = [
     { id: 'star_rating', name: 'Star Rating', description: 'Orange banner with star rating' },
     { id: 'minimal_bold', name: 'Minimal Bold', description: 'White background with thick black borders' },
     { id: 'crispy_orange', name: 'Crispy Orange', description: 'Orange banner with yellow accents' },
+    { id: 'torn_paper', name: 'Torn Paper', description: 'White background with torn edges' },
 ];
 
 const regeneratePin = () => {
