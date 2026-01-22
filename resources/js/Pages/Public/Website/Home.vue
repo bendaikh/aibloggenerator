@@ -83,6 +83,7 @@
                         v-for="article in latestArticles"
                         :key="article.id"
                         :article="article"
+                        :title-font-family="articleTitleFontFamily"
                     />
                 </div>
             </div>
@@ -167,6 +168,7 @@
                         :show-time="false"
                         :show-date="false"
                         :show-tags="false"
+                        :title-font-family="articleTitleFontFamily"
                     />
                 </div>
             </div>
@@ -205,6 +207,28 @@ const shopCtaTitle = computed(() => themeSettings.value.shop_cta_title || 'VISIT
 const shopCtaSubtitle = computed(() => themeSettings.value.shop_cta_subtitle || 'FIND GREAT GIFT IDEAS!');
 const shopCtaButton = computed(() => themeSettings.value.shop_cta_button || 'SHOP NOW');
 const shopCtaLink = computed(() => themeSettings.value.shop_cta_link || '#shop');
+
+const articleTitleFontFamily = computed(() => {
+    const fontId = props.website?.theme_settings?.article_title_font_family || 'merriweather';
+    const fontMap = {
+        'default': "'Plus Jakarta Sans', sans-serif",
+        'inter': "'Inter', sans-serif",
+        'roboto': "'Roboto', sans-serif",
+        'open-sans': "'Open Sans', sans-serif",
+        'lato': "'Lato', sans-serif",
+        'montserrat': "'Montserrat', sans-serif",
+        'poppins': "'Poppins', sans-serif",
+        'raleway': "'Raleway', sans-serif",
+        'bebas-neue': "'Bebas Neue', cursive",
+        'playfair-display': "'Playfair Display', serif",
+        'merriweather': "'Merriweather', serif",
+        'lora': "'Lora', serif",
+        'dancing-script': "'Dancing Script', cursive",
+        'pacifico': "'Pacifico', cursive",
+        'great-vibes': "'Great Vibes', cursive",
+    };
+    return fontMap[fontId] || fontMap['merriweather'];
+});
 
 // Get the openSubscribePopup function from the shared composable
 const { openSubscribePopup } = useSubscribePopup();

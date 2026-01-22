@@ -25,6 +25,7 @@
                         v-for="article in articles.data"
                         :key="article.id"
                         :article="article"
+                        :title-font-family="articleTitleFontFamily"
                     />
                 </div>
 
@@ -67,11 +68,34 @@
 import { Head } from '@inertiajs/vue3';
 import PublicWebsiteLayout from '@/Layouts/PublicWebsiteLayout.vue';
 import ArticleCard from '@/Components/ArticleCard.vue';
+import { computed } from 'vue';
 
-defineProps({
+const props = defineProps({
     website: Object,
     articles: Object,
     searchQuery: String
+});
+
+const articleTitleFontFamily = computed(() => {
+    const fontId = props.website?.theme_settings?.article_title_font_family || 'merriweather';
+    const fontMap = {
+        'default': "'Plus Jakarta Sans', sans-serif",
+        'inter': "'Inter', sans-serif",
+        'roboto': "'Roboto', sans-serif",
+        'open-sans': "'Open Sans', sans-serif",
+        'lato': "'Lato', sans-serif",
+        'montserrat': "'Montserrat', sans-serif",
+        'poppins': "'Poppins', sans-serif",
+        'raleway': "'Raleway', sans-serif",
+        'bebas-neue': "'Bebas Neue', cursive",
+        'playfair-display': "'Playfair Display', serif",
+        'merriweather': "'Merriweather', serif",
+        'lora': "'Lora', serif",
+        'dancing-script': "'Dancing Script', cursive",
+        'pacifico': "'Pacifico', cursive",
+        'great-vibes': "'Great Vibes', cursive",
+    };
+    return fontMap[fontId] || fontMap['merriweather'];
 });
 
 const formatDate = (date) => {

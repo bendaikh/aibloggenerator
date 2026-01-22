@@ -8,7 +8,12 @@
             <div class="container mx-auto px-4">
                 <!-- Page Header -->
                 <header class="text-center mb-12 max-w-4xl mx-auto">
-                    <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">{{ page.title }}</h1>
+                    <h1 
+                        class="text-4xl md:text-5xl font-bold text-gray-900 mb-6"
+                        :style="{ fontFamily: titleFontFamily }"
+                    >
+                        {{ page.title }}
+                    </h1>
                     
                     <div v-if="page.featured_image" class="mb-8 rounded-2xl overflow-hidden shadow-xl">
                         <img 
@@ -48,8 +53,9 @@
 <script setup>
 import { Head } from '@inertiajs/vue3';
 import PublicWebsiteLayout from '@/Layouts/PublicWebsiteLayout.vue';
+import { computed } from 'vue';
 
-defineProps({
+const props = defineProps({
     website: {
         type: Object,
         required: true
@@ -58,6 +64,28 @@ defineProps({
         type: Object,
         required: true
     }
+});
+
+const titleFontFamily = computed(() => {
+    const fontId = props.website?.theme_settings?.article_title_font_family || 'merriweather';
+    const fontMap = {
+        'default': "'Plus Jakarta Sans', sans-serif",
+        'inter': "'Inter', sans-serif",
+        'roboto': "'Roboto', sans-serif",
+        'open-sans': "'Open Sans', sans-serif",
+        'lato': "'Lato', sans-serif",
+        'montserrat': "'Montserrat', sans-serif",
+        'poppins': "'Poppins', sans-serif",
+        'raleway': "'Raleway', sans-serif",
+        'bebas-neue': "'Bebas Neue', cursive",
+        'playfair-display': "'Playfair Display', serif",
+        'merriweather': "'Merriweather', serif",
+        'lora': "'Lora', serif",
+        'dancing-script': "'Dancing Script', cursive",
+        'pacifico': "'Pacifico', cursive",
+        'great-vibes': "'Great Vibes', cursive",
+    };
+    return fontMap[fontId] || fontMap['merriweather'];
 });
 </script>
 

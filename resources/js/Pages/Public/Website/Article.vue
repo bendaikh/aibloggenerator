@@ -22,7 +22,10 @@
                                     </ol>
                                 </nav>
                                 
-                                <h1 class="text-4xl md:text-6xl font-serif font-bold text-gray-900 mb-6 leading-tight">
+                                <h1 
+                                    class="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight"
+                                    :style="{ fontFamily: articleTitleFontFamily }"
+                                >
                                     {{ article.title }}
                                 </h1>
                                 
@@ -381,7 +384,29 @@ onMounted(() => {
     });
 });
 
-// Get font family from website theme settings
+// Get font families from website theme settings
+const articleTitleFontFamily = computed(() => {
+    const fontId = props.website?.theme_settings?.article_title_font_family || 'merriweather';
+    const fontMap = {
+        'default': "'Plus Jakarta Sans', sans-serif",
+        'inter': "'Inter', sans-serif",
+        'roboto': "'Roboto', sans-serif",
+        'open-sans': "'Open Sans', sans-serif",
+        'lato': "'Lato', sans-serif",
+        'montserrat': "'Montserrat', sans-serif",
+        'poppins': "'Poppins', sans-serif",
+        'raleway': "'Raleway', sans-serif",
+        'bebas-neue': "'Bebas Neue', cursive",
+        'playfair-display': "'Playfair Display', serif",
+        'merriweather': "'Merriweather', serif",
+        'lora': "'Lora', serif",
+        'dancing-script': "'Dancing Script', cursive",
+        'pacifico': "'Pacifico', cursive",
+        'great-vibes': "'Great Vibes', cursive",
+    };
+    return fontMap[fontId] || fontMap['merriweather'];
+});
+
 const articleFontFamily = computed(() => {
     const fontId = props.website?.theme_settings?.article_font_family || 'default';
     const fontMap = {
@@ -393,8 +418,13 @@ const articleFontFamily = computed(() => {
         'montserrat': "'Montserrat', sans-serif",
         'poppins': "'Poppins', sans-serif",
         'raleway': "'Raleway', sans-serif",
+        'bebas-neue': "'Bebas Neue', cursive",
+        'playfair-display': "'Playfair Display', serif",
         'merriweather': "'Merriweather', serif",
         'lora': "'Lora', serif",
+        'dancing-script': "'Dancing Script', cursive",
+        'pacifico': "'Pacifico', cursive",
+        'great-vibes': "'Great Vibes', cursive",
     };
     return fontMap[fontId] || fontMap['default'];
 });
@@ -574,7 +604,7 @@ const pinterestShareUrl = computed(() => {
 </script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=Roboto:wght@300;400;500;700;900&family=Open+Sans:wght@300;400;500;600;700;800&family=Lato:wght@300;400;700;900&family=Montserrat:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&family=Raleway:wght@300;400;500;600;700;800&family=Merriweather:wght@300;400;700;900&family=Lora:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=Roboto:wght@300;400;500;700;900&family=Open+Sans:wght@300;400;500;600;700;800&family=Lato:wght@300;400;700;900&family=Montserrat:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&family=Raleway:wght@300;400;500;600;700;800&family=Merriweather:wght@300;400;700;900&family=Lora:wght@400;500;600;700&family=Bebas+Neue&family=Dancing+Script:wght@400;700&family=Pacifico&family=Great+Vibes&display=swap');
 
 .font-serif {
     font-family: 'Playfair Display', serif;

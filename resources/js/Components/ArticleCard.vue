@@ -31,7 +31,10 @@
             </div>
 
             <!-- Title -->
-            <h2 class="text-sm sm:text-base md:text-xl font-bold text-gray-900 mb-2 sm:mb-4 group-hover:text-emerald-600 transition-colors text-center line-clamp-2">
+            <h2 
+                class="text-sm sm:text-base md:text-xl font-bold text-gray-900 mb-2 sm:mb-4 group-hover:text-emerald-600 transition-colors text-center line-clamp-2"
+                :style="{ fontFamily: titleFontFamily }"
+            >
                 {{ article.title }}
             </h2>
 
@@ -93,6 +96,10 @@ const props = defineProps({
     showTags: {
         type: Boolean,
         default: true
+    },
+    titleFontFamily: {
+        type: String,
+        default: ''
     }
 });
 
