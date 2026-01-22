@@ -423,43 +423,278 @@ const submitForm = () => {
                             </h3>
 
                             <div class="grid grid-cols-3 gap-3">
+                                <!-- Simple Center -->
                                 <button
-                                    v-for="frame in frameDesigns"
-                                    :key="frame.id"
                                     type="button"
-                                    @click="form.frame_design = frame.id"
+                                    @click="form.frame_design = 'simple_center'"
                                     :class="[
                                         'relative p-3 rounded-xl border-2 transition-all text-left',
-                                        form.frame_design === frame.id 
+                                        form.frame_design === 'simple_center' 
                                             ? 'border-pink-500 bg-pink-500/10' 
                                             : 'border-[#2a2a2a] hover:border-[#3a3a3a] bg-[#0a0a0a]'
                                     ]"
                                 >
-                                    <!-- Frame Preview Mini -->
-                                    <div 
-                                        class="w-full aspect-[1/2] rounded-lg mb-2 overflow-hidden flex flex-col"
-                                        :style="{ backgroundColor: frame.id === 'simple_center' ? '#1a1a1a' : frame.bgColor }"
-                                    >
-                                        <div class="flex-1 bg-gray-700"></div>
-                                        <div 
-                                            class="h-[15%] flex items-center justify-center"
-                                            :style="{ backgroundColor: frame.bgColor }"
-                                        >
-                                            <div 
-                                                class="w-8 h-0.5 rounded"
-                                                :style="{ backgroundColor: frame.textColor }"
-                                            ></div>
+                                    <div class="w-full aspect-[1/2] rounded-lg mb-2 overflow-hidden flex flex-col bg-[#1a1a1a]">
+                                        <!-- Top image placeholder -->
+                                        <div class="h-[38%] bg-gradient-to-br from-amber-700 to-amber-900"></div>
+                                        <!-- Text overlay with dark overlay -->
+                                        <div class="h-[24%] bg-black/70 flex flex-col items-center justify-center px-1">
+                                            <p class="text-white text-[9px] font-bold lowercase leading-tight">cozy cinnamon</p>
+                                            <p class="text-amber-300 text-[7px] italic leading-tight">Sugar donut bread</p>
                                         </div>
-                                        <div class="flex-1 bg-gray-600"></div>
+                                        <!-- Bottom image placeholder -->
+                                        <div class="h-[38%] bg-gradient-to-br from-amber-800 to-amber-950"></div>
                                     </div>
-                                    <p class="text-white text-xs font-medium truncate">{{ frame.name }}</p>
-                                    <p class="text-gray-500 text-[10px] truncate">{{ frame.description }}</p>
-                                    
-                                    <!-- Selected indicator -->
-                                    <div 
-                                        v-if="form.frame_design === frame.id"
-                                        class="absolute top-2 right-2 w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center"
-                                    >
+                                    <p class="text-white text-xs font-medium truncate">Simple Center</p>
+                                    <p class="text-gray-500 text-[10px] truncate">Classic text overlay</p>
+                                    <div v-if="form.frame_design === 'simple_center'" class="absolute top-2 right-2 w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center">
+                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                </button>
+
+                                <!-- Black Christmas -->
+                                <button
+                                    type="button"
+                                    @click="form.frame_design = 'black_christmas'"
+                                    :class="[
+                                        'relative p-3 rounded-xl border-2 transition-all text-left',
+                                        form.frame_design === 'black_christmas' 
+                                            ? 'border-pink-500 bg-pink-500/10' 
+                                            : 'border-[#2a2a2a] hover:border-[#3a3a3a] bg-[#0a0a0a]'
+                                    ]"
+                                >
+                                    <div class="w-full aspect-[1/2] rounded-lg mb-2 overflow-hidden flex flex-col bg-black">
+                                        <div class="h-[38%] bg-gradient-to-br from-gray-600 to-gray-800"></div>
+                                        <div class="h-[24%] bg-black flex flex-col items-center justify-center px-1 relative">
+                                            <div class="absolute top-1 left-0 right-0 h-[1px] bg-white"></div>
+                                            <div class="absolute bottom-1 left-0 right-0 h-[1px] bg-white"></div>
+                                            <p class="text-white text-[9px] font-bold capitalize leading-tight">White Christmas</p>
+                                            <p class="text-amber-300 text-[7px] capitalize leading-tight">Mojitos</p>
+                                        </div>
+                                        <div class="h-[38%] bg-gradient-to-br from-gray-700 to-gray-900"></div>
+                                    </div>
+                                    <p class="text-white text-xs font-medium truncate">Black Christmas</p>
+                                    <p class="text-gray-500 text-[10px] truncate">Elegant black with lines</p>
+                                    <div v-if="form.frame_design === 'black_christmas'" class="absolute top-2 right-2 w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center">
+                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                </button>
+
+                                <!-- Green Dashed -->
+                                <button
+                                    type="button"
+                                    @click="form.frame_design = 'green_dashed'"
+                                    :class="[
+                                        'relative p-3 rounded-xl border-2 transition-all text-left',
+                                        form.frame_design === 'green_dashed' 
+                                            ? 'border-pink-500 bg-pink-500/10' 
+                                            : 'border-[#2a2a2a] hover:border-[#3a3a3a] bg-[#0a0a0a]'
+                                    ]"
+                                >
+                                    <div class="w-full aspect-[1/2] rounded-lg mb-2 overflow-hidden flex flex-col bg-[#22c55e]">
+                                        <div class="h-[38%] bg-gradient-to-br from-orange-400 to-orange-600"></div>
+                                        <div class="h-[24%] bg-[#22c55e] flex flex-col items-center justify-center px-1 relative">
+                                            <!-- Top dashed line -->
+                                            <div class="absolute top-1 left-1 right-1 flex gap-[2px]">
+                                                <div class="flex-1 h-[2px] bg-white rounded-sm"></div>
+                                                <div class="flex-1 h-[2px] bg-white rounded-sm"></div>
+                                                <div class="flex-1 h-[2px] bg-white rounded-sm"></div>
+                                                <div class="flex-1 h-[2px] bg-white rounded-sm"></div>
+                                                <div class="flex-1 h-[2px] bg-white rounded-sm"></div>
+                                            </div>
+                                            <!-- Bottom dashed line -->
+                                            <div class="absolute bottom-1 left-1 right-1 flex gap-[2px]">
+                                                <div class="flex-1 h-[2px] bg-white rounded-sm"></div>
+                                                <div class="flex-1 h-[2px] bg-white rounded-sm"></div>
+                                                <div class="flex-1 h-[2px] bg-white rounded-sm"></div>
+                                                <div class="flex-1 h-[2px] bg-white rounded-sm"></div>
+                                                <div class="flex-1 h-[2px] bg-white rounded-sm"></div>
+                                            </div>
+                                            <p class="text-white text-[8px] font-bold lowercase leading-tight">street tacos</p>
+                                            <p class="text-white text-[6px] italic leading-tight">easy to make</p>
+                                        </div>
+                                        <div class="h-[38%] bg-gradient-to-br from-orange-500 to-orange-700"></div>
+                                    </div>
+                                    <p class="text-white text-xs font-medium truncate">Green Dashed</p>
+                                    <p class="text-gray-500 text-[10px] truncate">Vibrant green border</p>
+                                    <div v-if="form.frame_design === 'green_dashed'" class="absolute top-2 right-2 w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center">
+                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                </button>
+
+                                <!-- Ribbon Banner -->
+                                <button
+                                    type="button"
+                                    @click="form.frame_design = 'ribbon_banner'"
+                                    :class="[
+                                        'relative p-3 rounded-xl border-2 transition-all text-left',
+                                        form.frame_design === 'ribbon_banner' 
+                                            ? 'border-pink-500 bg-pink-500/10' 
+                                            : 'border-[#2a2a2a] hover:border-[#3a3a3a] bg-[#0a0a0a]'
+                                    ]"
+                                >
+                                    <div class="w-full aspect-[1/2] rounded-lg mb-2 overflow-hidden flex flex-col bg-[#fef9e7]">
+                                        <div class="h-[36%] bg-gradient-to-br from-amber-600 to-amber-800"></div>
+                                        <div class="h-[28%] bg-[#fef9e7] flex flex-col items-center justify-center px-1 relative">
+                                            <!-- Top brown bar -->
+                                            <div class="absolute top-0 left-0 right-0 h-[4px] bg-[#8b4513]"></div>
+                                            <p class="text-[#8b4513] text-[8px] font-bold uppercase mt-1 leading-tight">BISCOFF</p>
+                                            <p class="text-[#8b4513] text-[6px] uppercase leading-tight">CINNAMON ROLLS</p>
+                                            <!-- Ribbon -->
+                                            <div class="absolute bottom-1 bg-[#8b4513] h-[8px] w-[85%] flex items-center justify-center">
+                                                <div class="absolute left-0 top-0 bottom-0 w-1 bg-[#fef9e7]" style="clip-path: polygon(0 0, 100% 50%, 0 100%);"></div>
+                                                <div class="absolute right-0 top-0 bottom-0 w-1 bg-[#fef9e7]" style="clip-path: polygon(100% 0, 0 50%, 100% 100%);"></div>
+                                                <p class="text-white text-[5px] font-bold">HADIK.COM</p>
+                                            </div>
+                                        </div>
+                                        <div class="h-[36%] bg-gradient-to-br from-amber-700 to-amber-900"></div>
+                                    </div>
+                                    <p class="text-white text-xs font-medium truncate">Ribbon Banner</p>
+                                    <p class="text-gray-500 text-[10px] truncate">Cream with brown ribbon</p>
+                                    <div v-if="form.frame_design === 'ribbon_banner'" class="absolute top-2 right-2 w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center">
+                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                </button>
+
+                                <!-- Star Rating -->
+                                <button
+                                    type="button"
+                                    @click="form.frame_design = 'star_rating'"
+                                    :class="[
+                                        'relative p-3 rounded-xl border-2 transition-all text-left',
+                                        form.frame_design === 'star_rating' 
+                                            ? 'border-pink-500 bg-pink-500/10' 
+                                            : 'border-[#2a2a2a] hover:border-[#3a3a3a] bg-[#0a0a0a]'
+                                    ]"
+                                >
+                                    <div class="w-full aspect-[1/2] rounded-lg mb-2 overflow-hidden flex flex-col bg-[#eba13e]">
+                                        <div class="h-[36%] bg-gradient-to-br from-amber-500 to-amber-700"></div>
+                                        <div class="h-[28%] bg-[#eba13e] flex flex-col items-center justify-center px-1 relative">
+                                            <!-- Top capsule with stars -->
+                                            <div class="absolute -top-1 bg-[#16120b] h-[8px] px-2 rounded-full flex items-center justify-center gap-[2px]">
+                                                <div class="w-[6px] h-[6px] bg-yellow-200" style="clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);"></div>
+                                                <div class="w-[6px] h-[6px] bg-yellow-200" style="clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);"></div>
+                                                <div class="w-[6px] h-[6px] bg-yellow-200" style="clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);"></div>
+                                            </div>
+                                            <p class="text-[#16120b] text-[8px] font-bold uppercase leading-tight">CINNAMON</p>
+                                            <p class="text-[#16120b] text-[6px] uppercase leading-tight">SUGAR DONUT</p>
+                                            <!-- Bottom capsule -->
+                                            <div class="absolute -bottom-1 bg-[#16120b] h-[8px] px-2 rounded-full flex items-center justify-center">
+                                                <p class="text-white text-[5px] font-bold">HADIK.COM</p>
+                                            </div>
+                                        </div>
+                                        <div class="h-[36%] bg-gradient-to-br from-amber-600 to-amber-800"></div>
+                                    </div>
+                                    <p class="text-white text-xs font-medium truncate">Star Rating</p>
+                                    <p class="text-gray-500 text-[10px] truncate">Orange with star rating</p>
+                                    <div v-if="form.frame_design === 'star_rating'" class="absolute top-2 right-2 w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center">
+                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                </button>
+
+                                <!-- Minimal Bold -->
+                                <button
+                                    type="button"
+                                    @click="form.frame_design = 'minimal_bold'"
+                                    :class="[
+                                        'relative p-3 rounded-xl border-2 transition-all text-left',
+                                        form.frame_design === 'minimal_bold' 
+                                            ? 'border-pink-500 bg-pink-500/10' 
+                                            : 'border-[#2a2a2a] hover:border-[#3a3a3a] bg-[#0a0a0a]'
+                                    ]"
+                                >
+                                    <div class="w-full aspect-[1/2] rounded-lg mb-2 overflow-hidden flex flex-col bg-white">
+                                        <div class="h-[36%] bg-gradient-to-br from-gray-600 to-gray-800"></div>
+                                        <div class="h-[28%] bg-white flex flex-col items-center justify-center px-1 relative">
+                                            <!-- Top thick line -->
+                                            <div class="absolute top-0 left-0 right-0 h-[2px] bg-black"></div>
+                                            <!-- Bottom thick line -->
+                                            <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-black"></div>
+                                            <p class="text-black text-[8px] font-bold lowercase leading-tight">minimal bold</p>
+                                            <!-- Domain bar -->
+                                            <div class="absolute -bottom-[6px] bg-black h-[8px] px-2 flex items-center justify-center">
+                                                <p class="text-white text-[5px] font-bold lowercase">domain.com</p>
+                                            </div>
+                                        </div>
+                                        <div class="h-[36%] bg-gradient-to-br from-gray-700 to-gray-900"></div>
+                                    </div>
+                                    <p class="text-white text-xs font-medium truncate">Minimal Bold</p>
+                                    <p class="text-gray-500 text-[10px] truncate">White with black borders</p>
+                                    <div v-if="form.frame_design === 'minimal_bold'" class="absolute top-2 right-2 w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center">
+                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                </button>
+
+                                <!-- Crispy Orange -->
+                                <button
+                                    type="button"
+                                    @click="form.frame_design = 'crispy_orange'"
+                                    :class="[
+                                        'relative p-3 rounded-xl border-2 transition-all text-left',
+                                        form.frame_design === 'crispy_orange' 
+                                            ? 'border-pink-500 bg-pink-500/10' 
+                                            : 'border-[#2a2a2a] hover:border-[#3a3a3a] bg-[#0a0a0a]'
+                                    ]"
+                                >
+                                    <div class="w-full aspect-[1/2] rounded-lg mb-2 overflow-hidden flex flex-col bg-[#e67e22]">
+                                        <div class="h-[38%] bg-gradient-to-br from-yellow-500 to-yellow-700"></div>
+                                        <div class="h-[24%] bg-[#e67e22] flex flex-col items-center justify-center px-1 relative">
+                                            <!-- Top accent line -->
+                                            <div class="absolute top-0 left-0 right-0 h-[2px] bg-white"></div>
+                                            <!-- Bottom accent line -->
+                                            <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-white"></div>
+                                            <p class="text-white text-[8px] font-bold uppercase leading-tight">crispy oven</p>
+                                            <p class="text-white text-[6px] capitalize leading-tight">easy potatoes</p>
+                                        </div>
+                                        <div class="h-[38%] bg-gradient-to-br from-yellow-600 to-yellow-800"></div>
+                                    </div>
+                                    <p class="text-white text-xs font-medium truncate">Crispy Orange</p>
+                                    <p class="text-gray-500 text-[10px] truncate">Orange with yellow accents</p>
+                                    <div v-if="form.frame_design === 'crispy_orange'" class="absolute top-2 right-2 w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center">
+                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                </button>
+
+                                <!-- Torn Paper -->
+                                <button
+                                    type="button"
+                                    @click="form.frame_design = 'torn_paper'"
+                                    :class="[
+                                        'relative p-3 rounded-xl border-2 transition-all text-left',
+                                        form.frame_design === 'torn_paper' 
+                                            ? 'border-pink-500 bg-pink-500/10' 
+                                            : 'border-[#2a2a2a] hover:border-[#3a3a3a] bg-[#0a0a0a]'
+                                    ]"
+                                >
+                                    <div class="w-full aspect-[1/2] rounded-lg mb-2 overflow-hidden flex flex-col bg-white">
+                                        <div class="h-[38%] bg-gradient-to-br from-gray-500 to-gray-700"></div>
+                                        <div class="h-[24%] bg-white flex flex-col items-center justify-center px-1 relative">
+                                            <!-- Jagged top edge -->
+                                            <div class="absolute top-0 left-0 right-0 h-2 bg-white" style="clip-path: polygon(0% 100%, 10% 20%, 20% 80%, 30% 10%, 40% 90%, 50% 30%, 60% 70%, 70% 0%, 80% 100%, 90% 20%, 100% 80%);"></div>
+                                            <!-- Jagged bottom edge -->
+                                            <div class="absolute bottom-0 left-0 right-0 h-2 bg-white" style="clip-path: polygon(0% 0%, 10% 80%, 20% 20%, 30% 90%, 40% 10%, 50% 70%, 60% 30%, 70% 100%, 80% 0%, 90% 80%, 100% 20%);"></div>
+                                            <p class="text-black text-[8px] font-bold leading-tight">Torn Paper</p>
+                                            <p class="text-black text-[6px] font-bold leading-tight">Recipe Card</p>
+                                        </div>
+                                        <div class="h-[38%] bg-gradient-to-br from-gray-600 to-gray-800"></div>
+                                    </div>
+                                    <p class="text-white text-xs font-medium truncate">Torn Paper</p>
+                                    <p class="text-gray-500 text-[10px] truncate">White with torn edges</p>
+                                    <div v-if="form.frame_design === 'torn_paper'" class="absolute top-2 right-2 w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center">
                                         <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                                         </svg>

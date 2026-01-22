@@ -403,20 +403,201 @@ const getStatusBadgeClass = (status) => {
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Frame Design</label>
                         
-                        <div class="grid grid-cols-3 gap-2">
+                        <div class="grid grid-cols-4 gap-2">
+                            <!-- Simple Center -->
                             <button
-                                v-for="frame in frameDesigns"
-                                :key="frame.id"
                                 type="button"
-                                @click="form.frame_design = frame.id"
+                                @click="form.frame_design = 'simple_center'"
                                 :class="[
-                                    'p-2 rounded-lg border-2 transition-all text-center',
-                                    form.frame_design === frame.id 
+                                    'p-2 rounded-lg border-2 transition-all',
+                                    form.frame_design === 'simple_center' 
                                         ? 'border-pink-500 bg-pink-500/10' 
                                         : 'border-[#3a3a3a] hover:border-[#4a4a4a] bg-[#252525]'
                                 ]"
                             >
-                                <p class="text-white text-xs font-medium">{{ frame.name }}</p>
+                                <div class="w-full aspect-[1/2] rounded mb-1 overflow-hidden flex flex-col bg-[#1a1a1a]">
+                                    <div class="h-[40%] bg-gradient-to-br from-amber-700 to-amber-900"></div>
+                                    <div class="h-[20%] bg-black/70 flex flex-col items-center justify-center">
+                                        <div class="w-6 h-0.5 bg-white rounded mb-0.5"></div>
+                                        <div class="w-4 h-0.5 bg-amber-300 rounded"></div>
+                                    </div>
+                                    <div class="h-[40%] bg-gradient-to-br from-amber-800 to-amber-950"></div>
+                                </div>
+                                <p class="text-white text-[10px] font-medium text-center">Simple</p>
+                            </button>
+
+                            <!-- Black Christmas -->
+                            <button
+                                type="button"
+                                @click="form.frame_design = 'black_christmas'"
+                                :class="[
+                                    'p-2 rounded-lg border-2 transition-all',
+                                    form.frame_design === 'black_christmas' 
+                                        ? 'border-pink-500 bg-pink-500/10' 
+                                        : 'border-[#3a3a3a] hover:border-[#4a4a4a] bg-[#252525]'
+                                ]"
+                            >
+                                <div class="w-full aspect-[1/2] rounded mb-1 overflow-hidden flex flex-col bg-black">
+                                    <div class="h-[40%] bg-gradient-to-br from-gray-600 to-gray-800"></div>
+                                    <div class="h-[20%] bg-black flex flex-col items-center justify-center relative">
+                                        <div class="absolute top-1 left-0 right-0 h-[1px] bg-white"></div>
+                                        <div class="absolute bottom-1 left-0 right-0 h-[1px] bg-white"></div>
+                                        <div class="w-6 h-0.5 bg-white rounded"></div>
+                                    </div>
+                                    <div class="h-[40%] bg-gradient-to-br from-gray-700 to-gray-900"></div>
+                                </div>
+                                <p class="text-white text-[10px] font-medium text-center">Christmas</p>
+                            </button>
+
+                            <!-- Green Dashed -->
+                            <button
+                                type="button"
+                                @click="form.frame_design = 'green_dashed'"
+                                :class="[
+                                    'p-2 rounded-lg border-2 transition-all',
+                                    form.frame_design === 'green_dashed' 
+                                        ? 'border-pink-500 bg-pink-500/10' 
+                                        : 'border-[#3a3a3a] hover:border-[#4a4a4a] bg-[#252525]'
+                                ]"
+                            >
+                                <div class="w-full aspect-[1/2] rounded mb-1 overflow-hidden flex flex-col bg-[#22c55e]">
+                                    <div class="h-[40%] bg-gradient-to-br from-orange-400 to-orange-600"></div>
+                                    <div class="h-[20%] bg-[#22c55e] flex flex-col items-center justify-center relative">
+                                        <div class="absolute top-1 left-1 right-1 flex gap-[1px]">
+                                            <div class="flex-1 h-[1px] bg-white"></div>
+                                            <div class="flex-1 h-[1px] bg-white"></div>
+                                            <div class="flex-1 h-[1px] bg-white"></div>
+                                        </div>
+                                        <div class="absolute bottom-1 left-1 right-1 flex gap-[1px]">
+                                            <div class="flex-1 h-[1px] bg-white"></div>
+                                            <div class="flex-1 h-[1px] bg-white"></div>
+                                            <div class="flex-1 h-[1px] bg-white"></div>
+                                        </div>
+                                        <div class="w-6 h-0.5 bg-white rounded"></div>
+                                    </div>
+                                    <div class="h-[40%] bg-gradient-to-br from-orange-500 to-orange-700"></div>
+                                </div>
+                                <p class="text-white text-[10px] font-medium text-center">Dashed</p>
+                            </button>
+
+                            <!-- Ribbon Banner -->
+                            <button
+                                type="button"
+                                @click="form.frame_design = 'ribbon_banner'"
+                                :class="[
+                                    'p-2 rounded-lg border-2 transition-all',
+                                    form.frame_design === 'ribbon_banner' 
+                                        ? 'border-pink-500 bg-pink-500/10' 
+                                        : 'border-[#3a3a3a] hover:border-[#4a4a4a] bg-[#252525]'
+                                ]"
+                            >
+                                <div class="w-full aspect-[1/2] rounded mb-1 overflow-hidden flex flex-col bg-[#fef9e7]">
+                                    <div class="h-[40%] bg-gradient-to-br from-amber-600 to-amber-800"></div>
+                                    <div class="h-[20%] bg-[#fef9e7] flex flex-col items-center justify-center relative">
+                                        <div class="absolute top-0 left-0 right-0 h-[3px] bg-[#8b4513]"></div>
+                                        <div class="w-6 h-0.5 bg-[#8b4513] rounded"></div>
+                                        <div class="absolute bottom-1 bg-[#8b4513] h-[4px] w-[70%] rounded-sm"></div>
+                                    </div>
+                                    <div class="h-[40%] bg-gradient-to-br from-amber-700 to-amber-900"></div>
+                                </div>
+                                <p class="text-white text-[10px] font-medium text-center">Ribbon</p>
+                            </button>
+
+                            <!-- Star Rating -->
+                            <button
+                                type="button"
+                                @click="form.frame_design = 'star_rating'"
+                                :class="[
+                                    'p-2 rounded-lg border-2 transition-all',
+                                    form.frame_design === 'star_rating' 
+                                        ? 'border-pink-500 bg-pink-500/10' 
+                                        : 'border-[#3a3a3a] hover:border-[#4a4a4a] bg-[#252525]'
+                                ]"
+                            >
+                                <div class="w-full aspect-[1/2] rounded mb-1 overflow-hidden flex flex-col bg-[#eba13e]">
+                                    <div class="h-[40%] bg-gradient-to-br from-amber-500 to-amber-700"></div>
+                                    <div class="h-[20%] bg-[#eba13e] flex flex-col items-center justify-center relative">
+                                        <div class="absolute -top-1 bg-[#16120b] h-[4px] px-1 rounded-full flex items-center gap-[1px]">
+                                            <div class="w-[3px] h-[3px] bg-yellow-200" style="clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);"></div>
+                                            <div class="w-[3px] h-[3px] bg-yellow-200" style="clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);"></div>
+                                            <div class="w-[3px] h-[3px] bg-yellow-200" style="clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);"></div>
+                                        </div>
+                                        <div class="w-6 h-0.5 bg-[#16120b] rounded"></div>
+                                        <div class="absolute -bottom-1 bg-[#16120b] h-[4px] px-2 rounded-full"></div>
+                                    </div>
+                                    <div class="h-[40%] bg-gradient-to-br from-amber-600 to-amber-800"></div>
+                                </div>
+                                <p class="text-white text-[10px] font-medium text-center">Stars</p>
+                            </button>
+
+                            <!-- Minimal Bold -->
+                            <button
+                                type="button"
+                                @click="form.frame_design = 'minimal_bold'"
+                                :class="[
+                                    'p-2 rounded-lg border-2 transition-all',
+                                    form.frame_design === 'minimal_bold' 
+                                        ? 'border-pink-500 bg-pink-500/10' 
+                                        : 'border-[#3a3a3a] hover:border-[#4a4a4a] bg-[#252525]'
+                                ]"
+                            >
+                                <div class="w-full aspect-[1/2] rounded mb-1 overflow-hidden flex flex-col bg-white">
+                                    <div class="h-[40%] bg-gradient-to-br from-gray-600 to-gray-800"></div>
+                                    <div class="h-[20%] bg-white flex flex-col items-center justify-center relative">
+                                        <div class="absolute top-0 left-0 right-0 h-[2px] bg-black"></div>
+                                        <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-black"></div>
+                                        <div class="w-6 h-0.5 bg-black rounded"></div>
+                                        <div class="absolute -bottom-[3px] bg-black h-[4px] px-2"></div>
+                                    </div>
+                                    <div class="h-[40%] bg-gradient-to-br from-gray-700 to-gray-900"></div>
+                                </div>
+                                <p class="text-white text-[10px] font-medium text-center">Minimal</p>
+                            </button>
+
+                            <!-- Crispy Orange -->
+                            <button
+                                type="button"
+                                @click="form.frame_design = 'crispy_orange'"
+                                :class="[
+                                    'p-2 rounded-lg border-2 transition-all',
+                                    form.frame_design === 'crispy_orange' 
+                                        ? 'border-pink-500 bg-pink-500/10' 
+                                        : 'border-[#3a3a3a] hover:border-[#4a4a4a] bg-[#252525]'
+                                ]"
+                            >
+                                <div class="w-full aspect-[1/2] rounded mb-1 overflow-hidden flex flex-col bg-[#e67e22]">
+                                    <div class="h-[40%] bg-gradient-to-br from-yellow-500 to-yellow-700"></div>
+                                    <div class="h-[20%] bg-[#e67e22] flex flex-col items-center justify-center relative">
+                                        <div class="absolute top-0 left-0 right-0 h-[1px] bg-white"></div>
+                                        <div class="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
+                                        <div class="w-6 h-0.5 bg-white rounded"></div>
+                                    </div>
+                                    <div class="h-[40%] bg-gradient-to-br from-yellow-600 to-yellow-800"></div>
+                                </div>
+                                <p class="text-white text-[10px] font-medium text-center">Crispy</p>
+                            </button>
+
+                            <!-- Torn Paper -->
+                            <button
+                                type="button"
+                                @click="form.frame_design = 'torn_paper'"
+                                :class="[
+                                    'p-2 rounded-lg border-2 transition-all',
+                                    form.frame_design === 'torn_paper' 
+                                        ? 'border-pink-500 bg-pink-500/10' 
+                                        : 'border-[#3a3a3a] hover:border-[#4a4a4a] bg-[#252525]'
+                                ]"
+                            >
+                                <div class="w-full aspect-[1/2] rounded mb-1 overflow-hidden flex flex-col bg-white">
+                                    <div class="h-[40%] bg-gradient-to-br from-gray-500 to-gray-700"></div>
+                                    <div class="h-[20%] bg-white flex flex-col items-center justify-center relative">
+                                        <div class="absolute top-0 left-0 right-0 h-1 bg-white" style="clip-path: polygon(0% 100%, 20% 20%, 40% 80%, 60% 10%, 80% 90%, 100% 50%);"></div>
+                                        <div class="absolute bottom-0 left-0 right-0 h-1 bg-white" style="clip-path: polygon(0% 0%, 20% 80%, 40% 20%, 60% 90%, 80% 10%, 100% 50%);"></div>
+                                        <div class="w-6 h-0.5 bg-black rounded"></div>
+                                    </div>
+                                    <div class="h-[40%] bg-gradient-to-br from-gray-600 to-gray-800"></div>
+                                </div>
+                                <p class="text-white text-[10px] font-medium text-center">Torn</p>
                             </button>
                         </div>
                     </div>
