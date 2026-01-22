@@ -85,8 +85,8 @@ class PinterestDesignService
 
             // Create the Pinterest pin image
             $frameDesign = $pin->frame_design ?? 'simple_center';
-            $headlineFont = $pin->headline_font ?? 'sans-serif';
-            $subheadlineFont = $pin->subheadline_font ?? 'script';
+            $headlineFont = $pin->headline_font ?? 'arial';
+            $subheadlineFont = $pin->subheadline_font ?? 'georgia';
             
             // Log font information for debugging
             Log::info('Pinterest pin fonts requested', [
@@ -163,8 +163,8 @@ class PinterestDesignService
         string $overlayColor,
         int $overlayOpacity,
         string $frameDesign = 'simple_center',
-        string $headlineFont = 'sans-serif',
-        string $subheadlineFont = 'script',
+        string $headlineFont = 'arial',
+        string $subheadlineFont = 'georgia',
         int $headlineFontSize = 28,
         int $subheadlineFontSize = 22,
         string $domainName = ''
@@ -1631,6 +1631,47 @@ class PinterestDesignService
         $fonts = [];
 
         switch ($fontFamily) {
+            case 'montserrat':
+                $fonts = [
+                    $fontsDir . '/Montserrat-Bold.ttf',
+                    $fontsDir . '/Montserrat-Regular.ttf',
+                    $winFonts . '\\Montserrat-Bold.ttf',
+                    $winFonts . '\\Montserrat-Regular.ttf',
+                    $fontsDir . '/arialbd.ttf',
+                ];
+                break;
+            case 'bebas-neue':
+                $fonts = [
+                    $fontsDir . '/BebasNeue-Regular.ttf',
+                    $winFonts . '\\BebasNeue-Regular.ttf',
+                    $fontsDir . '/arialbd.ttf',
+                ];
+                break;
+            case 'poppins':
+                $fonts = [
+                    $fontsDir . '/Poppins-Bold.ttf',
+                    $fontsDir . '/Poppins-Regular.ttf',
+                    $winFonts . '\\Poppins-Bold.ttf',
+                    $winFonts . '\\Poppins-Regular.ttf',
+                    $fontsDir . '/arialbd.ttf',
+                ];
+                break;
+            case 'playfair-display':
+                $fonts = [
+                    $fontsDir . '/PlayfairDisplay-Bold.ttf',
+                    $fontsDir . '/PlayfairDisplay-Regular.ttf',
+                    $winFonts . '\\PlayfairDisplay-Bold.ttf',
+                    $winFonts . '\\PlayfairDisplay-Regular.ttf',
+                    $fontsDir . '/georgia.ttf',
+                ];
+                break;
+            case 'great-vibes':
+                $fonts = [
+                    $fontsDir . '/GreatVibes-Regular.ttf',
+                    $winFonts . '\\GreatVibes-Regular.ttf',
+                    $fontsDir . '/georgiai.ttf',
+                ];
+                break;
             case 'arial':
                 $fonts = [
                     // Project fonts first (these will work on production)

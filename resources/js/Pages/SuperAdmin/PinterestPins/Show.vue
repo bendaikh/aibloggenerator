@@ -24,8 +24,8 @@ const form = useForm({
     subheadline_text: props.pin.subheadline_text,
     headline_color: props.pin.headline_color,
     subheadline_color: props.pin.subheadline_color,
-    headline_font: props.pin.headline_font || 'sans-serif',
-    subheadline_font: props.pin.subheadline_font || 'script',
+    headline_font: props.pin.headline_font || 'arial',
+    subheadline_font: props.pin.subheadline_font || 'georgia',
     headline_font_size: props.pin.headline_font_size || 28,
     subheadline_font_size: props.pin.subheadline_font_size || 22,
     overlay_color: props.pin.overlay_color,
@@ -34,16 +34,25 @@ const form = useForm({
     domain_name: props.pin.frame_settings?.domain_name || props.currentWebsite?.domain || (props.currentWebsite?.slug ? props.currentWebsite.slug + '.com' : ''),
 });
 
-// Font options - Only include fonts that are available on Windows
+// Font options - Including standard and Google Fonts
 const fontOptions = {
     'sans-serif': [
-        { id: 'sans-serif', name: 'Default Sans (Arial)' },
         { id: 'arial', name: 'Arial Bold' },
+        { id: 'montserrat', name: 'Montserrat' },
+        { id: 'bebas-neue', name: 'Bebas Neue' },
+        { id: 'poppins', name: 'Poppins' },
+        { id: 'roboto', name: 'Roboto' },
+        { id: 'open-sans', name: 'Open Sans' },
     ],
-    'script': [
-        { id: 'script', name: 'Default Script (Georgia)' },
+    'serif': [
         { id: 'georgia', name: 'Georgia' },
         { id: 'times', name: 'Times New Roman' },
+        { id: 'playfair-display', name: 'Playfair Display' },
+    ],
+    'script': [
+        { id: 'dancing-script', name: 'Dancing Script' },
+        { id: 'pacifico', name: 'Pacifico' },
+        { id: 'great-vibes', name: 'Great Vibes' },
     ]
 };
 
@@ -376,12 +385,24 @@ const getStatusBadgeClass = (status) => {
                                 <optgroup label="Sans Serif">
                                     <option v-for="font in fontOptions['sans-serif']" :key="font.id" :value="font.id">{{ font.name }}</option>
                                 </optgroup>
+                                <optgroup label="Serif">
+                                    <option v-for="font in fontOptions['serif']" :key="font.id" :value="font.id">{{ font.name }}</option>
+                                </optgroup>
+                                <optgroup label="Script / Decorative">
+                                    <option v-for="font in fontOptions['script']" :key="font.id" :value="font.id">{{ font.name }}</option>
+                                </optgroup>
                             </select>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">Subheadline Font</label>
                             <select v-model="form.subheadline_font" class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white text-sm">
-                                <optgroup label="Serif / Script">
+                                <optgroup label="Sans Serif">
+                                    <option v-for="font in fontOptions['sans-serif']" :key="font.id" :value="font.id">{{ font.name }}</option>
+                                </optgroup>
+                                <optgroup label="Serif">
+                                    <option v-for="font in fontOptions['serif']" :key="font.id" :value="font.id">{{ font.name }}</option>
+                                </optgroup>
+                                <optgroup label="Script / Decorative">
                                     <option v-for="font in fontOptions['script']" :key="font.id" :value="font.id">{{ font.name }}</option>
                                 </optgroup>
                             </select>
