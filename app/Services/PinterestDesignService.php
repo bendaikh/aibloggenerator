@@ -189,6 +189,10 @@ class PinterestDesignService
                     $bottomImagePath, 
                     $headlineText, 
                     $subheadlineText,
+                    $headlineColor,
+                    $subheadlineColor,
+                    $overlayColor,
+                    $overlayOpacity,
                     $headlineFont,
                     $subheadlineFont,
                     $headlineFontSize,
@@ -202,6 +206,10 @@ class PinterestDesignService
                     $bottomImagePath, 
                     $headlineText, 
                     $subheadlineText,
+                    $headlineColor,
+                    $subheadlineColor,
+                    $overlayColor,
+                    $overlayOpacity,
                     $headlineFont,
                     $subheadlineFont,
                     $headlineFontSize,
@@ -215,6 +223,10 @@ class PinterestDesignService
                     $bottomImagePath, 
                     $headlineText, 
                     $subheadlineText,
+                    $headlineColor,
+                    $subheadlineColor,
+                    $overlayColor,
+                    $overlayOpacity,
                     $headlineFont,
                     $subheadlineFont,
                     $headlineFontSize,
@@ -229,6 +241,10 @@ class PinterestDesignService
                     $bottomImagePath, 
                     $headlineText, 
                     $subheadlineText,
+                    $headlineColor,
+                    $subheadlineColor,
+                    $overlayColor,
+                    $overlayOpacity,
                     $headlineFont,
                     $subheadlineFont,
                     $headlineFontSize,
@@ -243,6 +259,10 @@ class PinterestDesignService
                     $bottomImagePath, 
                     $headlineText, 
                     $subheadlineText,
+                    $headlineColor,
+                    $subheadlineColor,
+                    $overlayColor,
+                    $overlayOpacity,
                     $headlineFont,
                     $subheadlineFont,
                     $headlineFontSize,
@@ -257,6 +277,10 @@ class PinterestDesignService
                     $bottomImagePath, 
                     $headlineText, 
                     $subheadlineText,
+                    $headlineColor,
+                    $subheadlineColor,
+                    $overlayColor,
+                    $overlayOpacity,
                     $headlineFont,
                     $subheadlineFont,
                     $headlineFontSize,
@@ -270,6 +294,10 @@ class PinterestDesignService
                     $bottomImagePath, 
                     $headlineText, 
                     $subheadlineText,
+                    $headlineColor,
+                    $subheadlineColor,
+                    $overlayColor,
+                    $overlayOpacity,
                     $headlineFont,
                     $subheadlineFont,
                     $headlineFontSize,
@@ -412,6 +440,10 @@ class PinterestDesignService
         $bottomImagePath, 
         $headline, 
         $subheadline,
+        $headlineColor = '#ffffff',
+        $subheadlineColor = '#ffffff',
+        $overlayColor = '#000000',
+        $overlayOpacity = 100,
         $headlineFont = 'sans-serif',
         $subheadlineFont = 'script',
         int $headlineFontSize = 30,
@@ -423,10 +455,9 @@ class PinterestDesignService
         $textBarStartY = $imageHeight;
         $bottomImageStartY = $imageHeight + self::TEXT_BAR_HEIGHT;
 
-        // Fill background with black
-        $black = imagecolorallocate($canvas, 0, 0, 0);
-        imagefill($canvas, 0, 0, $black);
-
+        // Fill background with white (canvas default)
+        $white = imagecolorallocate($canvas, 255, 255, 255);
+        
         // Top image
         $topImage = $this->loadImage($topImagePath);
         if ($topImage) {
@@ -434,22 +465,37 @@ class PinterestDesignService
             imagedestroy($topImage);
         }
 
-        // Black text bar
-        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $black);
+        // Text bar background (overlay color)
+        $overlayRgb = $this->hexToRgb($overlayColor);
+        $alphaValue = (int) ((100 - $overlayOpacity) * 1.27);
+        $overlayAlphaColor = imagecolorallocatealpha(
+            $canvas,
+            $overlayRgb['r'],
+            $overlayRgb['g'],
+            $overlayRgb['b'],
+            $alphaValue
+        );
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $overlayAlphaColor);
 
         // Draw decorative horizontal lines at top and bottom of text bar
-        $white = imagecolorallocate($canvas, 255, 255, 255);
+        // Use headline color for lines to match the text
+        $headlineRgb = $this->hexToRgb($headlineColor);
+        $lineColor = imagecolorallocate($canvas, $headlineRgb['r'], $headlineRgb['g'], $headlineRgb['b']);
         $lineThickness = 2;
         $linePadding = 8;
         
         // Top line
         imagesetthickness($canvas, $lineThickness);
-        imageline($canvas, 0, (int)$textBarStartY + $linePadding, self::PIN_WIDTH, (int)$textBarStartY + $linePadding, $white);
+        imageline($canvas, 0, (int)$textBarStartY + $linePadding, self::PIN_WIDTH, (int)$textBarStartY + $linePadding, $lineColor);
         
         // Bottom line
-        imageline($canvas, 0, (int)($textBarStartY + self::TEXT_BAR_HEIGHT - $linePadding), self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT - $linePadding), $white);
+        imageline($canvas, 0, (int)($textBarStartY + self::TEXT_BAR_HEIGHT - $linePadding), self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT - $linePadding), $lineColor);
 
         // Draw text
+        $subheadlineRgb = $this->hexToRgb($subheadlineColor);
+        $headlineTextColor = imagecolorallocate($canvas, $headlineRgb['r'], $headlineRgb['g'], $headlineRgb['b']);
+        $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
+
         $fontPath = $this->getFontPath($headlineFont);
         $scriptFontPath = $this->getFontPath($subheadlineFont);
         $centerX = self::PIN_WIDTH / 2;
@@ -485,13 +531,13 @@ class PinterestDesignService
 
         // Headline (bold, title case)
         if (!empty($transformedHeadline)) {
-            $actualHeight = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, $centerX, $startY, $white);
+            $actualHeight = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, $centerX, $startY, $headlineTextColor);
             $startY += $actualHeight + $gap;
         }
 
         // Subheadline (italic/script)
         if (!empty($transformedSubheadline)) {
-            $this->drawCenteredText($canvas, $transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize, $centerX, $startY, $white);
+            $this->drawCenteredText($canvas, $transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize, $centerX, $startY, $subheadlineTextColor);
         }
 
         // Bottom image
@@ -512,6 +558,10 @@ class PinterestDesignService
         $bottomImagePath, 
         $headline, 
         $subheadline,
+        $headlineColor = '#ffffff',
+        $subheadlineColor = '#166534',
+        $overlayColor = '#22c55e',
+        $overlayOpacity = 100,
         $headlineFont = 'sans-serif',
         $subheadlineFont = 'script',
         $headlineFontSize = 28,
@@ -534,12 +584,19 @@ class PinterestDesignService
             imagedestroy($topImage);
         }
 
-        // Green text bar - vibrant green like the design
-        $green = imagecolorallocate($canvas, 34, 197, 94); // #22c55e - Tailwind green-500
-        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $green);
+        // Text bar background (overlay color)
+        $overlayRgb = $this->hexToRgb($overlayColor);
+        $alphaValue = (int) ((100 - $overlayOpacity) * 1.27);
+        $overlayAlphaColor = imagecolorallocatealpha(
+            $canvas,
+            $overlayRgb['r'],
+            $overlayRgb['g'],
+            $overlayRgb['b'],
+            $alphaValue
+        );
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $overlayAlphaColor);
 
         // Draw dashed border effect at top and bottom of green bar
-        $darkGreen = imagecolorallocate($canvas, 21, 128, 61); // #15803d - Tailwind green-700
         $dashWidth = 12;
         $gapWidth = 8;
         $dashHeight = 4;
@@ -570,6 +627,11 @@ class PinterestDesignService
         }
 
         // Draw text
+        $headlineRgb = $this->hexToRgb($headlineColor);
+        $subheadlineRgb = $this->hexToRgb($subheadlineColor);
+        $headlineTextColor = imagecolorallocate($canvas, $headlineRgb['r'], $headlineRgb['g'], $headlineRgb['b']);
+        $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
+
         $fontPath = $this->getFontPath($headlineFont);
         $scriptFontPath = $this->getFontPath($subheadlineFont);
         $centerX = self::PIN_WIDTH / 2;
@@ -603,15 +665,15 @@ class PinterestDesignService
         
         $startY = $textBarStartY + self::TEXT_PADDING + ($availableHeight - $totalTextHeight) / 2;
 
-        // Headline (lowercase, white)
+        // Headline (lowercase)
         if (!empty($transformedHeadline)) {
-            $actualHeight = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, $centerX, $startY, $white);
+            $actualHeight = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, $centerX, $startY, $headlineTextColor);
             $startY += $actualHeight + $gap;
         }
 
-        // Subheadline (italic/script, dark green)
+        // Subheadline (italic/script)
         if (!empty($transformedSubheadline)) {
-            $this->drawCenteredText($canvas, $transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize, $centerX, $startY, $darkGreen);
+            $this->drawCenteredText($canvas, $transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize, $centerX, $startY, $subheadlineTextColor);
         }
 
         // Bottom image
@@ -632,6 +694,10 @@ class PinterestDesignService
         $bottomImagePath, 
         $headline, 
         $subheadline,
+        $headlineColor = '#8B4513',
+        $subheadlineColor = '#8B4513',
+        $overlayColor = '#fef9e7',
+        $overlayOpacity = 100,
         $headlineFont = 'sans-serif',
         $subheadlineFont = 'script',
         int $headlineFontSize = 28,
@@ -643,11 +709,6 @@ class PinterestDesignService
         $topImageStartY = 0;
         $textBarStartY = $imageHeight;
         $bottomImageStartY = $imageHeight + self::TEXT_BAR_HEIGHT;
-
-        // Colors
-        $cream = imagecolorallocate($canvas, 255, 253, 241); // #fffdf1
-        $brown = imagecolorallocate($canvas, 139, 69, 19);    // #8b4513
-        $white = imagecolorallocate($canvas, 255, 255, 255);
 
         // 1. Place Images (Background)
         // Top image
@@ -664,33 +725,48 @@ class PinterestDesignService
             imagedestroy($bottomImage);
         }
 
-        // 2. Draw the cream background for the text area
-        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $cream);
+        // 2. Draw the background for the text area (overlay color)
+        $overlayRgb = $this->hexToRgb($overlayColor);
+        $alphaValue = (int) ((100 - $overlayOpacity) * 1.27);
+        $overlayAlphaColor = imagecolorallocatealpha(
+            $canvas,
+            $overlayRgb['r'],
+            $overlayRgb['g'],
+            $overlayRgb['b'],
+            $alphaValue
+        );
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $overlayAlphaColor);
 
-        // 2. Draw the thick brown bar at the top of the text area
-        $barHeight = 25; // Thicker like the image
-        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + $barHeight), $brown);
+        // 2. Draw the thick bar at the top of the text area (using headline color)
+        $headlineRgb = $this->hexToRgb($headlineColor);
+        $primaryColor = imagecolorallocate($canvas, $headlineRgb['r'], $headlineRgb['g'], $headlineRgb['b']);
+        $barHeight = 25;
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)$textBarStartY + $barHeight, $primaryColor);
 
         // 3. Ribbon setup
-        $ribbonHeight = 45; // Taller ribbon
-        $ribbonY = $textBarStartY + self::TEXT_BAR_HEIGHT - $ribbonHeight - 20; // 20px from bottom
+        $ribbonHeight = 45;
+        $ribbonY = $textBarStartY + self::TEXT_BAR_HEIGHT - $ribbonHeight - 20;
         $ribbonMargin = 40;
         $notchDepth = 15;
 
         // Draw text
+        $subheadlineRgb = $this->hexToRgb($subheadlineColor);
+        $headlineTextColor = imagecolorallocate($canvas, $headlineRgb['r'], $headlineRgb['g'], $headlineRgb['b']);
+        $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
+
         $fontPath = $this->getFontPath($headlineFont);
         $scriptFontPath = $this->getFontPath($subheadlineFont);
         $centerX = self::PIN_WIDTH / 2;
         
         // Available height for text (main area, excluding bar and ribbon)
-        $availableHeight = self::TEXT_BAR_HEIGHT - $barHeight - $ribbonHeight - 40; // some padding
+        $availableHeight = self::TEXT_BAR_HEIGHT - $barHeight - $ribbonHeight - 40;
         $gap = 10;
         
         // Auto-scale headline and subheadline
         $scaledHeadlineSize = $headlineFontSize;
         $scaledSubheadlineSize = $subheadlineFontSize;
         $transformedHeadline = strtoupper($headline);
-        $transformedSubheadline = strtoupper($subheadline); // Making it uppercase like the image style
+        $transformedSubheadline = strtoupper($subheadline);
         
         $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
         $subheadlineH = $this->calculateTextHeight($transformedSubheadline, $fontPath, $scaledSubheadlineSize);
@@ -711,32 +787,33 @@ class PinterestDesignService
         $mainAreaStartY = $textBarStartY + $barHeight + 10;
         $startY = $mainAreaStartY + ($availableHeight - $totalTextHeight) / 2;
 
-        // Draw Headline (Bold, Uppercase, Brown)
+        // Draw Headline (Bold, Uppercase)
         if (!empty($transformedHeadline)) {
-            $actualHeight = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, $centerX, $startY, $brown);
+            $actualHeight = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, $centerX, $startY, $headlineTextColor);
             $startY += $actualHeight + $gap;
         }
 
-        // Draw Subheadline (Below Headline, Brown)
+        // Draw Subheadline (Below Headline)
         if (!empty($transformedSubheadline)) {
-            $this->drawCenteredText($canvas, $transformedSubheadline, $fontPath, $scaledSubheadlineSize, $centerX, $startY, $brown);
+            $this->drawCenteredText($canvas, $transformedSubheadline, $fontPath, $scaledSubheadlineSize, $centerX, $startY, $subheadlineTextColor);
         }
 
         // 4. Draw the ribbon (polygon points for notched ribbon)
         $points = [
-            $ribbonMargin, (int)$ribbonY,                               // Top left
-            self::PIN_WIDTH - $ribbonMargin, (int)$ribbonY,              // Top right
-            self::PIN_WIDTH - $ribbonMargin - $notchDepth, (int)$ribbonY + ($ribbonHeight / 2), // Right notch peak
-            self::PIN_WIDTH - $ribbonMargin, (int)$ribbonY + $ribbonHeight, // Bottom right
-            $ribbonMargin, (int)$ribbonY + $ribbonHeight,                // Bottom left
-            $ribbonMargin + $notchDepth, (int)$ribbonY + ($ribbonHeight / 2), // Left notch peak
+            $ribbonMargin, (int)$ribbonY,
+            self::PIN_WIDTH - $ribbonMargin, (int)$ribbonY,
+            self::PIN_WIDTH - $ribbonMargin - $notchDepth, (int)$ribbonY + ($ribbonHeight / 2),
+            self::PIN_WIDTH - $ribbonMargin, (int)$ribbonY + $ribbonHeight,
+            $ribbonMargin, (int)$ribbonY + $ribbonHeight,
+            $ribbonMargin + $notchDepth, (int)$ribbonY + ($ribbonHeight / 2),
         ];
-        imagefilledpolygon($canvas, $points, 6, $brown);
+        imagefilledpolygon($canvas, $points, 6, $primaryColor);
 
         // Draw Domain Name (inside the ribbon)
         $displayDomain = $domainName ?: 'WWW.YOURDOMAIN.COM';
         $transformedDomain = strtoupper($displayDomain);
         $domainFontSize = 18;
+        $white = imagecolorallocate($canvas, 255, 255, 255);
         
         // Auto-scale domain to fit ribbon
         while (($this->calculateTextHeight($transformedDomain, $fontPath, $domainFontSize) > ($ribbonHeight - 10) || 
@@ -761,6 +838,10 @@ class PinterestDesignService
         $bottomImagePath, 
         $headline, 
         $subheadline,
+        $headlineColor = '#16120b',
+        $subheadlineColor = '#16120b',
+        $overlayColor = '#eba13e',
+        $overlayOpacity = 100,
         $headlineFont = 'sans-serif',
         $subheadlineFont = 'script',
         int $headlineFontSize = 28,
@@ -774,8 +855,6 @@ class PinterestDesignService
         $bottomImageStartY = $imageHeight + self::TEXT_BAR_HEIGHT;
 
         // Colors
-        $orange = imagecolorallocate($canvas, 235, 161, 62); // #eba13e - warm orange
-        $darkCapsule = imagecolorallocate($canvas, 22, 18, 11); // #16120b - very dark
         $white = imagecolorallocate($canvas, 255, 255, 255);
         $starColor = imagecolorallocate($canvas, 227, 201, 172); // #e3c9ac - light beige star
 
@@ -793,10 +872,22 @@ class PinterestDesignService
             imagedestroy($bottomImage);
         }
 
-        // 1. Draw the orange background for the text area
-        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $orange);
+        // 1. Draw the background for the text area (overlay color)
+        $overlayRgb = $this->hexToRgb($overlayColor);
+        $alphaValue = (int) ((100 - $overlayOpacity) * 1.27);
+        $overlayAlphaColor = imagecolorallocatealpha(
+            $canvas,
+            $overlayRgb['r'],
+            $overlayRgb['g'],
+            $overlayRgb['b'],
+            $alphaValue
+        );
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $overlayAlphaColor);
 
-        // 2. Draw the top capsule with stars
+        // 2. Draw the top capsule with stars (using headline color for background)
+        $headlineRgb = $this->hexToRgb($headlineColor);
+        $darkCapsule = imagecolorallocate($canvas, $headlineRgb['r'], $headlineRgb['g'], $headlineRgb['b']);
+        
         $capsuleWidth = 140;
         $capsuleHeight = 35;
         $capsuleX = (self::PIN_WIDTH - $capsuleWidth) / 2;
@@ -840,10 +931,14 @@ class PinterestDesignService
         }
         
         $domainH = $this->calculateTextHeight($displayDomain, $fontPath, $domainSize);
-        $domainY = $bottomCapsuleY + ($bottomCapsuleHeight - $domainH) / 2 - 2;
-        $this->drawCenteredText($canvas, $displayDomain, $fontPath, $domainSize, self::PIN_WIDTH / 2, $domainY, $white);
+        $domainTextY = $bottomCapsuleY + ($bottomCapsuleHeight - $domainH) / 2 - 2;
+        $this->drawCenteredText($canvas, $displayDomain, $fontPath, $domainSize, self::PIN_WIDTH / 2, $domainTextY, $white);
 
-        // 4. Draw Headline and Subheadline in the orange area
+        // 4. Draw Headline and Subheadline
+        $subheadlineRgb = $this->hexToRgb($subheadlineColor);
+        $headlineTextColor = imagecolorallocate($canvas, $headlineRgb['r'], $headlineRgb['g'], $headlineRgb['b']);
+        $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
+
         $availableHeight = self::TEXT_BAR_HEIGHT - ($capsuleHeight / 2) - ($bottomCapsuleHeight / 2) - 40;
         $mainAreaStartY = $textBarStartY + ($capsuleHeight / 2) + 20;
         
@@ -872,12 +967,12 @@ class PinterestDesignService
         $startY = $mainAreaStartY + ($availableHeight - $totalH) / 2;
         
         if (!empty($transformedHeadline)) {
-            $h = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, self::PIN_WIDTH / 2, $startY, $darkCapsule);
+            $h = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, self::PIN_WIDTH / 2, $startY, $headlineTextColor);
             $startY += $h + $gap;
         }
         
         if (!empty($transformedSub)) {
-            $this->drawCenteredText($canvas, $transformedSub, $fontPath, $scaledSubSize, self::PIN_WIDTH / 2, $startY, $darkCapsule);
+            $this->drawCenteredText($canvas, $transformedSub, $fontPath, $scaledSubSize, self::PIN_WIDTH / 2, $startY, $subheadlineTextColor);
         }
     }
 
@@ -891,6 +986,10 @@ class PinterestDesignService
         $bottomImagePath, 
         $headline, 
         $subheadline,
+        $headlineColor = '#000000',
+        $subheadlineColor = '#000000',
+        $overlayColor = '#ffffff',
+        $overlayOpacity = 100,
         $headlineFont = 'sans-serif',
         $subheadlineFont = 'script',
         int $headlineFontSize = 28,
@@ -905,7 +1004,6 @@ class PinterestDesignService
 
         // Colors
         $white = imagecolorallocate($canvas, 255, 255, 255);
-        $black = imagecolorallocate($canvas, 0, 0, 0);
 
         // Top image
         $topImage = $this->loadImage($topImagePath);
@@ -921,15 +1019,30 @@ class PinterestDesignService
             imagedestroy($bottomImage);
         }
 
-        // 1. Draw white background for text bar area
-        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $white);
+        // 1. Draw background for text bar area (overlay color)
+        $overlayRgb = $this->hexToRgb($overlayColor);
+        $alphaValue = (int) ((100 - $overlayOpacity) * 1.27);
+        $overlayAlphaColor = imagecolorallocatealpha(
+            $canvas,
+            $overlayRgb['r'],
+            $overlayRgb['g'],
+            $overlayRgb['b'],
+            $alphaValue
+        );
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $overlayAlphaColor);
 
-        // 2. Draw thick black horizontal lines at top and bottom
+        // 2. Draw thick horizontal lines at top and bottom (using headline color)
+        $headlineRgb = $this->hexToRgb($headlineColor);
+        $primaryColor = imagecolorallocate($canvas, $headlineRgb['r'], $headlineRgb['g'], $headlineRgb['b']);
         $lineThickness = 6;
-        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + $lineThickness), $black);
-        imagefilledrectangle($canvas, 0, (int)($bottomImageStartY - $lineThickness), self::PIN_WIDTH, (int)$bottomImageStartY, $black);
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + $lineThickness), $primaryColor);
+        imagefilledrectangle($canvas, 0, (int)($bottomImageStartY - $lineThickness), self::PIN_WIDTH, (int)$bottomImageStartY, $primaryColor);
 
         // Draw text
+        $subheadlineRgb = $this->hexToRgb($subheadlineColor);
+        $headlineTextColor = imagecolorallocate($canvas, $headlineRgb['r'], $headlineRgb['g'], $headlineRgb['b']);
+        $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
+
         $fontPath = $this->getFontPath($headlineFont);
         $centerX = self::PIN_WIDTH / 2;
         
@@ -964,16 +1077,16 @@ class PinterestDesignService
         
         // Draw Headline
         if (!empty($transformedHeadline)) {
-            $h = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, self::PIN_WIDTH / 2, $startY, $black);
+            $h = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, self::PIN_WIDTH / 2, $startY, $headlineTextColor);
             $startY += $h + $gap;
         }
         
         // Draw Subheadline
         if (!empty($transformedSub)) {
-            $this->drawCenteredText($canvas, $transformedSub, $fontPath, $scaledSubSize, self::PIN_WIDTH / 2, $startY, $black);
+            $this->drawCenteredText($canvas, $transformedSub, $fontPath, $scaledSubSize, self::PIN_WIDTH / 2, $startY, $subheadlineTextColor);
         }
 
-        // 3. Draw black domain bar overlapping the bottom line
+        // 3. Draw domain bar overlapping the bottom line
         $displayDomain = strtolower($domainName ?: 'www.yourdomain.com');
         $domainFontSize = 16;
         $domainPadding = 20;
@@ -987,11 +1100,10 @@ class PinterestDesignService
         $barX = (self::PIN_WIDTH - $barWidth) / 2;
         $barY = $bottomImageStartY - ($barHeight / 2);
         
-        // Draw black rectangle for domain
-        imagefilledrectangle($canvas, (int)$barX, (int)$barY, (int)($barX + $barWidth), (int)($barY + $barHeight), $black);
+        // Draw rectangle for domain
+        imagefilledrectangle($canvas, (int)$barX, (int)$barY, (int)($barX + $barWidth), (int)($barY + $barHeight), $primaryColor);
         
         // Draw white domain text
-        $domainTextY = $barY + ($barHeight - $domainFontSize) / 2 + $domainFontSize - 2;
         $this->drawCenteredText($canvas, $displayDomain, $fontPath, $domainFontSize, self::PIN_WIDTH / 2, $barY + ($barHeight - $domainFontSize) / 2 - 2, $white);
     }
 
@@ -1005,6 +1117,10 @@ class PinterestDesignService
         $bottomImagePath, 
         $headline, 
         $subheadline,
+        $headlineColor = '#ffffff',
+        $subheadlineColor = '#ffffff',
+        $overlayColor = '#e67e22',
+        $overlayOpacity = 100,
         $headlineFont = 'sans-serif',
         $subheadlineFont = 'script',
         int $headlineFontSize = 32,
@@ -1017,9 +1133,7 @@ class PinterestDesignService
         $bottomImageStartY = $imageHeight + self::TEXT_BAR_HEIGHT;
 
         // Colors
-        $orange = imagecolorallocate($canvas, 230, 126, 34); // #e67e22 - vibrant orange
         $yellow = imagecolorallocate($canvas, 241, 196, 15); // #f1c40f - bright yellow
-        $white = imagecolorallocate($canvas, 255, 255, 255);
 
         // 1. Place Images (Background)
         $topImage = $this->loadImage($topImagePath);
@@ -1034,15 +1148,32 @@ class PinterestDesignService
             imagedestroy($bottomImage);
         }
 
-        // 2. Draw the orange background for the text area
-        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $orange);
+        // 2. Draw background for the text area (overlay color)
+        $overlayRgb = $this->hexToRgb($overlayColor);
+        $alphaValue = (int) ((100 - $overlayOpacity) * 1.27);
+        $overlayAlphaColor = imagecolorallocatealpha(
+            $canvas,
+            $overlayRgb['r'],
+            $overlayRgb['g'],
+            $overlayRgb['b'],
+            $alphaValue
+        );
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $overlayAlphaColor);
 
-        // 3. Draw thin yellow accent lines at top and bottom of orange bar
+        // 3. Draw thin accent lines at top and bottom of bar (using yellow or could use headline color?)
+        // Let's stick to yellow as it's part of the "crispy" design, or we could use headline color. 
+        // Given user wants to change colors, maybe we should use headline color for these too.
+        $headlineRgb = $this->hexToRgb($headlineColor);
+        $accentColor = imagecolorallocate($canvas, $headlineRgb['r'], $headlineRgb['g'], $headlineRgb['b']);
         $lineThickness = 4;
-        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + $lineThickness), $yellow);
-        imagefilledrectangle($canvas, 0, (int)($bottomImageStartY - $lineThickness), self::PIN_WIDTH, (int)$bottomImageStartY, $yellow);
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + $lineThickness), $accentColor);
+        imagefilledrectangle($canvas, 0, (int)($bottomImageStartY - $lineThickness), self::PIN_WIDTH, (int)$bottomImageStartY, $accentColor);
 
         // Draw text
+        $subheadlineRgb = $this->hexToRgb($subheadlineColor);
+        $headlineTextColor = imagecolorallocate($canvas, $headlineRgb['r'], $headlineRgb['g'], $headlineRgb['b']);
+        $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
+
         $fontPath = $this->getFontPath($headlineFont);
         $centerX = self::PIN_WIDTH / 2;
         
@@ -1075,15 +1206,15 @@ class PinterestDesignService
         
         $startY = $mainAreaStartY + ($availableHeight - $totalH) / 2;
         
-        // Draw Headline (Bold white caps)
+        // Draw Headline
         if (!empty($transformedHeadline)) {
-            $h = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, self::PIN_WIDTH / 2, $startY, $white);
+            $h = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, self::PIN_WIDTH / 2, $startY, $headlineTextColor);
             $startY += $h + $gap;
         }
         
-        // Draw Subheadline (White)
+        // Draw Subheadline
         if (!empty($transformedSub)) {
-            $this->drawCenteredText($canvas, $transformedSub, $fontPath, $scaledSubSize, self::PIN_WIDTH / 2, $startY, $white);
+            $this->drawCenteredText($canvas, $transformedSub, $fontPath, $scaledSubSize, self::PIN_WIDTH / 2, $startY, $subheadlineTextColor);
         }
     }
 
@@ -1097,6 +1228,10 @@ class PinterestDesignService
         $bottomImagePath, 
         $headline, 
         $subheadline,
+        $headlineColor = '#000000',
+        $subheadlineColor = '#000000',
+        $overlayColor = '#ffffff',
+        $overlayOpacity = 100,
         $headlineFont = 'sans-serif',
         $subheadlineFont = 'sans-serif',
         int $headlineFontSize = 32,
@@ -1107,11 +1242,6 @@ class PinterestDesignService
         $topImageStartY = 0;
         $textBarStartY = $imageHeight;
         $bottomImageStartY = $imageHeight + self::TEXT_BAR_HEIGHT;
-
-        // Colors
-        $white = imagecolorallocate($canvas, 255, 255, 255);
-        $black = imagecolorallocate($canvas, 0, 0, 0);
-        $offWhite = imagecolorallocate($canvas, 252, 252, 252); // Very subtle difference for the "torn" area
 
         // 1. Place Images (Background)
         $topImage = $this->loadImage($topImagePath);
@@ -1126,14 +1256,29 @@ class PinterestDesignService
             imagedestroy($bottomImage);
         }
 
-        // 2. Draw white background for text area
-        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $white);
+        // 2. Draw background for text area (overlay color)
+        $overlayRgb = $this->hexToRgb($overlayColor);
+        $alphaValue = (int) ((100 - $overlayOpacity) * 1.27);
+        $overlayAlphaColor = imagecolorallocatealpha(
+            $canvas,
+            $overlayRgb['r'],
+            $overlayRgb['g'],
+            $overlayRgb['b'],
+            $alphaValue
+        );
+        imagefilledrectangle($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, (int)($textBarStartY + self::TEXT_BAR_HEIGHT), $overlayAlphaColor);
 
-        // 3. Draw jagged "torn" edges
-        $this->drawJaggedEdge($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, true, $white);
-        $this->drawJaggedEdge($canvas, 0, (int)$bottomImageStartY, self::PIN_WIDTH, false, $white);
+        // 3. Draw jagged "torn" edges (using overlay color)
+        $overlayFullColor = imagecolorallocate($canvas, $overlayRgb['r'], $overlayRgb['g'], $overlayRgb['b']);
+        $this->drawJaggedEdge($canvas, 0, (int)$textBarStartY, self::PIN_WIDTH, true, $overlayFullColor);
+        $this->drawJaggedEdge($canvas, 0, (int)$bottomImageStartY, self::PIN_WIDTH, false, $overlayFullColor);
 
         // 4. Text Rendering
+        $headlineRgb = $this->hexToRgb($headlineColor);
+        $subheadlineRgb = $this->hexToRgb($subheadlineColor);
+        $headlineTextColor = imagecolorallocate($canvas, $headlineRgb['r'], $headlineRgb['g'], $headlineRgb['b']);
+        $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
+
         $fontPath = $this->getFontPath($headlineFont);
         $centerX = self::PIN_WIDTH / 2;
         
@@ -1168,13 +1313,13 @@ class PinterestDesignService
         
         // Draw Headline
         if (!empty($transformedHeadline)) {
-            $h = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, $centerX, $startY, $black);
+            $h = $this->drawCenteredText($canvas, $transformedHeadline, $fontPath, $scaledHeadlineSize, $centerX, $startY, $headlineTextColor);
             $startY += $h + $gap;
         }
         
         // Draw Subheadline
         if (!empty($transformedSub)) {
-            $this->drawCenteredText($canvas, $transformedSub, $fontPath, $scaledSubSize, $centerX, $startY, $black);
+            $this->drawCenteredText($canvas, $transformedSub, $fontPath, $scaledSubSize, $centerX, $startY, $subheadlineTextColor);
         }
     }
 

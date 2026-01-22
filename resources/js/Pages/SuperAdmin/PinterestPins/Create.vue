@@ -550,16 +550,18 @@ const submitForm = () => {
                             <!-- Text Overlay - Black Christmas -->
                             <div 
                                 v-else-if="form.frame_design === 'black_christmas'"
-                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4 bg-black overflow-hidden"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4 overflow-hidden"
                                 style="top: 40.2%; height: 19.6%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
                             >
                                 <!-- Top decorative line -->
-                                <div class="absolute top-2 left-0 right-0 h-0.5 bg-white"></div>
+                                <div class="absolute top-2 left-0 right-0 h-0.5" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
                                 <!-- Bottom decorative line -->
-                                <div class="absolute bottom-2 left-0 right-0 h-0.5 bg-white"></div>
+                                <div class="absolute bottom-2 left-0 right-0 h-0.5" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
                                 <p 
-                                    class="text-center font-bold text-white tracking-wide capitalize w-full px-1"
+                                    class="text-center font-bold tracking-wide capitalize w-full px-1"
                                     :style="{ 
+                                        color: previewStyles.headlineColor,
                                         fontSize: previewStyles.headlineFontSize,
                                         fontFamily: previewStyles.headlineFontFamily,
                                         wordWrap: 'break-word',
@@ -569,8 +571,9 @@ const submitForm = () => {
                                     {{ form.headline_text || 'White Christmas' }}
                                 </p>
                                 <p 
-                                    class="text-center text-white mt-1 capitalize w-full px-1"
+                                    class="text-center mt-1 capitalize w-full px-1"
                                     :style="{ 
+                                        color: previewStyles.subheadlineColor,
                                         fontSize: previewStyles.subheadlineFontSize,
                                         fontFamily: previewStyles.subheadlineFontFamily,
                                         wordWrap: 'break-word',
@@ -585,7 +588,8 @@ const submitForm = () => {
                             <div 
                                 v-else-if="form.frame_design === 'green_dashed'"
                                 class="absolute left-0 right-0 flex flex-col items-center justify-center px-4 overflow-hidden"
-                                style="top: 40.2%; height: 19.6%; background-color: #22c55e;"
+                                style="top: 40.2%; height: 19.6%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
                             >
                                 <!-- Top dashed line -->
                                 <div class="absolute top-2 left-0 right-0 flex gap-1.5 px-1">
@@ -596,8 +600,9 @@ const submitForm = () => {
                                     <div v-for="i in 20" :key="'bottom-'+i" class="flex-1 h-1 bg-white rounded-sm"></div>
                                 </div>
                                 <p 
-                                    class="text-center font-bold text-white lowercase tracking-wide w-full px-1"
+                                    class="text-center font-bold lowercase tracking-wide w-full px-1"
                                     :style="{ 
+                                        color: previewStyles.headlineColor,
                                         fontSize: previewStyles.headlineFontSize,
                                         fontFamily: previewStyles.headlineFontFamily,
                                         wordWrap: 'break-word',
@@ -609,9 +614,9 @@ const submitForm = () => {
                                 <p 
                                     class="text-center italic mt-1 w-full px-1"
                                     :style="{ 
+                                        color: previewStyles.subheadlineColor,
                                         fontSize: previewStyles.subheadlineFontSize,
                                         fontFamily: previewStyles.subheadlineFontFamily,
-                                        color: '#166534',
                                         wordWrap: 'break-word',
                                         lineHeight: '1.1'
                                     }"
@@ -623,16 +628,18 @@ const submitForm = () => {
                             <!-- Text Overlay - Ribbon Banner -->
                             <div 
                                 v-else-if="form.frame_design === 'ribbon_banner'"
-                                class="absolute left-0 right-0 flex flex-col items-center justify-between py-2 bg-[#fffdf1] overflow-hidden"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-between py-2 overflow-hidden"
                                 style="top: 40.2%; height: 19.6%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
                             >
-                                <!-- Top thick brown bar -->
-                                <div class="absolute top-0 left-0 right-0 h-4 bg-[#8b4513]"></div>
+                                <!-- Top thick bar -->
+                                <div class="absolute top-0 left-0 right-0 h-4" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
                                 
                                 <div class="flex-1 flex flex-col items-center justify-center w-full px-2 mt-4">
                                     <p 
-                                        class="text-center font-bold text-[#8b4513] uppercase w-full leading-tight"
+                                        class="text-center font-bold uppercase w-full leading-tight"
                                         :style="{ 
+                                            color: previewStyles.headlineColor,
                                             fontSize: previewStyles.headlineFontSize,
                                             fontFamily: previewStyles.headlineFontFamily,
                                             wordWrap: 'break-word'
@@ -641,8 +648,9 @@ const submitForm = () => {
                                         {{ form.headline_text || 'BISCOFF COOKIE BUTTER' }}
                                     </p>
                                     <p 
-                                        class="text-center font-bold text-[#8b4513] uppercase w-full mt-1 leading-tight"
+                                        class="text-center font-bold uppercase w-full mt-1 leading-tight"
                                         :style="{ 
+                                            color: previewStyles.subheadlineColor,
                                             fontSize: previewStyles.subheadlineFontSize,
                                             fontFamily: previewStyles.headlineFontFamily,
                                             wordWrap: 'break-word'
@@ -654,13 +662,14 @@ const submitForm = () => {
 
                                 <!-- Ribbon -->
                                 <div 
-                                    class="relative w-[85%] bg-[#8b4513] flex items-center justify-center mb-2"
+                                    class="relative w-[85%] flex items-center justify-center mb-2"
                                     style="height: 18%;"
+                                    :style="{ backgroundColor: previewStyles.headlineColor }"
                                 >
                                     <!-- Notch Left -->
-                                    <div class="absolute left-0 top-0 bottom-0 w-3 bg-[#fffdf1]" style="clip-path: polygon(0 0, 100% 50%, 0 100%);"></div>
+                                    <div class="absolute left-0 top-0 bottom-0 w-3" :style="{ backgroundColor: form.overlay_color, clipPath: 'polygon(0 0, 100% 50%, 0 100%)' }"></div>
                                     <!-- Notch Right -->
-                                    <div class="absolute right-0 top-0 bottom-0 w-3 bg-[#fffdf1]" style="clip-path: polygon(100% 0, 0 50%, 100% 100%);"></div>
+                                    <div class="absolute right-0 top-0 bottom-0 w-3" :style="{ backgroundColor: form.overlay_color, clipPath: 'polygon(100% 0, 0 50%, 100% 100%)' }"></div>
                                     
                                     <p 
                                         class="text-center font-bold text-white uppercase tracking-wider px-4 text-[10px]"
@@ -671,20 +680,76 @@ const submitForm = () => {
                                 </div>
                             </div>
 
-                            <!-- Text Overlay - Minimal Bold -->
+                            <!-- Text Overlay - Star Rating -->
                             <div 
-                                v-else-if="form.frame_design === 'minimal_bold'"
-                                class="absolute left-0 right-0 flex flex-col items-center justify-center bg-white overflow-visible"
+                                v-else-if="form.frame_design === 'star_rating'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4 overflow-hidden"
                                 style="top: 40.2%; height: 19.6%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
                             >
-                                <!-- Top and Bottom thick black lines -->
-                                <div class="absolute top-0 left-0 right-0 h-1 bg-black"></div>
-                                <div class="absolute bottom-0 left-0 right-0 h-1 bg-black"></div>
+                                <!-- Top capsule with stars -->
+                                <div 
+                                    class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 h-6 rounded-full flex items-center justify-center gap-0.5 z-10"
+                                    :style="{ backgroundColor: previewStyles.headlineColor }"
+                                >
+                                    <div v-for="i in 5" :key="'star-'+i" class="w-2 h-2 bg-yellow-200" style="clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);"></div>
+                                </div>
 
                                 <div class="flex flex-col items-center justify-center w-full px-2">
                                     <p 
-                                        class="text-center font-bold text-black lowercase w-full leading-tight"
+                                        class="text-center font-bold uppercase w-full leading-tight"
                                         :style="{ 
+                                            color: previewStyles.headlineColor,
+                                            fontSize: previewStyles.headlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.headline_text || 'COZY CINNAMON' }}
+                                    </p>
+                                    <p 
+                                        class="text-center font-bold uppercase w-full mt-1 leading-tight"
+                                        :style="{ 
+                                            color: previewStyles.subheadlineColor,
+                                            fontSize: previewStyles.subheadlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.subheadline_text || 'SUGAR DONUT' }}
+                                    </p>
+                                </div>
+
+                                <!-- Domain Name Capsule -->
+                                <div 
+                                    class="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 h-6 rounded-full flex items-center justify-center z-10 min-w-[100px]"
+                                    :style="{ backgroundColor: previewStyles.headlineColor }"
+                                >
+                                    <p 
+                                        class="text-center font-bold text-white uppercase text-[9px] tracking-wider"
+                                        :style="{ fontFamily: previewStyles.headlineFontFamily }"
+                                    >
+                                        {{ form.domain_name || 'WWW.HADIK.COM' }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Text Overlay - Minimal Bold -->
+                            <div 
+                                v-else-if="form.frame_design === 'minimal_bold'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center overflow-visible"
+                                style="top: 40.2%; height: 19.6%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
+                            >
+                                <!-- Top and Bottom thick lines -->
+                                <div class="absolute top-0 left-0 right-0 h-1" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
+                                <div class="absolute bottom-0 left-0 right-0 h-1" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
+
+                                <div class="flex flex-col items-center justify-center w-full px-2">
+                                    <p 
+                                        class="text-center font-bold lowercase w-full leading-tight"
+                                        :style="{ 
+                                            color: previewStyles.headlineColor,
                                             fontSize: previewStyles.headlineFontSize,
                                             fontFamily: previewStyles.headlineFontFamily,
                                             wordWrap: 'break-word'
@@ -693,8 +758,9 @@ const submitForm = () => {
                                         {{ form.headline_text || 'yesy folder this' }}
                                     </p>
                                     <p 
-                                        class="text-center text-black lowercase w-full mt-1 leading-tight"
+                                        class="text-center lowercase w-full mt-1 leading-tight"
                                         :style="{ 
+                                            color: previewStyles.subheadlineColor,
                                             fontSize: previewStyles.subheadlineFontSize,
                                             fontFamily: previewStyles.headlineFontFamily,
                                             wordWrap: 'break-word'
@@ -705,7 +771,10 @@ const submitForm = () => {
                                 </div>
 
                                 <!-- Domain Name Bar -->
-                                <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 h-6 bg-black flex items-center justify-center z-10 min-w-[100px]">
+                                <div 
+                                    class="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 h-6 flex items-center justify-center z-10 min-w-[100px]"
+                                    :style="{ backgroundColor: previewStyles.headlineColor }"
+                                >
                                     <p 
                                         class="text-center font-bold text-white lowercase text-[9px] tracking-wider"
                                         :style="{ fontFamily: previewStyles.headlineFontFamily }"
@@ -718,17 +787,19 @@ const submitForm = () => {
                             <!-- Text Overlay - Crispy Orange -->
                             <div 
                                 v-else-if="form.frame_design === 'crispy_orange'"
-                                class="absolute left-0 right-0 flex flex-col items-center justify-center bg-[#e67e22] overflow-hidden"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center overflow-hidden"
                                 style="top: 40.2%; height: 19.6%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
                             >
-                                <!-- Top and Bottom yellow accent lines -->
-                                <div class="absolute top-0 left-0 right-0 h-1 bg-[#f1c40f]"></div>
-                                <div class="absolute bottom-0 left-0 right-0 h-1 bg-[#f1c40f]"></div>
+                                <!-- Top and Bottom accent lines -->
+                                <div class="absolute top-0 left-0 right-0 h-1" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
+                                <div class="absolute bottom-0 left-0 right-0 h-1" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
 
                                 <div class="flex flex-col items-center justify-center w-full px-2">
                                     <p 
-                                        class="text-center font-bold text-white uppercase w-full leading-tight"
+                                        class="text-center font-bold uppercase w-full leading-tight"
                                         :style="{ 
+                                            color: previewStyles.headlineColor,
                                             fontSize: previewStyles.headlineFontSize,
                                             fontFamily: previewStyles.headlineFontFamily,
                                             wordWrap: 'break-word'
@@ -737,8 +808,9 @@ const submitForm = () => {
                                         {{ form.headline_text || 'crispy oven roasted' }}
                                     </p>
                                     <p 
-                                        class="text-center text-white capitalize w-full mt-1 leading-tight"
+                                        class="text-center capitalize w-full mt-1 leading-tight"
                                         :style="{ 
+                                            color: previewStyles.subheadlineColor,
                                             fontSize: previewStyles.subheadlineFontSize,
                                             fontFamily: previewStyles.headlineFontFamily,
                                             wordWrap: 'break-word'
@@ -752,19 +824,21 @@ const submitForm = () => {
                             <!-- Text Overlay - Torn Paper -->
                             <div 
                                 v-else-if="form.frame_design === 'torn_paper'"
-                                class="absolute left-0 right-0 flex flex-col items-center justify-center bg-white"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center"
                                 style="top: 40.2%; height: 19.6%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
                             >
                                 <!-- Jagged Edge Top -->
-                                <div class="absolute top-0 left-0 right-0 h-4 -mt-2 bg-white" style="clip-path: polygon(0% 100%, 5% 20%, 10% 80%, 15% 10%, 20% 90%, 25% 30%, 30% 70%, 35% 0%, 40% 100%, 45% 20%, 50% 80%, 55% 10%, 60% 90%, 65% 30%, 70% 70%, 75% 0%, 80% 100%, 85% 20%, 90% 80%, 95% 10%, 100% 100%);"></div>
+                                <div class="absolute top-0 left-0 right-0 h-4 -mt-2" :style="{ backgroundColor: form.overlay_color, clipPath: 'polygon(0% 100%, 5% 20%, 10% 80%, 15% 10%, 20% 90%, 25% 30%, 30% 70%, 35% 0%, 40% 100%, 45% 20%, 50% 80%, 55% 10%, 60% 90%, 65% 30%, 70% 70%, 75% 0%, 80% 100%, 85% 20%, 90% 80%, 95% 10%, 100% 100%)' }"></div>
                                 
                                 <!-- Jagged Edge Bottom -->
-                                <div class="absolute bottom-0 left-0 right-0 h-4 -mb-2 bg-white" style="clip-path: polygon(0% 0%, 5% 80%, 10% 20%, 15% 90%, 20% 10%, 25% 70%, 30% 30%, 35% 100%, 40% 0%, 45% 80%, 50% 20%, 55% 90%, 60% 10%, 65% 70%, 70% 30%, 75% 100%, 80% 0%, 85% 80%, 90% 20%, 95% 90%, 100% 0%);"></div>
+                                <div class="absolute bottom-0 left-0 right-0 h-4 -mb-2" :style="{ backgroundColor: form.overlay_color, clipPath: 'polygon(0% 0%, 5% 80%, 10% 20%, 15% 90%, 20% 10%, 25% 70%, 30% 30%, 35% 100%, 40% 0%, 45% 80%, 50% 20%, 55% 90%, 60% 10%, 65% 70%, 70% 30%, 75% 100%, 80% 0%, 85% 80%, 90% 20%, 95% 90%, 100% 0%)' }"></div>
 
                                 <div class="flex flex-col items-center justify-center w-full px-4 z-10">
                                     <p 
-                                        class="text-center font-bold text-black w-full leading-tight"
+                                        class="text-center font-bold w-full leading-tight"
                                         :style="{ 
+                                            color: previewStyles.headlineColor,
                                             fontSize: previewStyles.headlineFontSize,
                                             fontFamily: previewStyles.headlineFontFamily,
                                             wordWrap: 'break-word'
@@ -773,8 +847,9 @@ const submitForm = () => {
                                         {{ form.headline_text || 'Test Folder cd' }}
                                     </p>
                                     <p 
-                                        class="text-center font-bold text-black w-full mt-2 leading-tight"
+                                        class="text-center font-bold w-full mt-2 leading-tight"
                                         :style="{ 
+                                            color: previewStyles.subheadlineColor,
                                             fontSize: previewStyles.subheadlineFontSize,
                                             fontFamily: previewStyles.headlineFontFamily,
                                             wordWrap: 'break-word'
