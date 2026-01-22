@@ -13,6 +13,8 @@ const form = useForm({
     domain: '',
     subdomain: '',
     description: '',
+    hbagency_script: '',
+    ads_txt: '',
     is_active: true,
     logo: null,
     favicon: null,
@@ -257,6 +259,27 @@ const submit = () => {
                             placeholder="A brief description of your website..."
                         ></textarea>
                         <p v-if="form.errors.description" class="mt-1 text-sm text-red-500">{{ form.errors.description }}</p>
+                    </div>
+
+                    <!-- Ads.txt Section -->
+                    <div>
+                        <label for="ads_txt" class="block text-sm font-medium text-gray-300 mb-2">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Ads.txt Content (Optional)
+                            </div>
+                        </label>
+                        <textarea
+                            id="ads_txt"
+                            v-model="form.ads_txt"
+                            rows="6"
+                            class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                            placeholder="google.com, pub-xxxxxxxxxxxxxxxx, DIRECT, f08c47fec0942fa0"
+                        ></textarea>
+                        <p class="mt-1 text-xs text-gray-500">Paste the content for your website's ads.txt file. This is required by many ad networks like Google Ads and HB Agency.</p>
+                        <p v-if="form.errors.ads_txt" class="mt-1 text-sm text-red-500">{{ form.errors.ads_txt }}</p>
                     </div>
 
                     <!-- Logo Upload -->

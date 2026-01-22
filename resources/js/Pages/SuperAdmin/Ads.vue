@@ -99,6 +99,37 @@ import { Head } from '@inertiajs/vue3';
                         </div>
                     </div>
                 </div>
+
+                <!-- Ads.txt Card -->
+                <div class="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-white font-semibold">Ads.txt</h3>
+                            <p class="text-blue-400 text-sm">Authorized Digital Sellers</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="bg-[#252525] rounded-lg p-4">
+                            <div class="flex items-start gap-3">
+                                <svg class="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div>
+                                    <p class="text-gray-300 text-sm">The ads.txt file is required by Google Ads, HBAgency, and others.</p>
+                                    <p class="text-gray-500 text-xs mt-2">Configure it in <span class="text-blue-400">Settings</span>. It will be served at <code class="bg-black/30 px-1 rounded">/ads.txt</code></p>
+                                </div>
+                            </div>
+                        </div>
+                        <a :href="'/ads.txt'" target="_blank" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-medium transition-colors text-center block">
+                            View ads.txt
+                        </a>
+                    </div>
+                </div>
             </div>
 
             <!-- Ad Placements -->

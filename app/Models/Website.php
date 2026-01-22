@@ -25,6 +25,7 @@ class Website extends Model
         'theme_settings',
         'social_media',
         'hbagency_script',
+        'ads_txt',
         'hbagency_placements',
         'is_active',
         'published_at',

@@ -443,5 +443,33 @@ class PublicWebsiteController extends Controller
             'author' => $author,
         ]);
     }
+
+    /**
+     * Serve the ads.txt file for the website.
+     */
+    public function adsTxt(Request $request)
+    {
+        $website = $request->get('website');
+        
+        if (!$website) {
+            abort(404);
+        }
+
+        return response($website->ads_txt ?? '', 200)
+            ->header('Content-Type', 'text/plain');
+    }
+
+    /**
+     * Serve the ads.txt file for the website (legacy route).
+     */
+    public function adsTxtLegacy(string $websiteSlug)
+    {
+        $website = Website::where('slug', $websiteSlug)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        return response($website->ads_txt ?? '', 200)
+            ->header('Content-Type', 'text/plain');
+    }
 }
 

@@ -36,6 +36,7 @@ if (!$isLocalDev) {
         Route::get('/page/{page}', [PublicWebsiteController::class, 'showPageByDomain'])->name('website.page.subdomain');
         Route::get('/search', [PublicWebsiteController::class, 'search'])->name('website.search.subdomain');
         Route::post('/subscribe', [\App\Http\Controllers\SubscriberController::class, 'subscribeByDomain'])->name('website.subscribe.subdomain');
+        Route::get('/ads.txt', [PublicWebsiteController::class, 'adsTxt'])->name('website.ads_txt');
     });
 }
 
@@ -175,6 +176,7 @@ $registerMainAppRoutes = function () {
     Route::get('/site/{website}/page/{page}', [PublicWebsiteController::class, 'showPage'])->name('website.page');
     Route::get('/site/{website}/search', [PublicWebsiteController::class, 'searchLegacy'])->name('website.search');
     Route::post('/site/{website}/subscribe', [\App\Http\Controllers\SubscriberController::class, 'subscribe'])->name('website.subscribe');
+    Route::get('/site/{website}/ads.txt', [PublicWebsiteController::class, 'adsTxtLegacy'])->name('website.ads_txt.legacy');
     
     // Auth routes
     require __DIR__.'/auth.php';
@@ -206,5 +208,6 @@ if (!$isLocalDev) {
         Route::get('/page/{page}', [PublicWebsiteController::class, 'showPageByDomain'])->name('website.page.custom');
         Route::get('/search', [PublicWebsiteController::class, 'search'])->name('website.search.custom');
         Route::post('/subscribe', [\App\Http\Controllers\SubscriberController::class, 'subscribeByDomain'])->name('website.subscribe.custom');
+        Route::get('/ads.txt', [PublicWebsiteController::class, 'adsTxt'])->name('website.ads_txt.custom');
     });
 }
