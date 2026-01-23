@@ -37,9 +37,17 @@ class PinterestPinController extends Controller
         $this->authorize('view', $website);
 
         $pins = PinterestPin::where('website_id', $website->id)
+            ->where('status', '!=', 'missing_design')
             ->with(['article'])
             ->orderBy('created_at', 'desc')
             ->paginate(20);
+
+        // Get missing design pins
+        $missingDesignPins = PinterestPin::where('website_id', $website->id)
+            ->where('status', 'missing_design')
+            ->with(['article'])
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         // Get articles that have featured_image but don't have a Pinterest pin
         $articleIdsWithPins = PinterestPin::where('website_id', $website->id)
@@ -59,6 +67,7 @@ class PinterestPinController extends Controller
             $this->getCommonData($website),
             [
                 'pins' => $pins,
+                'missingDesignPins' => $missingDesignPins,
                 'articlesWithoutPins' => $articlesWithoutPins,
             ]
         ));
@@ -286,6 +295,16 @@ class PinterestPinController extends Controller
         $validated = $request->validate([
             'article_ids' => 'required|array|min:1',
             'article_ids.*' => 'exists:articles,id',
+            'headline_color' => 'nullable|string|max:20',
+            'subheadline_color' => 'nullable|string|max:20',
+            'headline_font' => 'nullable|string|max:50',
+            'subheadline_font' => 'nullable|string|max:50',
+            'headline_font_size' => 'nullable|integer|min:10|max:100',
+            'subheadline_font_size' => 'nullable|integer|min:10|max:100',
+            'overlay_color' => 'nullable|string|max:20',
+            'overlay_opacity' => 'nullable|integer|min:0|max:100',
+            'frame_design' => 'nullable|string|max:50',
+            'domain_name' => 'nullable|string|max:100',
         ]);
 
         $generated = 0;
@@ -304,16 +323,117 @@ class PinterestPinController extends Controller
             }
 
             try {
-                $pin = PinterestDesignService::createFromArticle($article);
-                if ($pin) {
-                    $generated++;
-                }
+                // Determine headline/subheadline from title
+                $titleWords = explode(' ', $article->title);
+                $midPoint = ceil(count($titleWords) / 2);
+                $headline = implode(' ', array_slice($titleWords, 0, $midPoint));
+                $subheadline = implode(' ', array_slice($titleWords, $midPoint));
+
+                // Create the pin record
+                $pin = PinterestPin::create([
+                    'website_id' => $website->id,
+                    'article_id' => $article->id,
+                    'user_id' => auth()->id(),
+                    'title' => $article->title,
+                    'description' => $article->meta_description ?? $article->excerpt,
+                    'link' => $article->url,
+                    'top_image' => $article->featured_image,
+                    'bottom_image' => $article->secondary_image ?? $article->featured_image,
+                    'headline_text' => $headline,
+                    'subheadline_text' => $subheadline,
+                    'headline_color' => $validated['headline_color'] ?? '#ffffff',
+                    'subheadline_color' => $validated['subheadline_color'] ?? '#d4a574',
+                    'headline_font' => $validated['headline_font'] ?? 'sans-serif',
+                    'subheadline_font' => $validated['subheadline_font'] ?? 'georgia',
+                    'headline_font_size' => $validated['headline_font_size'] ?? 28,
+                    'subheadline_font_size' => $validated['subheadline_font_size'] ?? 22,
+                    'overlay_color' => $validated['overlay_color'] ?? '#000000',
+                    'overlay_opacity' => $validated['overlay_opacity'] ?? 70,
+                    'frame_design' => $validated['frame_design'] ?? 'simple_center',
+                    'frame_settings' => [
+                        'domain_name' => $validated['domain_name'] ?? ($website->domain ?: ($website->slug ? $website->slug . '.com' : ''))
+                    ],
+                    'status' => 'pending',
+                ]);
+
+                // Generate the image
+                $service = new PinterestDesignService();
+                $service->generatePinImage($pin);
+                
+                $generated++;
             } catch (\Exception $e) {
                 $errors[] = "Failed for '{$article->title}': " . $e->getMessage();
             }
         }
 
         $message = "Generated {$generated} Pinterest pins.";
+        if (!empty($errors)) {
+            $message .= ' Some errors occurred: ' . implode('; ', array_slice($errors, 0, 3));
+        }
+
+        return back()->with('success', $message);
+    }
+
+    /**
+     * Bulk update and generate Pinterest pins.
+     */
+    public function bulkUpdateDesigns(Request $request, Website $website)
+    {
+        $this->authorize('view', $website);
+
+        $validated = $request->validate([
+            'pin_ids' => 'required|array|min:1',
+            'pin_ids.*' => 'exists:pinterest_pins,id',
+            'headline_color' => 'nullable|string|max:20',
+            'subheadline_color' => 'nullable|string|max:20',
+            'headline_font' => 'nullable|string|max:50',
+            'subheadline_font' => 'nullable|string|max:50',
+            'headline_font_size' => 'nullable|integer|min:10|max:100',
+            'subheadline_font_size' => 'nullable|integer|min:10|max:100',
+            'overlay_color' => 'nullable|string|max:20',
+            'overlay_opacity' => 'nullable|integer|min:0|max:100',
+            'frame_design' => 'nullable|string|max:50',
+            'domain_name' => 'nullable|string|max:100',
+        ]);
+
+        $generated = 0;
+        $errors = [];
+        $service = new PinterestDesignService();
+
+        foreach ($validated['pin_ids'] as $pinId) {
+            $pin = PinterestPin::find($pinId);
+            
+            if (!$pin || $pin->website_id !== $website->id) {
+                continue;
+            }
+
+            try {
+                // Prepare frame settings
+                $frameSettings = $pin->frame_settings ?? [];
+                if ($request->has('domain_name')) {
+                    $frameSettings['domain_name'] = $validated['domain_name'];
+                }
+
+                // Update pin with new settings
+                $pin->update(array_merge(
+                    array_filter($validated, function($key) {
+                        return !in_array($key, ['pin_ids', 'domain_name']);
+                    }, ARRAY_FILTER_USE_KEY),
+                    [
+                        'frame_settings' => $frameSettings,
+                        'status' => 'pending'
+                    ]
+                ));
+
+                // Generate the image
+                $service->generatePinImage($pin);
+                $generated++;
+            } catch (\Exception $e) {
+                $errors[] = "Failed for '{$pin->title}': " . $e->getMessage();
+            }
+        }
+
+        $message = "Successfully updated and generated {$generated} Pinterest pins.";
         if (!empty($errors)) {
             $message .= ' Some errors occurred: ' . implode('; ', array_slice($errors, 0, 3));
         }

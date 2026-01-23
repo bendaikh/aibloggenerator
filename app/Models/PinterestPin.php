@@ -133,6 +133,14 @@ class PinterestPin extends Model
     }
 
     /**
+     * Scope for pins with missing designs.
+     */
+    public function scopeMissingDesign($query)
+    {
+        return $query->where('status', 'missing_design');
+    }
+
+    /**
      * Scope for generated pins.
      */
     public function scopeGenerated($query)

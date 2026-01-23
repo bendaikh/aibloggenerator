@@ -119,6 +119,7 @@ $registerMainAppRoutes = function () {
         Route::post('/{website}/pinterest-pins/{pin}/regenerate', [PinterestPinController::class, 'regenerate'])->name('superadmin.pinterest-pins.regenerate');
         Route::delete('/{website}/pinterest-pins/{pin}', [PinterestPinController::class, 'destroy'])->name('superadmin.pinterest-pins.destroy');
         Route::post('/{website}/pinterest-pins/bulk-generate', [PinterestPinController::class, 'bulkGenerate'])->name('superadmin.pinterest-pins.bulk-generate');
+        Route::post('/{website}/pinterest-pins/bulk-update-designs', [PinterestPinController::class, 'bulkUpdateDesigns'])->name('superadmin.pinterest-pins.bulk-update-designs');
         Route::get('/{website}/pinterest-pins/{pin}/download', [PinterestPinController::class, 'download'])->name('superadmin.pinterest-pins.download');
         Route::get('/{website}/pinterest-pins/{pin}/data', [PinterestPinController::class, 'getPinData'])->name('superadmin.pinterest-pins.data');
         Route::post('/{website}/pinterest-pins/generate-headlines', [PinterestPinController::class, 'generateHeadlines'])->name('superadmin.pinterest-pins.generate-headlines');

@@ -1851,7 +1851,7 @@ class PinterestDesignService
     /**
      * Create a Pinterest pin from an article.
      */
-    public static function createFromArticle(Article $article, ?string $headlineOverride = null, ?string $subheadlineOverride = null, string $frameDesign = 'simple_center'): ?PinterestPin
+    public static function createFromArticle(Article $article, ?string $headlineOverride = null, ?string $subheadlineOverride = null, string $frameDesign = 'simple_center', string $status = 'pending'): ?PinterestPin
     {
         // Ensure website is loaded
         if (!$article->relationLoaded('website')) {
@@ -1891,12 +1891,14 @@ class PinterestDesignService
             'frame_settings' => [
                 'domain_name' => $article->website?->domain ?? ($article->website?->slug ? $article->website->slug . '.com' : '')
             ],
-            'status' => 'pending',
+            'status' => $status,
         ]);
 
-        // Generate the image
-        $service = new self();
-        $service->generatePinImage($pin);
+        // Generate the image only if status is pending
+        if ($status === 'pending') {
+            $service = new self();
+            $service->generatePinImage($pin);
+        }
 
         return $pin;
     }

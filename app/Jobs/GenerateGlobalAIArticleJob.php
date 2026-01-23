@@ -186,11 +186,11 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
                     
                     Log::info("Generated unique article for website {$websiteId}", ['title' => $parsed['title']]);
 
-                    // Generate Pinterest pin if article has images
+                    // Generate Pinterest pin if article has images (marked as missing design for manual review)
                     if ($article->featured_image) {
                         try {
-                            PinterestDesignService::createFromArticle($article);
-                            Log::info("Pinterest pin created for article on website {$websiteId}", ['article_id' => $article->id]);
+                            PinterestDesignService::createFromArticle($article, null, null, 'simple_center', 'missing_design');
+                            Log::info("Pinterest pin created (missing_design) for article on website {$websiteId}", ['article_id' => $article->id]);
                         } catch (\Exception $e) {
                             Log::warning("Failed to create Pinterest pin for website {$websiteId}", [
                                 'article_id' => $article->id,
