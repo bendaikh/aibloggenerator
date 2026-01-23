@@ -28,6 +28,64 @@ const props = defineProps({
 const showDeleteModal = ref(false);
 const pinToDelete = ref(null);
 const selectedPins = ref([]);
+const isBulkDownloading = ref(false);
+
+const selectAllPins = computed({
+    get: () => selectedPins.value.length === props.pins.data.length && props.pins.data.length > 0,
+    set: (value) => {
+        if (value) {
+            selectedPins.value = props.pins.data.filter(p => p.status === 'generated').map(p => p.id);
+        } else {
+            selectedPins.value = [];
+        }
+    }
+});
+
+const togglePin = (pinId) => {
+    const index = selectedPins.value.indexOf(pinId);
+    if (index > -1) {
+        selectedPins.value.splice(index, 1);
+    } else {
+        selectedPins.value.push(pinId);
+    }
+};
+
+const bulkDownloadPins = async () => {
+    if (selectedPins.value.length === 0) return;
+    
+    isBulkDownloading.value = true;
+    
+    try {
+        const response = await axios.post(route('superadmin.pinterest-pins.bulk-download', { website: props.currentWebsite.id }), {
+            pin_ids: selectedPins.value
+        }, {
+            responseType: 'blob'
+        });
+        
+        // Create a download link for the blob
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        const contentDisposition = response.headers['content-disposition'];
+        let filename = 'pinterest-pins.zip';
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename=(.+)/);
+            if (filenameMatch.length > 1) filename = filenameMatch[1];
+        }
+        link.setAttribute('download', filename.replace(/"/g, ''));
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        selectedPins.value = [];
+    } catch (error) {
+        console.error('Failed to bulk download:', error);
+        alert('Failed to download pins. Please try again.');
+    } finally {
+        isBulkDownloading.value = false;
+    }
+};
+
 const showBulkActions = computed(() => selectedPins.value.length > 0);
 
 // Missing Design Selection
@@ -352,6 +410,22 @@ const getStatusBadgeClass = (status) => {
                     <p class="text-gray-400 mt-1">Create and manage Pinterest pin images for your articles</p>
                 </div>
                 <div class="flex items-center gap-3">
+                    <!-- Bulk Download Button -->
+                    <button
+                        v-if="selectedPins.length > 0"
+                        @click="bulkDownloadPins"
+                        :disabled="isBulkDownloading"
+                        class="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/40"
+                    >
+                        <svg v-if="isBulkDownloading" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download {{ selectedPins.length }} Designs
+                    </button>
                     <!-- Bulk Design Button -->
                     <button
                         v-if="selectedMissingPins.length > 0"
@@ -512,106 +586,149 @@ const getStatusBadgeClass = (status) => {
             </div>
 
             <!-- Pins Grid -->
-            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <div
-                    v-for="pin in pins.data"
-                    :key="pin.id"
-                    class="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] overflow-hidden group hover:border-pink-500/50 transition-all"
-                >
-                    <!-- Pin Image Preview -->
-                    <div class="relative aspect-[2/3] bg-[#0f0f0f]">
-                        <img
-                            v-if="pin.generated_image_url"
-                            :src="pin.generated_image_url"
-                            :alt="pin.title"
-                            class="w-full h-full object-cover"
-                        />
-                        <div v-else class="w-full h-full flex items-center justify-center">
-                            <div v-if="pin.status === 'pending'" class="text-center">
-                                <svg class="w-12 h-12 text-yellow-400 animate-spin mx-auto mb-2" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <span class="text-yellow-400 text-sm">Generating...</span>
-                            </div>
-                            <div v-else-if="pin.status === 'failed'" class="text-center px-4">
-                                <svg class="w-12 h-12 text-red-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span class="text-red-400 text-sm">Generation Failed</span>
-                                <p class="text-gray-500 text-xs mt-1">{{ pin.error_message }}</p>
-                            </div>
-                            <div v-else class="text-center">
-                                <svg class="w-12 h-12 text-gray-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                            </div>
-                        </div>
-
-                        <!-- Hover Actions -->
-                        <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                            <button
-                                v-if="pin.generated_image_url"
-                                @click="downloadPin(pin)"
-                                class="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"
-                                title="Download"
-                            >
-                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                            </button>
-                            <button
-                                @click="regeneratePin(pin)"
-                                class="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"
-                                title="Regenerate"
-                            >
-                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                            </button>
-                            <button
-                                @click="copyPinInfo(pin)"
-                                class="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"
-                                title="Copy Info"
-                            >
-                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                </svg>
-                            </button>
-                            <button
-                                @click="openDeleteModal(pin)"
-                                class="p-3 bg-red-500/20 hover:bg-red-500/40 rounded-xl transition-colors"
-                                title="Delete"
-                            >
-                                <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </button>
-                        </div>
-
-                        <!-- Status Badge -->
-                        <div class="absolute top-3 right-3">
-                            <span :class="['px-2 py-1 text-xs font-medium rounded-lg border', getStatusBadgeClass(pin.status)]">
-                                {{ pin.status }}
-                            </span>
-                        </div>
+            <div v-else>
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <svg class="w-6 h-6 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Generated Designs ({{ pins.total }})
+                    </h2>
+                    <div class="flex items-center gap-3">
+                        <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                v-model="selectAllPins"
+                                class="w-4 h-4 rounded bg-[#252525] border-[#3a3a3a] text-pink-500 focus:ring-pink-500"
+                            />
+                            Select All Generated
+                        </label>
                     </div>
+                </div>
 
-                    <!-- Pin Info -->
-                    <div class="p-4">
-                        <h3 class="text-white font-medium truncate mb-1">{{ pin.title }}</h3>
-                        <p class="text-gray-500 text-sm truncate">{{ pin.article?.title || 'Unknown article' }}</p>
-                        <div class="flex items-center justify-between mt-3 pt-3 border-t border-[#2a2a2a]">
-                            <span class="text-gray-500 text-xs">
-                                {{ new Date(pin.created_at).toLocaleDateString() }}
-                            </span>
-                            <Link
-                                v-if="pin.article"
-                                :href="route('superadmin.articles.edit', { website: currentWebsite.id, article: pin.article.id })"
-                                class="text-pink-400 hover:text-pink-300 text-xs font-medium"
-                            >
-                                View Article →
-                            </Link>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div
+                        v-for="pin in pins.data"
+                        :key="pin.id"
+                        class="bg-[#1a1a1a] rounded-2xl border-2 overflow-hidden group transition-all"
+                        :class="[
+                            selectedPins.includes(pin.id)
+                                ? 'border-pink-500 bg-pink-500/5'
+                                : 'border-[#2a2a2a] hover:border-[#3a3a3a]'
+                        ]"
+                        @click="pin.status === 'generated' && togglePin(pin.id)"
+                    >
+                        <!-- Pin Image Preview -->
+                        <div class="relative aspect-[2/3] bg-[#0f0f0f] cursor-pointer">
+                            <img
+                                v-if="pin.generated_image_url"
+                                :src="pin.generated_image_url"
+                                :alt="pin.title"
+                                class="w-full h-full object-cover"
+                            />
+                            <div v-else class="w-full h-full flex items-center justify-center">
+                                <div v-if="pin.status === 'pending'" class="text-center">
+                                    <svg class="w-12 h-12 text-yellow-400 animate-spin mx-auto mb-2" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span class="text-yellow-400 text-sm">Generating...</span>
+                                </div>
+                                <div v-else-if="pin.status === 'failed'" class="text-center px-4">
+                                    <svg class="w-12 h-12 text-red-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span class="text-red-400 text-sm">Generation Failed</span>
+                                    <p class="text-gray-500 text-xs mt-1">{{ pin.error_message }}</p>
+                                </div>
+                                <div v-else class="text-center">
+                                    <svg class="w-12 h-12 text-gray-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <!-- Selection indicator -->
+                            <div v-if="pin.status === 'generated'" class="absolute top-3 left-3 z-10">
+                                <div 
+                                    class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all"
+                                    :class="[
+                                        selectedPins.includes(pin.id)
+                                            ? 'bg-pink-500 border-pink-500'
+                                            : 'bg-black/40 border-white/30 group-hover:border-white/60'
+                                    ]"
+                                >
+                                    <svg v-if="selectedPins.includes(pin.id)" class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <!-- Hover Actions -->
+                            <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                                <button
+                                    v-if="pin.generated_image_url"
+                                    @click.stop="downloadPin(pin)"
+                                    class="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"
+                                    title="Download"
+                                >
+                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                </button>
+                                <button
+                                    @click.stop="regeneratePin(pin)"
+                                    class="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"
+                                    title="Regenerate"
+                                >
+                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                                <button
+                                    @click.stop="copyPinInfo(pin)"
+                                    class="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"
+                                    title="Copy Info"
+                                >
+                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                </button>
+                                <button
+                                    @click.stop="openDeleteModal(pin)"
+                                    class="p-3 bg-red-500/20 hover:bg-red-500/40 rounded-xl transition-colors"
+                                    title="Delete"
+                                >
+                                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <!-- Status Badge -->
+                            <div class="absolute top-3 right-3">
+                                <span :class="['px-2 py-1 text-xs font-medium rounded-lg border', getStatusBadgeClass(pin.status)]">
+                                    {{ pin.status }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Pin Info -->
+                        <div class="p-4">
+                            <h3 class="text-white font-medium truncate mb-1">{{ pin.title }}</h3>
+                            <p class="text-gray-500 text-sm truncate">{{ pin.article?.title || 'Unknown article' }}</p>
+                            <div class="flex items-center justify-between mt-3 pt-3 border-t border-[#2a2a2a]">
+                                <span class="text-gray-500 text-xs">
+                                    {{ new Date(pin.created_at).toLocaleDateString() }}
+                                </span>
+                                <Link
+                                    v-if="pin.article"
+                                    :href="route('superadmin.articles.edit', { website: currentWebsite.id, article: pin.article.id })"
+                                    class="text-pink-400 hover:text-pink-300 text-xs font-medium"
+                                >
+                                    View Article →
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -791,6 +908,36 @@ const getStatusBadgeClass = (status) => {
                                                 <input v-model="articleForm.subheadline_color" type="color" class="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent" />
                                                 <input v-model="articleForm.subheadline_color" type="text" class="bg-transparent border-0 text-white text-[10px] w-full focus:ring-0" />
                                             </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] text-gray-500 mb-2 uppercase font-bold">Overlay Color</label>
+                                            <div class="flex items-center gap-3 bg-[#1a1a1a] p-2 rounded-xl border border-[#2a2a2a]">
+                                                <input v-model="articleForm.overlay_color" type="color" class="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent" />
+                                                <input v-model="articleForm.overlay_color" type="text" class="bg-transparent border-0 text-white text-[10px] w-full focus:ring-0" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] text-gray-500 mb-2 uppercase font-bold">Overlay Opacity: {{ articleForm.overlay_opacity }}%</label>
+                                            <input v-model="articleForm.overlay_opacity" type="range" min="0" max="100" class="w-full h-2 bg-[#2a2a2a] rounded-lg appearance-none cursor-pointer accent-pink-500 mt-3" />
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-[10px] text-gray-500 mb-2 uppercase font-bold">Headline Font</label>
+                                            <select v-model="articleForm.headline_font" class="w-full bg-[#1a1a1a] border-[#2a2a2a] rounded-xl text-white text-xs focus:ring-pink-500">
+                                                <optgroup v-for="(fonts, group) in fontOptions" :key="group" :label="group.toUpperCase()">
+                                                    <option v-for="font in fonts" :key="font.id" :value="font.id">{{ font.name }}</option>
+                                                </optgroup>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] text-gray-500 mb-2 uppercase font-bold">Subheadline Font</label>
+                                            <select v-model="articleForm.subheadline_font" class="w-full bg-[#1a1a1a] border-[#2a2a2a] rounded-xl text-white text-xs focus:ring-pink-500">
+                                                <optgroup v-for="(fonts, group) in fontOptions" :key="group" :label="group.toUpperCase()">
+                                                    <option v-for="font in fonts" :key="font.id" :value="font.id">{{ font.name }}</option>
+                                                </optgroup>
+                                            </select>
                                         </div>
                                     </div>
 

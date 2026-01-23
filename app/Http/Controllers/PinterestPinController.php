@@ -462,6 +462,60 @@ class PinterestPinController extends Controller
     }
 
     /**
+     * Bulk download Pinterest pin images as a ZIP file.
+     */
+    public function bulkDownload(Request $request, Website $website)
+    {
+        $this->authorize('view', $website);
+
+        $validated = $request->validate([
+            'pin_ids' => 'required|array|min:1',
+            'pin_ids.*' => 'exists:pinterest_pins,id',
+        ]);
+
+        $pins = PinterestPin::whereIn('id', $validated['pin_ids'])
+            ->where('website_id', $website->id)
+            ->whereNotNull('generated_image')
+            ->get();
+
+        if ($pins->isEmpty()) {
+            return back()->withErrors(['error' => 'No generated pin images found for selection.']);
+        }
+
+        $zip = new \ZipArchive();
+        $zipFilename = 'pinterest-pins-' . ($website->slug ?? 'export') . '-' . time() . '.zip';
+        
+        // Ensure storage path exists
+        $zipDir = storage_path('app/public/temp_exports');
+        if (!file_exists($zipDir)) {
+            mkdir($zipDir, 0755, true);
+        }
+        
+        $zipPath = $zipDir . '/' . $zipFilename;
+
+        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === TRUE) {
+            foreach ($pins as $pin) {
+                $filePath = public_path($pin->generated_image);
+                if (file_exists($filePath)) {
+                    $extension = pathinfo($filePath, PATHINFO_EXTENSION);
+                    // Use a more unique name to avoid collisions if titles are same
+                    $nameInZip = \Illuminate\Support\Str::slug($pin->title) . '-' . $pin->id . '.' . ($extension ?: 'png');
+                    $zip->addFile($filePath, $nameInZip);
+                }
+            }
+            $zip->close();
+
+            if (!file_exists($zipPath)) {
+                return back()->withErrors(['error' => 'Failed to generate ZIP file.']);
+            }
+
+            return response()->download($zipPath)->deleteFileAfterSend(true);
+        }
+
+        return back()->withErrors(['error' => 'Could not create ZIP file.']);
+    }
+
+    /**
      * Get Pinterest pin data as JSON (for copy functionality).
      */
     public function getPinData(Website $website, PinterestPin $pin)
