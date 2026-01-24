@@ -219,9 +219,24 @@ class PinterestPinController extends Controller
             'overlay_opacity' => 'nullable|integer|min:0|max:100',
             'frame_design' => 'nullable|string|max:50',
             'domain_name' => 'nullable|string|max:100',
+            'use_ai_headlines' => 'nullable|boolean',
         ]);
 
         try {
+            $updateData = array_filter($validated, function($key) {
+                return !in_array($key, ['domain_name', 'use_ai_headlines']);
+            }, ARRAY_FILTER_USE_KEY);
+
+            // If AI headlines requested and we have an article
+            if ($request->boolean('use_ai_headlines') && $pin->article) {
+                $service = new PinterestDesignService();
+                $headlines = $service->generateAIHeadlines($pin->article);
+                if ($headlines) {
+                    $updateData['headline_text'] = $headlines['headline'];
+                    $updateData['subheadline_text'] = $headlines['subheadline'];
+                }
+            }
+
             // Prepare frame settings
             $frameSettings = $pin->frame_settings ?? [];
             if ($request->has('domain_name')) {
@@ -230,9 +245,7 @@ class PinterestPinController extends Controller
 
             // Update pin with new settings
             $pin->update(array_merge(
-                array_filter($validated, function($key) {
-                    return $key !== 'domain_name';
-                }, ARRAY_FILTER_USE_KEY),
+                $updateData,
                 ['frame_settings' => $frameSettings]
             ));
             $pin->update(['status' => 'pending']);
@@ -305,10 +318,16 @@ class PinterestPinController extends Controller
             'overlay_opacity' => 'nullable|integer|min:0|max:100',
             'frame_design' => 'nullable|string|max:50',
             'domain_name' => 'nullable|string|max:100',
+            'headline_text' => 'nullable|string|max:100',
+            'subheadline_text' => 'nullable|string|max:100',
+            'use_ai_headlines' => 'nullable|boolean',
         ]);
 
         $generated = 0;
         $errors = [];
+        $service = new PinterestDesignService();
+        $useAi = $request->boolean('use_ai_headlines');
+        $user = auth()->user();
 
         foreach ($validated['article_ids'] as $articleId) {
             $article = Article::find($articleId);
@@ -323,11 +342,25 @@ class PinterestPinController extends Controller
             }
 
             try {
-                // Determine headline/subheadline from title
-                $titleWords = explode(' ', $article->title);
-                $midPoint = ceil(count($titleWords) / 2);
-                $headline = implode(' ', array_slice($titleWords, 0, $midPoint));
-                $subheadline = implode(' ', array_slice($titleWords, $midPoint));
+                // Determine headline/subheadline
+                $headline = '';
+                $subheadline = '';
+
+                if ($useAi && !empty($user->openai_api_key)) {
+                    $headlines = $service->generateAIHeadlines($article, $user);
+                    if ($headlines) {
+                        $headline = $headlines['headline'];
+                        $subheadline = $headlines['subheadline'];
+                    }
+                }
+
+                // Fallback to simple split if AI failed or wasn't requested
+                if (empty($headline)) {
+                    $titleWords = explode(' ', $article->title);
+                    $midPoint = ceil(count($titleWords) / 2);
+                    $headline = implode(' ', array_slice($titleWords, 0, $midPoint));
+                    $subheadline = implode(' ', array_slice($titleWords, $midPoint));
+                }
 
                 // Create the pin record
                 $pin = PinterestPin::create([
@@ -394,11 +427,16 @@ class PinterestPinController extends Controller
             'overlay_opacity' => 'nullable|integer|min:0|max:100',
             'frame_design' => 'nullable|string|max:50',
             'domain_name' => 'nullable|string|max:100',
+            'headline_text' => 'nullable|string|max:100',
+            'subheadline_text' => 'nullable|string|max:100',
+            'use_ai_headlines' => 'nullable|boolean',
         ]);
 
         $generated = 0;
         $errors = [];
         $service = new PinterestDesignService();
+        $useAi = $request->boolean('use_ai_headlines');
+        $user = auth()->user();
 
         foreach ($validated['pin_ids'] as $pinId) {
             $pin = PinterestPin::find($pinId);
@@ -408,6 +446,20 @@ class PinterestPinController extends Controller
             }
 
             try {
+                // Prepare update data
+                $updateData = array_filter($validated, function($key) {
+                    return !in_array($key, ['pin_ids', 'domain_name', 'use_ai_headlines']);
+                }, ARRAY_FILTER_USE_KEY);
+
+                // If AI headlines requested and we have an article
+                if ($useAi && $pin->article && !empty($user->openai_api_key)) {
+                    $headlines = $service->generateAIHeadlines($pin->article, $user);
+                    if ($headlines) {
+                        $updateData['headline_text'] = $headlines['headline'];
+                        $updateData['subheadline_text'] = $headlines['subheadline'];
+                    }
+                }
+
                 // Prepare frame settings
                 $frameSettings = $pin->frame_settings ?? [];
                 if ($request->has('domain_name')) {
@@ -416,9 +468,7 @@ class PinterestPinController extends Controller
 
                 // Update pin with new settings
                 $pin->update(array_merge(
-                    array_filter($validated, function($key) {
-                        return !in_array($key, ['pin_ids', 'domain_name']);
-                    }, ARRAY_FILTER_USE_KEY),
+                    $updateData,
                     [
                         'frame_settings' => $frameSettings,
                         'status' => 'pending'
@@ -556,64 +606,14 @@ class PinterestPinController extends Controller
             return response()->json(['error' => 'Please configure your OpenAI API key in Global Settings first.'], 400);
         }
 
-        try {
-            $client = \OpenAI::client($user->openai_api_key);
-            $model = $user->ai_model ?? 'gpt-4o';
+        $service = new PinterestDesignService();
+        $headlines = $service->generateAIHeadlines($article, $user);
 
-            $prompt = <<<PROMPT
-You are a Pinterest marketing expert. Create an attractive, eye-catching headline and subheadline for a Pinterest pin based on this article.
-
-Article Title: "{$article->title}"
-Article Description: "{$article->meta_description}"
-
-Requirements:
-- Headline should be 2-4 words, catchy and intriguing (lowercase preferred)
-- Subheadline should be 2-5 words, descriptive and appetizing
-- Make them Pinterest-friendly (engaging, visual, action-oriented)
-- For recipes: focus on taste, ease, or special occasion
-- Avoid generic phrases like "delicious" alone
-
-Respond in this exact JSON format:
-{
-    "headline": "your headline here",
-    "subheadline": "your subheadline here"
-}
-PROMPT;
-
-            $result = $client->chat()->create([
-                'model' => $model,
-                'messages' => [
-                    ['role' => 'system', 'content' => 'You are a Pinterest marketing expert who creates engaging pin copy.'],
-                    ['role' => 'user', 'content' => $prompt],
-                ],
-                'max_tokens' => 100,
-                'temperature' => 0.8,
-            ]);
-
-            $content = $result->choices[0]->message->content ?? '';
-            
-            // Parse JSON response
-            $jsonMatch = preg_match('/\{[^}]+\}/', $content, $matches);
-            if ($jsonMatch) {
-                $data = json_decode($matches[0], true);
-                if ($data && isset($data['headline']) && isset($data['subheadline'])) {
-                    return response()->json([
-                        'headline' => $data['headline'],
-                        'subheadline' => $data['subheadline'],
-                    ]);
-                }
-            }
-
-            return response()->json(['error' => 'Failed to parse AI response.'], 500);
-
-        } catch (\Exception $e) {
-            Log::error('Failed to generate AI headlines', [
-                'error' => $e->getMessage(),
-                'article_id' => $article->id
-            ]);
-            
-            return response()->json(['error' => 'Failed to generate headlines: ' . $e->getMessage()], 500);
+        if ($headlines) {
+            return response()->json($headlines);
         }
+
+        return response()->json(['error' => 'Failed to generate headlines with AI.'], 500);
     }
 
     /**

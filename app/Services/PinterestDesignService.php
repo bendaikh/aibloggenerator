@@ -70,6 +70,79 @@ class PinterestDesignService
     }
 
     /**
+     * Generate AI headline and subheadline for an article.
+     */
+    public function generateAIHeadlines(Article $article, $user = null): ?array
+    {
+        $user = $user ?? auth()->user();
+
+        if (!$user || empty($user->openai_api_key)) {
+            Log::warning('OpenAI API key not configured for AI headlines', ['user_id' => $user?->id]);
+            return null;
+        }
+
+        try {
+            $client = \OpenAI::client($user->openai_api_key);
+            $model = $user->ai_model ?? 'gpt-4o';
+
+            $prompt = <<<PROMPT
+You are a Pinterest marketing expert. Create an attractive, eye-catching headline and subheadline for a Pinterest pin based on this article.
+
+Article Title: "{$article->title}"
+Article Description: "{$article->meta_description}"
+
+Requirements:
+- Headline should be 2-4 words, catchy and intriguing (lowercase preferred)
+- Subheadline should be 2-5 words, descriptive and appetizing
+- Make them Pinterest-friendly (engaging, visual, action-oriented)
+- For recipes: focus on taste, ease, or special occasion
+- Avoid generic phrases like "delicious" alone
+
+Respond in this exact JSON format:
+{
+    "headline": "your headline here",
+    "subheadline": "your subheadline here"
+}
+PROMPT;
+
+            $result = $client->chat()->create([
+                'model' => $model,
+                'messages' => [
+                    ['role' => 'system', 'content' => 'You are a Pinterest marketing expert who creates engaging pin copy.'],
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+                'max_tokens' => 100,
+                'temperature' => 0.8,
+            ]);
+
+            $content = $result->choices[0]->message->content ?? '';
+            
+            // Parse JSON response
+            $jsonMatch = preg_match('/\{[^}]+\}/', $content, $matches);
+            if ($jsonMatch) {
+                $data = json_decode($matches[0], true);
+                if ($data && isset($data['headline']) && isset($data['subheadline'])) {
+                    return [
+                        'headline' => $data['headline'],
+                        'subheadline' => $data['subheadline'],
+                    ];
+                }
+            }
+
+            Log::error('Failed to parse AI response for headlines', ['content' => $content]);
+            return null;
+
+        } catch (\Exception $e) {
+            Log::error('Failed to generate AI headlines in service', [
+                'error' => $e->getMessage(),
+                'article_id' => $article->id
+            ]);
+            
+            return null;
+        }
+    }
+
+    /**
      * Generate a Pinterest pin image from an article.
      */
     public function generatePinImage(PinterestPin $pin): ?string
@@ -1851,7 +1924,7 @@ class PinterestDesignService
     /**
      * Create a Pinterest pin from an article.
      */
-    public static function createFromArticle(Article $article, ?string $headlineOverride = null, ?string $subheadlineOverride = null, string $frameDesign = 'simple_center', string $status = 'pending'): ?PinterestPin
+    public static function createFromArticle(Article $article, ?string $headlineOverride = null, ?string $subheadlineOverride = null, string $frameDesign = 'simple_center', string $status = 'pending', bool $useAiHeadlines = false): ?PinterestPin
     {
         // Ensure website is loaded
         if (!$article->relationLoaded('website')) {
@@ -1867,20 +1940,38 @@ class PinterestDesignService
             return null;
         }
 
-        // Generate headline and subheadline from title
-        $title = $article->title;
-        $titleWords = explode(' ', $title);
-        $midPoint = ceil(count($titleWords) / 2);
-        
-        $headline = $headlineOverride ?? implode(' ', array_slice($titleWords, 0, $midPoint));
-        $subheadline = $subheadlineOverride ?? implode(' ', array_slice($titleWords, $midPoint));
+        $headline = $headlineOverride;
+        $subheadline = $subheadlineOverride;
+
+        // Try AI if requested
+        if ($useAiHeadlines && empty($headline)) {
+            $service = new self();
+            $user = $article->user ?? \App\Models\User::find($article->user_id);
+            if ($user) {
+                $headlines = $service->generateAIHeadlines($article, $user);
+                if ($headlines) {
+                    $headline = $headlines['headline'];
+                    $subheadline = $headlines['subheadline'];
+                }
+            }
+        }
+
+        // Generate headline and subheadline from title if still empty
+        if (empty($headline)) {
+            $title = $article->title;
+            $titleWords = explode(' ', $title);
+            $midPoint = ceil(count($titleWords) / 2);
+            
+            $headline = $headlineOverride ?? implode(' ', array_slice($titleWords, 0, $midPoint));
+            $subheadline = $subheadlineOverride ?? implode(' ', array_slice($titleWords, $midPoint));
+        }
 
         // Create the pin record
         $pin = PinterestPin::create([
             'website_id' => $article->website_id,
             'article_id' => $article->id,
             'user_id' => $article->user_id,
-            'title' => $title,
+            'title' => $article->title,
             'description' => $article->meta_description ?? $article->excerpt,
             'link' => $article->url,
             'top_image' => $topImage,

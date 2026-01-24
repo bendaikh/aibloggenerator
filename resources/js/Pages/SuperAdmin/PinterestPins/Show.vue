@@ -32,6 +32,7 @@ const form = useForm({
     overlay_opacity: props.pin.overlay_opacity,
     frame_design: props.pin.frame_design || 'simple_center',
     domain_name: props.pin.frame_settings?.domain_name || props.currentWebsite?.domain || (props.currentWebsite?.slug ? props.currentWebsite.slug + '.com' : ''),
+    use_ai_headlines: false,
 });
 
 // Font options - Including standard and Google Fonts
@@ -326,7 +327,26 @@ const getStatusBadgeClass = (status) => {
                 <h3 class="text-xl font-semibold text-white mb-6">Edit & Regenerate Pin</h3>
                 
                 <form @submit.prevent="regeneratePin" class="space-y-4">
-                    <div>
+                    <div class="p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl">
+                        <label class="flex items-center gap-3 cursor-pointer group">
+                            <input 
+                                type="checkbox" 
+                                v-model="form.use_ai_headlines" 
+                                class="w-5 h-5 rounded border-[#3a3a3a] bg-[#1a1a1a] text-purple-500 focus:ring-purple-500"
+                            />
+                            <div>
+                                <span class="text-white text-sm font-bold flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                    Regenerate with AI
+                                </span>
+                                <p class="text-gray-500 text-[10px] uppercase tracking-wider font-semibold">Overwrites headlines using AI for better Pinterest engagement</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div v-if="!form.use_ai_headlines">
                         <label class="block text-sm font-medium text-gray-300 mb-2">Headline Text</label>
                         <input
                             v-model="form.headline_text"
@@ -334,7 +354,7 @@ const getStatusBadgeClass = (status) => {
                             class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white"
                         />
                     </div>
-                    <div>
+                    <div v-if="!form.use_ai_headlines">
                         <label class="block text-sm font-medium text-gray-300 mb-2">Subheadline Text</label>
                         <input
                             v-model="form.subheadline_text"

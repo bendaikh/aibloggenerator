@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
 import { Head, Link, router, usePage, useForm } from '@inertiajs/vue3';
 import axios from 'axios';
@@ -126,11 +126,62 @@ const bulkForm = useForm({
     overlay_opacity: 70,
     frame_design: 'simple_center',
     domain_name: props.currentWebsite?.domain || (props.currentWebsite?.slug ? props.currentWebsite.slug + '.com' : ''),
+    use_ai_headlines: false,
+    headline_text: '',
+    subheadline_text: '',
 });
+
+const isGeneratingBulkHeadlines = ref(false);
+
+const generateBulkAIHeadlines = async () => {
+    if (!previewPin.value?.article_id) return;
+    
+    isGeneratingBulkHeadlines.value = true;
+    try {
+        const response = await axios.post(route('superadmin.pinterest-pins.generate-headlines', { 
+            website: props.currentWebsite.id 
+        }), {
+            article_id: previewPin.value.article_id
+        });
+        
+        if (response.data.headline) {
+            bulkForm.headline_text = response.data.headline;
+        }
+        if (response.data.subheadline) {
+            bulkForm.subheadline_text = response.data.subheadline;
+        }
+    } catch (error) {
+        console.error('Failed to generate headlines:', error);
+        alert(error.response?.data?.error || 'Failed to generate headlines. Please try again.');
+    } finally {
+        isGeneratingBulkHeadlines.value = false;
+    }
+};
 
 const openBulkDesignModal = () => {
     if (selectedMissingPins.value.length === 0) return;
     bulkForm.pin_ids = selectedMissingPins.value;
+    
+    // If single pin, populate text fields
+    if (selectedMissingPins.value.length === 1) {
+        const pin = props.missingDesignPins.find(p => p.id === selectedMissingPins.value[0]);
+        if (pin) {
+            bulkForm.headline_text = pin.headline_text || '';
+            bulkForm.subheadline_text = pin.subheadline_text || '';
+            
+            // If empty, use article title as fallback
+            if (!bulkForm.headline_text && pin.article) {
+                const words = pin.article.title.split(' ');
+                const mid = Math.ceil(words.length / 2);
+                bulkForm.headline_text = words.slice(0, mid).join(' ');
+                bulkForm.subheadline_text = words.slice(mid).join(' ');
+            }
+        }
+    } else {
+        bulkForm.headline_text = '';
+        bulkForm.subheadline_text = '';
+    }
+    
     showBulkDesignModal.value = true;
 };
 
@@ -254,7 +305,54 @@ const articleForm = useForm({
     overlay_opacity: 70,
     frame_design: 'simple_center',
     domain_name: props.currentWebsite?.domain || (props.currentWebsite?.slug ? props.currentWebsite.slug + '.com' : ''),
+    use_ai_headlines: false,
+    headline_text: '',
+    subheadline_text: '',
 });
+
+const isGeneratingArticleHeadlines = ref(false);
+
+const generateArticleAIHeadlines = async () => {
+    const articleId = selectedArticles.value[0];
+    if (!articleId) return;
+    
+    isGeneratingArticleHeadlines.value = true;
+    try {
+        const response = await axios.post(route('superadmin.pinterest-pins.generate-headlines', { 
+            website: props.currentWebsite.id 
+        }), {
+            article_id: articleId
+        });
+        
+        if (response.data.headline) {
+            articleForm.headline_text = response.data.headline;
+        }
+        if (response.data.subheadline) {
+            articleForm.subheadline_text = response.data.subheadline;
+        }
+    } catch (error) {
+        console.error('Failed to generate headlines:', error);
+        alert(error.response?.data?.error || 'Failed to generate headlines. Please try again.');
+    } finally {
+        isGeneratingArticleHeadlines.value = false;
+    }
+};
+
+// Watch for selection changes to update articleForm text fields if single selection
+watch(selectedArticles, (newSelection) => {
+    if (newSelection.length === 1) {
+        const article = props.articlesWithoutPins.find(a => a.id === newSelection[0]);
+        if (article) {
+            const words = article.title.split(' ');
+            const mid = Math.ceil(words.length / 2);
+            articleForm.headline_text = words.slice(0, mid).join(' ');
+            articleForm.subheadline_text = words.slice(mid).join(' ');
+        }
+    } else {
+        articleForm.headline_text = '';
+        articleForm.subheadline_text = '';
+    }
+}, { deep: true });
 
 const selectAll = computed({
     get: () => selectedArticles.value.length === props.articlesWithoutPins.length && props.articlesWithoutPins.length > 0,
@@ -894,6 +992,47 @@ const getStatusBadgeClass = (status) => {
                                     Colors & Fonts
                                 </h4>
                                 <div class="space-y-6">
+                                    <!-- Headline and Subheadline with AI support -->
+                                    <div class="space-y-4">
+                                        <div>
+                                            <div class="flex items-center justify-between mb-2">
+                                                <label class="block text-[10px] text-gray-500 uppercase font-bold">Headline Text</label>
+                                                <button
+                                                    v-if="selectedArticles.length === 1"
+                                                    type="button"
+                                                    @click="generateArticleAIHeadlines"
+                                                    :disabled="isGeneratingArticleHeadlines"
+                                                    class="text-[10px] px-2 py-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-all flex items-center gap-1"
+                                                >
+                                                    <svg v-if="isGeneratingArticleHeadlines" class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    <svg v-else class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                    </svg>
+                                                    {{ isGeneratingArticleHeadlines ? 'AI Generating...' : 'AI Generate' }}
+                                                </button>
+                                            </div>
+                                            <input 
+                                                v-model="articleForm.headline_text" 
+                                                type="text" 
+                                                class="w-full bg-[#1a1a1a] border-[#2a2a2a] rounded-xl text-white text-sm focus:ring-pink-500 p-3"
+                                                placeholder="Enter headline..."
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-[10px] text-gray-500 mb-2 uppercase font-bold">Subheadline Text</label>
+                                            <input 
+                                                v-model="articleForm.subheadline_text" 
+                                                type="text" 
+                                                class="w-full bg-[#1a1a1a] border-[#2a2a2a] rounded-xl text-white text-sm focus:ring-pink-500 p-3"
+                                                placeholder="Enter subheadline..."
+                                            />
+                                        </div>
+                                    </div>
+
                                     <div class="grid grid-cols-2 gap-4">
                                         <div>
                                             <label class="block text-[10px] text-gray-500 mb-2 uppercase font-bold">Headline</label>
@@ -957,6 +1096,27 @@ const getStatusBadgeClass = (status) => {
                                         <input v-model="articleForm.subheadline_font_size" type="range" min="12" max="100" class="w-full h-2 bg-[#2a2a2a] rounded-lg appearance-none cursor-pointer accent-pink-500" />
                                     </div>
 
+                                    <div class="p-4 bg-purple-500/10 border border-purple-500/30 rounded-2xl mb-6">
+                                        <label class="flex items-center gap-3 cursor-pointer group">
+                                            <div class="relative flex items-center">
+                                                <input 
+                                                    type="checkbox" 
+                                                    v-model="articleForm.use_ai_headlines" 
+                                                    class="w-5 h-5 rounded border-[#3a3a3a] bg-[#1a1a1a] text-purple-500 focus:ring-purple-500 transition-all"
+                                                />
+                                            </div>
+                                            <div>
+                                                <span class="text-white text-sm font-bold group-hover:text-purple-400 transition-colors flex items-center gap-2">
+                                                    <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                    </svg>
+                                                    Use AI for Headlines
+                                                </span>
+                                                <p class="text-gray-500 text-[10px] mt-0.5 uppercase tracking-wider font-semibold">Generate catchy, eye-catching text for each pin automatically</p>
+                                            </div>
+                                        </label>
+                                    </div>
+
                                     <div>
                                         <label class="block text-[10px] text-gray-500 mb-2 uppercase font-bold">Domain Name</label>
                                         <input v-model="articleForm.domain_name" type="text" class="w-full bg-[#1a1a1a] border-[#2a2a2a] rounded-xl text-white text-sm focus:ring-pink-500 p-3" />
@@ -993,10 +1153,10 @@ const getStatusBadgeClass = (status) => {
                                 :style="{ backgroundColor: articlePreviewStyles.overlayBg }"
                             >
                                 <p class="text-center font-bold lowercase w-full truncate px-1" :style="{ color: articlePreviewStyles.headlineColor, fontSize: articlePreviewStyles.headlineFontSize, fontFamily: articlePreviewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ articlesWithoutPins.find(a => a.id === selectedArticles[0])?.title || 'Title Preview' }}
+                                    {{ articleForm.headline_text || 'Title Preview' }}
                                 </p>
                                 <p class="text-center italic mt-1 w-full truncate px-1" :style="{ color: articlePreviewStyles.subheadlineColor, fontSize: articlePreviewStyles.subheadlineFontSize, fontFamily: articlePreviewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ articlesWithoutPins.find(a => a.id === selectedArticles[0])?.excerpt || 'Subheadline Preview' }}
+                                    {{ articleForm.subheadline_text || 'Subheadline Preview' }}
                                 </p>
                             </div>
 
@@ -1009,10 +1169,10 @@ const getStatusBadgeClass = (status) => {
                                 <div class="absolute top-2 left-0 right-0 h-0.5" :style="{ backgroundColor: articlePreviewStyles.headlineColor }"></div>
                                 <div class="absolute bottom-2 left-0 right-0 h-0.5" :style="{ backgroundColor: articlePreviewStyles.headlineColor }"></div>
                                 <p class="text-center font-bold capitalize w-full truncate px-1" :style="{ color: articlePreviewStyles.headlineColor, fontSize: articlePreviewStyles.headlineFontSize, fontFamily: articlePreviewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ articlesWithoutPins.find(a => a.id === selectedArticles[0])?.title || 'Title Preview' }}
+                                    {{ articleForm.headline_text || 'Title Preview' }}
                                 </p>
                                 <p class="text-center mt-1 capitalize w-full truncate px-1" :style="{ color: articlePreviewStyles.subheadlineColor, fontSize: articlePreviewStyles.subheadlineFontSize, fontFamily: articlePreviewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ articlesWithoutPins.find(a => a.id === selectedArticles[0])?.excerpt || 'Subheadline Preview' }}
+                                    {{ articleForm.subheadline_text || 'Subheadline Preview' }}
                                 </p>
                             </div>
 
@@ -1029,10 +1189,10 @@ const getStatusBadgeClass = (status) => {
                                     <div v-for="i in 15" :key="'b-'+i" class="flex-1 h-0.5 bg-white rounded-full"></div>
                                 </div>
                                 <p class="text-center font-bold lowercase w-full truncate px-1" :style="{ color: articlePreviewStyles.headlineColor, fontSize: articlePreviewStyles.headlineFontSize, fontFamily: articlePreviewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ articlesWithoutPins.find(a => a.id === selectedArticles[0])?.title || 'Title Preview' }}
+                                    {{ articleForm.headline_text || 'Title Preview' }}
                                 </p>
                                 <p class="text-center italic mt-1 w-full truncate px-1" :style="{ color: articlePreviewStyles.subheadlineColor, fontSize: articlePreviewStyles.subheadlineFontSize, fontFamily: articlePreviewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ articlesWithoutPins.find(a => a.id === selectedArticles[0])?.excerpt || 'Subheadline Preview' }}
+                                    {{ articleForm.subheadline_text || 'Subheadline Preview' }}
                                 </p>
                             </div>
 
@@ -1045,10 +1205,10 @@ const getStatusBadgeClass = (status) => {
                                 <div class="absolute top-0 left-0 right-0 h-3" :style="{ backgroundColor: articlePreviewStyles.headlineColor }"></div>
                                 <div class="flex-1 flex flex-col items-center justify-center w-full px-2 mt-2">
                                     <p class="text-center font-bold uppercase w-full truncate px-1" :style="{ color: articlePreviewStyles.headlineColor, fontSize: articlePreviewStyles.headlineFontSize, fontFamily: articlePreviewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                        {{ articlesWithoutPins.find(a => a.id === selectedArticles[0])?.title || 'Title Preview' }}
+                                        {{ articleForm.headline_text || 'Title Preview' }}
                                     </p>
                                     <p class="text-center font-bold uppercase w-full mt-1 truncate px-1" :style="{ color: articlePreviewStyles.subheadlineColor, fontSize: articlePreviewStyles.subheadlineFontSize, fontFamily: articlePreviewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                        {{ articlesWithoutPins.find(a => a.id === selectedArticles[0])?.excerpt || 'Subheadline Preview' }}
+                                        {{ articleForm.subheadline_text || 'Subheadline Preview' }}
                                     </p>
                                 </div>
                                 <div class="relative w-[85%] flex items-center justify-center mb-1 h-6" :style="{ backgroundColor: articlePreviewStyles.headlineColor }">
@@ -1068,10 +1228,10 @@ const getStatusBadgeClass = (status) => {
                                     <div v-for="i in 5" :key="'s-'+i" class="w-2 h-2 bg-yellow-200" style="clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);"></div>
                                 </div>
                                 <p class="text-center font-bold uppercase w-full truncate px-1" :style="{ color: articlePreviewStyles.headlineColor, fontSize: articlePreviewStyles.headlineFontSize, fontFamily: articlePreviewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ articlesWithoutPins.find(a => a.id === selectedArticles[0])?.title || 'Title Preview' }}
+                                    {{ articleForm.headline_text || 'Title Preview' }}
                                 </p>
                                 <p class="text-center font-bold uppercase w-full mt-1 truncate px-1" :style="{ color: articlePreviewStyles.subheadlineColor, fontSize: articlePreviewStyles.subheadlineFontSize, fontFamily: articlePreviewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ articlesWithoutPins.find(a => a.id === selectedArticles[0])?.excerpt || 'Subheadline Preview' }}
+                                    {{ articleForm.subheadline_text || 'Subheadline Preview' }}
                                 </p>
                                 <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 h-5 rounded-full flex items-center justify-center min-w-[80px]" :style="{ backgroundColor: articlePreviewStyles.headlineColor }">
                                     <p class="text-center font-bold text-white uppercase text-[8px] tracking-wider">{{ articleForm.domain_name }}</p>
@@ -1087,10 +1247,10 @@ const getStatusBadgeClass = (status) => {
                                 <div class="absolute top-0 left-0 right-0 h-1" :style="{ backgroundColor: articlePreviewStyles.headlineColor }"></div>
                                 <div class="absolute bottom-0 left-0 right-0 h-1" :style="{ backgroundColor: articlePreviewStyles.headlineColor }"></div>
                                 <p class="text-center font-bold lowercase w-full truncate px-1" :style="{ color: articlePreviewStyles.headlineColor, fontSize: articlePreviewStyles.headlineFontSize, fontFamily: articlePreviewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ articlesWithoutPins.find(a => a.id === selectedArticles[0])?.title || 'Title Preview' }}
+                                    {{ articleForm.headline_text || 'Title Preview' }}
                                 </p>
                                 <p class="text-center lowercase w-full mt-1 truncate px-1" :style="{ color: articlePreviewStyles.subheadlineColor, fontSize: articlePreviewStyles.subheadlineFontSize, fontFamily: articlePreviewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ articlesWithoutPins.find(a => a.id === selectedArticles[0])?.excerpt || 'Subheadline Preview' }}
+                                    {{ articleForm.subheadline_text || 'Subheadline Preview' }}
                                 </p>
                                 <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 h-5 flex items-center justify-center min-w-[80px]" :style="{ backgroundColor: articlePreviewStyles.headlineColor }">
                                     <p class="text-center font-bold text-white lowercase text-[8px]">{{ articleForm.domain_name }}</p>
@@ -1106,10 +1266,10 @@ const getStatusBadgeClass = (status) => {
                                 <div class="absolute top-0 left-0 right-0 h-1" :style="{ backgroundColor: articlePreviewStyles.headlineColor }"></div>
                                 <div class="absolute bottom-0 left-0 right-0 h-1" :style="{ backgroundColor: articlePreviewStyles.headlineColor }"></div>
                                 <p class="text-center font-bold uppercase w-full truncate px-1" :style="{ color: articlePreviewStyles.headlineColor, fontSize: articlePreviewStyles.headlineFontSize, fontFamily: articlePreviewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ articlesWithoutPins.find(a => a.id === selectedArticles[0])?.title || 'Title Preview' }}
+                                    {{ articleForm.headline_text || 'Title Preview' }}
                                 </p>
                                 <p class="text-center capitalize w-full mt-1 truncate px-1" :style="{ color: articlePreviewStyles.subheadlineColor, fontSize: articlePreviewStyles.subheadlineFontSize, fontFamily: articlePreviewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ articlesWithoutPins.find(a => a.id === selectedArticles[0])?.excerpt || 'Subheadline Preview' }}
+                                    {{ articleForm.subheadline_text || 'Subheadline Preview' }}
                                 </p>
                             </div>
 
@@ -1122,10 +1282,10 @@ const getStatusBadgeClass = (status) => {
                                 <div class="absolute top-0 left-0 right-0 h-3 -mt-1.5" :style="{ backgroundColor: articleForm.overlay_color, clipPath: 'polygon(0% 100%, 5% 20%, 10% 80%, 15% 10%, 20% 90%, 25% 30%, 30% 70%, 35% 0%, 40% 100%, 45% 20%, 50% 80%, 55% 10%, 60% 90%, 65% 30%, 70% 70%, 75% 0%, 80% 100%, 85% 20%, 90% 80%, 95% 10%, 100% 100%)' }"></div>
                                 <div class="absolute bottom-0 left-0 right-0 h-3 -mb-1.5" :style="{ backgroundColor: articleForm.overlay_color, clipPath: 'polygon(0% 0%, 5% 80%, 10% 20%, 15% 90%, 20% 10%, 25% 70%, 30% 30%, 35% 100%, 40% 0%, 45% 80%, 50% 20%, 55% 90%, 60% 10%, 65% 70%, 70% 30%, 75% 100%, 80% 0%, 85% 80%, 90% 20%, 95% 90%, 100% 0%)' }"></div>
                                 <p class="text-center font-bold w-full truncate px-1" :style="{ color: articlePreviewStyles.headlineColor, fontSize: articlePreviewStyles.headlineFontSize, fontFamily: articlePreviewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ articlesWithoutPins.find(a => a.id === selectedArticles[0])?.title || 'Title Preview' }}
+                                    {{ articleForm.headline_text || 'Title Preview' }}
                                 </p>
                                 <p class="text-center font-bold w-full mt-1 truncate px-1" :style="{ color: articlePreviewStyles.subheadlineColor, fontSize: articlePreviewStyles.subheadlineFontSize, fontFamily: articlePreviewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ articlesWithoutPins.find(a => a.id === selectedArticles[0])?.excerpt || 'Subheadline Preview' }}
+                                    {{ articleForm.subheadline_text || 'Subheadline Preview' }}
                                 </p>
                             </div>
 
@@ -1395,10 +1555,49 @@ const getStatusBadgeClass = (status) => {
                                     </div>
                                 </section>
 
-                                <!-- Fonts -->
+                                <!-- Typography -->
                                 <section>
                                     <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Typography</h4>
                                     <div class="space-y-4">
+                                        <!-- Headline Text with AI button -->
+                                        <div>
+                                            <div class="flex items-center justify-between mb-2">
+                                                <label class="block text-xs text-gray-500 uppercase">Headline Text</label>
+                                                <button
+                                                    v-if="selectedMissingPins.length === 1"
+                                                    type="button"
+                                                    @click="generateBulkAIHeadlines"
+                                                    :disabled="isGeneratingBulkHeadlines"
+                                                    class="text-[10px] px-2 py-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-all flex items-center gap-1"
+                                                >
+                                                    <svg v-if="isGeneratingBulkHeadlines" class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    <svg v-else class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                    </svg>
+                                                    {{ isGeneratingBulkHeadlines ? 'AI Generating...' : 'AI Generate' }}
+                                                </button>
+                                            </div>
+                                            <input 
+                                                v-model="bulkForm.headline_text" 
+                                                type="text" 
+                                                class="w-full bg-[#1a1a1a] border-[#2a2a2a] rounded-xl text-white text-sm focus:ring-pink-500 p-3"
+                                                placeholder="Enter headline..."
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs text-gray-500 mb-2 uppercase">Subheadline Text</label>
+                                            <input 
+                                                v-model="bulkForm.subheadline_text" 
+                                                type="text" 
+                                                class="w-full bg-[#1a1a1a] border-[#2a2a2a] rounded-xl text-white text-sm focus:ring-pink-500 p-3"
+                                                placeholder="Enter subheadline..."
+                                            />
+                                        </div>
+
                                         <div>
                                             <label class="block text-xs text-gray-500 mb-2 uppercase">Headline Font</label>
                                             <select v-model="bulkForm.headline_font" class="w-full bg-[#1a1a1a] border-[#2a2a2a] rounded-xl text-white text-sm focus:ring-pink-500">
@@ -1468,6 +1667,30 @@ const getStatusBadgeClass = (status) => {
                                     </div>
                                 </section>
 
+                                <!-- AI Headlines Toggle -->
+                                <section>
+                                    <div class="p-4 bg-purple-500/10 border border-purple-500/30 rounded-2xl mb-6">
+                                        <label class="flex items-center gap-3 cursor-pointer group">
+                                            <div class="relative flex items-center">
+                                                <input 
+                                                    type="checkbox" 
+                                                    v-model="bulkForm.use_ai_headlines" 
+                                                    class="w-5 h-5 rounded border-[#3a3a3a] bg-[#1a1a1a] text-purple-500 focus:ring-purple-500 transition-all"
+                                                />
+                                            </div>
+                                            <div>
+                                                <span class="text-white text-sm font-bold group-hover:text-purple-400 transition-colors flex items-center gap-2">
+                                                    <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                    </svg>
+                                                    Regenerate AI Headlines
+                                                </span>
+                                                <p class="text-gray-500 text-[10px] mt-0.5 uppercase tracking-wider font-semibold">Overwrites existing headlines with new AI-generated ones</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </section>
+
                                 <!-- Domain Name -->
                                 <section>
                                     <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Website Info</h4>
@@ -1516,10 +1739,10 @@ const getStatusBadgeClass = (status) => {
                                 :style="{ backgroundColor: previewStyles.overlayBg }"
                             >
                                 <p class="text-center font-bold lowercase w-full truncate px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ previewPin.headline_text || 'Title Preview' }}
+                                    {{ bulkForm.headline_text || 'Title Preview' }}
                                 </p>
                                 <p class="text-center italic mt-1 w-full truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ previewPin.subheadline_text || 'Subheadline Preview' }}
+                                    {{ bulkForm.subheadline_text || 'Subheadline Preview' }}
                                 </p>
                             </div>
 
@@ -1533,10 +1756,10 @@ const getStatusBadgeClass = (status) => {
                                 <div class="absolute top-2 left-0 right-0 h-0.5" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
                                 <div class="absolute bottom-2 left-0 right-0 h-0.5" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
                                 <p class="text-center font-bold capitalize w-full truncate px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ previewPin.headline_text || 'Title Preview' }}
+                                    {{ bulkForm.headline_text || 'Title Preview' }}
                                 </p>
                                 <p class="text-center mt-1 capitalize w-full truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ previewPin.subheadline_text || 'Subheadline Preview' }}
+                                    {{ bulkForm.subheadline_text || 'Subheadline Preview' }}
                                 </p>
                             </div>
 
@@ -1554,10 +1777,10 @@ const getStatusBadgeClass = (status) => {
                                     <div v-for="i in 15" :key="'b-'+i" class="flex-1 h-0.5 bg-white rounded-full"></div>
                                 </div>
                                 <p class="text-center font-bold lowercase w-full truncate px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ previewPin.headline_text || 'Title Preview' }}
+                                    {{ bulkForm.headline_text || 'Title Preview' }}
                                 </p>
                                 <p class="text-center italic mt-1 w-full truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">
-                                    {{ previewPin.subheadline_text || 'Subheadline Preview' }}
+                                    {{ bulkForm.subheadline_text || 'Subheadline Preview' }}
                                 </p>
                             </div>
 
@@ -1570,8 +1793,8 @@ const getStatusBadgeClass = (status) => {
                             >
                                 <div class="absolute top-0 left-0 right-0 h-3" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
                                 <div class="flex-1 flex flex-col items-center justify-center w-full px-2 mt-2">
-                                    <p class="text-center font-bold uppercase w-full truncate px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ previewPin.headline_text || 'Title Preview' }}</p>
-                                    <p class="text-center font-bold uppercase w-full mt-1 truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ previewPin.subheadline_text || 'Subheadline Preview' }}</p>
+                                    <p class="text-center font-bold uppercase w-full truncate px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ bulkForm.headline_text || 'Title Preview' }}</p>
+                                    <p class="text-center font-bold uppercase w-full mt-1 truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ bulkForm.subheadline_text || 'Subheadline Preview' }}</p>
                                 </div>
                                 <div class="relative w-[85%] flex items-center justify-center mb-1 h-6" :style="{ backgroundColor: previewStyles.headlineColor }">
                                     <div class="absolute left-0 top-0 bottom-0 w-2" :style="{ backgroundColor: bulkForm.overlay_color, clipPath: 'polygon(0 0, 100% 50%, 0 100%)' }"></div>
@@ -1590,8 +1813,8 @@ const getStatusBadgeClass = (status) => {
                                 <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 h-5 rounded-full flex items-center justify-center gap-0.5" :style="{ backgroundColor: previewStyles.headlineColor }">
                                     <div v-for="i in 5" :key="'s-'+i" class="w-2 h-2 bg-yellow-200" style="clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);"></div>
                                 </div>
-                                <p class="text-center font-bold uppercase w-full truncate px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ previewPin.headline_text || 'Title Preview' }}</p>
-                                <p class="text-center font-bold uppercase w-full mt-1 truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ previewPin.subheadline_text || 'Subheadline Preview' }}</p>
+                                <p class="text-center font-bold uppercase w-full truncate px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ bulkForm.headline_text || 'Title Preview' }}</p>
+                                <p class="text-center font-bold uppercase w-full mt-1 truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ bulkForm.subheadline_text || 'Subheadline Preview' }}</p>
                                 <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 h-5 rounded-full flex items-center justify-center min-w-[80px]" :style="{ backgroundColor: previewStyles.headlineColor }">
                                     <p class="text-center font-bold text-white uppercase text-[8px] tracking-wider">{{ bulkForm.domain_name }}</p>
                                 </div>
@@ -1606,8 +1829,8 @@ const getStatusBadgeClass = (status) => {
                             >
                                 <div class="absolute top-0 left-0 right-0 h-1" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
                                 <div class="absolute bottom-0 left-0 right-0 h-1" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
-                                <p class="text-center font-bold lowercase w-full truncate px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ previewPin.headline_text || 'Title Preview' }}</p>
-                                <p class="text-center lowercase w-full mt-1 truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ previewPin.subheadline_text || 'Subheadline Preview' }}</p>
+                                <p class="text-center font-bold lowercase w-full truncate px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ bulkForm.headline_text || 'Title Preview' }}</p>
+                                <p class="text-center lowercase w-full mt-1 truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ bulkForm.subheadline_text || 'Subheadline Preview' }}</p>
                                 <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 h-5 flex items-center justify-center min-w-[80px]" :style="{ backgroundColor: previewStyles.headlineColor }">
                                     <p class="text-center font-bold text-white lowercase text-[8px]">{{ bulkForm.domain_name }}</p>
                                 </div>
@@ -1622,8 +1845,8 @@ const getStatusBadgeClass = (status) => {
                             >
                                 <div class="absolute top-0 left-0 right-0 h-1" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
                                 <div class="absolute bottom-0 left-0 right-0 h-1" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
-                                <p class="text-center font-bold uppercase w-full truncate px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ previewPin.headline_text || 'Title Preview' }}</p>
-                                <p class="text-center capitalize w-full mt-1 truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ previewPin.subheadline_text || 'Subheadline Preview' }}</p>
+                                <p class="text-center font-bold uppercase w-full truncate px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ bulkForm.headline_text || 'Title Preview' }}</p>
+                                <p class="text-center capitalize w-full mt-1 truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ bulkForm.subheadline_text || 'Subheadline Preview' }}</p>
                             </div>
 
                             <!-- torn_paper -->
@@ -1635,8 +1858,8 @@ const getStatusBadgeClass = (status) => {
                             >
                                 <div class="absolute top-0 left-0 right-0 h-3 -mt-1.5" :style="{ backgroundColor: bulkForm.overlay_color, clipPath: 'polygon(0% 100%, 5% 20%, 10% 80%, 15% 10%, 20% 90%, 25% 30%, 30% 70%, 35% 0%, 40% 100%, 45% 20%, 50% 80%, 55% 10%, 60% 90%, 65% 30%, 70% 70%, 75% 0%, 80% 100%, 85% 20%, 90% 80%, 95% 10%, 100% 100%)' }"></div>
                                 <div class="absolute bottom-0 left-0 right-0 h-3 -mb-1.5" :style="{ backgroundColor: bulkForm.overlay_color, clipPath: 'polygon(0% 0%, 5% 80%, 10% 20%, 15% 90%, 20% 10%, 25% 70%, 30% 30%, 35% 100%, 40% 0%, 45% 80%, 50% 20%, 55% 90%, 60% 10%, 65% 70%, 70% 30%, 75% 100%, 80% 0%, 85% 80%, 90% 20%, 95% 90%, 100% 0%)' }"></div>
-                                <p class="text-center font-bold w-full truncate px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ previewPin.headline_text || 'Title Preview' }}</p>
-                                <p class="text-center font-bold w-full mt-1 truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ previewPin.subheadline_text || 'Subheadline Preview' }}</p>
+                                <p class="text-center font-bold w-full truncate px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ bulkForm.headline_text || 'Title Preview' }}</p>
+                                <p class="text-center font-bold w-full mt-1 truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.1' }">{{ bulkForm.subheadline_text || 'Subheadline Preview' }}</p>
                             </div>
 
                             <!-- Bottom Image -->
