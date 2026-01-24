@@ -79,12 +79,12 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
             if ($job) $job->markAsProcessing();
         }
 
-        // Determine word count based on length
+        // Determine word count based on length (increased for more comprehensive articles)
         $wordCount = match($this->length) {
-            'short' => '500-700',
-            'medium' => '1000-1500',
-            'long' => '2000-3000',
-            default => '1000-1500'
+            'short' => '1000-1500',
+            'medium' => '2000-3000',
+            'long' => '4000-5000',
+            default => '2000-3000'
         };
 
         try {
@@ -111,14 +111,14 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
                     // Build unique prompt for this website
                     $prompt = $this->buildPrompt($wordCount, $website, $index);
                     
-                    // Call OpenAI API for THIS specific website (unique content)
+                    // Call OpenAI API for THIS specific website (unique content) with increased max_tokens
                     $result = $client->chat()->create([
                         'model' => $model,
                         'messages' => [
-                            ['role' => 'system', 'content' => 'You are an expert blog writer who creates engaging, SEO-optimized content. Each article you write must be completely unique and different from others on the same topic.'],
+                            ['role' => 'system', 'content' => 'You are an expert blog writer who creates engaging, SEO-optimized, comprehensive content. Each article you write must be completely unique and different from others on the same topic. You write detailed articles with well-organized paragraphs and in-depth coverage.'],
                             ['role' => 'user', 'content' => $prompt],
                         ],
-                        'max_tokens' => 4000,
+                        'max_tokens' => 8000,
                         'temperature' => 0.9, // Higher temperature for more variation
                     ]);
 
@@ -354,7 +354,7 @@ INGREDIENTS_INSTRUCTION;
         return <<<PROMPT
 You are a professional blog writer who creates authentic, engaging content.
 
-Write a COMPLETELY UNIQUE blog post about: "{$this->topic}"
+Write a DETAILED, COMPREHENSIVE and COMPLETELY UNIQUE blog post about: "{$this->topic}"
 
 CRITICAL TITLE RULE:
 - The TITLE field below is pre-filled with the exact title the user wants. DO NOT CHANGE IT. Use it exactly as written - no additions, no modifications, no "improvements".
@@ -364,17 +364,62 @@ UNIQUENESS REQUIREMENT (Variation #{$variationIndex}, Seed: {$randomSeed}):
 - Use different examples, metaphors, and explanations than typical articles
 - Create a fresh, original perspective that stands out
 
+MOST CRITICAL RULE - BOLD TITLES ON ALL CONTENT (DO NOT SKIP THIS):
+**EVERY SINGLE PARAGRAPH AND LIST ITEM** in the article MUST begin with a bold title. This is NON-NEGOTIABLE.
+
+FOR PARAGRAPHS:
+- Format: <p><strong>Descriptive Title Here:</strong> Then your paragraph content...</p>
+- WRONG: <p>Journeying into the world of Korean cuisine...</p>
+- RIGHT: <p><strong>A Gateway to Korean Flavors:</strong> Journeying into the world of Korean cuisine...</p>
+
+FOR LIST ITEMS (VERY IMPORTANT):
+- Format: <li><strong>Title Here:</strong> Then the list item content...</li>
+- WRONG: <li>All-in-one comfort meal with protein, potatoes, and cheese</li>
+- RIGHT: <li><strong>Complete Comfort Meal:</strong> All-in-one comfort meal with protein, potatoes, and cheese</li>
+- WRONG: <li>Savory ranch seasoning with juicy chicken</li>
+- RIGHT: <li><strong>Savory Ranch Flavor:</strong> Delicious ranch seasoning perfectly coats the juicy chicken</li>
+
+EVERY <p> and <li> tag MUST start with <strong>Title:</strong>
+- NO paragraph or list item should EVER start without a bold title
+- If I see ANY paragraph or list item without a bold title, the article is REJECTED
+
 CRITICAL WRITING STYLE RULES - DO NOT VIOLATE THESE:
-1. DO NOT use section headers like "Introduction" or "Conclusion"
+1. Use DESCRIPTIVE, ENGAGING headers (<h2> and <h3>) to organize your content. Avoid generic ones like "Introduction" or "Conclusion". Instead, use creative headers that fit the topic.
 2. DO NOT start with generic phrases like "Are you looking for..." or "In this article, we will..."
 3. DO NOT use phrases like "In conclusion", "To summarize", "Let's dive in", or "Without further ado"
 4. DO NOT follow a formulaic structure
 5. DO NOT use overused AI phrases like "game-changer", "elevate", "delve into", or "embark on a journey"
+6. REMEMBER: Every <p> AND <li> tag MUST have <strong>Title:</strong> at the start!
+
+HOW TO WRITE THIS (follow this closely):
+- Start with a LONG, ENGAGING introduction (at least 5-7 detailed paragraphs). Use storytelling, personal anecdotes, or historical context to draw the reader in. Make readers feel connected to your story.
+- Write like you're talking to a friend. Be warm, enthusiastic, and VERY thorough.
+
+PARAGRAPH STRUCTURE (VERY IMPORTANT):
+- Each paragraph should be 4-6 sentences minimum, not just 1-2 sentences.
+- Use multiple paragraphs per section - don't cram everything into one paragraph.
+- Add detailed explanations, examples, and context in each paragraph.
+- Every major point deserves its own paragraph with full explanation.
+
+REMINDER - BOLD TITLES ON EVERY PARAGRAPH AND LIST ITEM (MANDATORY):
+- EVERY <p> tag = <p><strong>Title:</strong> content</p>
+- EVERY <li> tag = <li><strong>Title:</strong> content</li>
+- NO EXCEPTIONS. Check every paragraph and list item before submitting.
+
+CONTENT DEPTH REQUIREMENTS:
+- Include a section on "Why This Works" or "The Science Behind It" with at least 3 paragraphs explaining the technique or reasoning.
+- Include a "Tips for Success" section with at least 4-5 detailed tips, each explained in its own paragraph.
+- Include a section on variations with detailed explanations for each option.
+- Include a "Common Mistakes to Avoid" section with at least 3 mistakes and how to fix them.
+- Include a "Serving Suggestions" or "How to Use" section with detailed ideas.
+- Include a "Storage Tips" or "Making Ahead" section with detailed instructions.
+- Include a "Frequently Asked Questions" section with at least 5 Q&As.
+- End naturally with a final section that encourages reader engagement - make this at least 2-3 paragraphs.
 
 Requirements:
-- Length: {$wordCount} words
+- Length: MINIMUM {$wordCount} words. This is a MINIMUM - feel free to write more! Be as detailed and comprehensive as possible. DO NOT stop early.
 - Tone: {$this->tone} (but always authentic and personal)
-- Use proper HTML formatting: <h2> for major sections (Ingredients, Instructions, Pro Tips), <h3> for subsections, <p>, <ul>, <ol>, <strong>, <em>, <blockquote> for tips/quotes
+- Use proper HTML formatting: <h2> for major sections, <h3> for subsections, <p>, <ul>, <ol>, <strong>, <em>, <blockquote> for tips/quotes
 - Make it SEO-friendly but human-first{$keywordsText}{$ingredientsText}
 
 CRITICAL FOR RECIPES - READ CAREFULLY:

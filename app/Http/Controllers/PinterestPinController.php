@@ -299,6 +299,49 @@ class PinterestPinController extends Controller
     }
 
     /**
+     * Bulk delete Pinterest pins.
+     */
+    public function bulkDelete(Request $request, Website $website)
+    {
+        $this->authorize('view', $website);
+
+        $validated = $request->validate([
+            'pin_ids' => 'required|array|min:1',
+            'pin_ids.*' => 'exists:pinterest_pins,id',
+        ]);
+
+        $deleted = 0;
+        $errors = [];
+
+        foreach ($validated['pin_ids'] as $pinId) {
+            $pin = PinterestPin::find($pinId);
+            
+            if (!$pin || $pin->website_id !== $website->id) {
+                continue;
+            }
+
+            try {
+                // Delete the generated image file
+                if ($pin->generated_image && file_exists(public_path($pin->generated_image))) {
+                    unlink(public_path($pin->generated_image));
+                }
+
+                $pin->delete();
+                $deleted++;
+            } catch (\Exception $e) {
+                $errors[] = "Failed to delete '{$pin->title}': " . $e->getMessage();
+            }
+        }
+
+        $message = "Successfully deleted {$deleted} Pinterest pins.";
+        if (!empty($errors)) {
+            $message .= ' Some errors occurred: ' . implode('; ', array_slice($errors, 0, 3));
+        }
+
+        return back()->with('success', $message);
+    }
+
+    /**
      * Bulk generate Pinterest pins for articles without pins.
      */
     public function bulkGenerate(Request $request, Website $website)

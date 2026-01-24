@@ -88,6 +88,62 @@ const bulkDownloadPins = async () => {
 
 const showBulkActions = computed(() => selectedPins.value.length > 0);
 
+// Bulk Delete
+const isBulkDeleting = ref(false);
+const showBulkDeleteModal = ref(false);
+
+const openBulkDeleteModal = () => {
+    if (selectedPins.value.length === 0) return;
+    showBulkDeleteModal.value = true;
+};
+
+const bulkDeletePins = () => {
+    if (selectedPins.value.length === 0) return;
+    
+    isBulkDeleting.value = true;
+    
+    router.post(route('superadmin.pinterest-pins.bulk-delete', { website: props.currentWebsite.id }), {
+        pin_ids: selectedPins.value
+    }, {
+        onSuccess: () => {
+            selectedPins.value = [];
+            showBulkDeleteModal.value = false;
+            isBulkDeleting.value = false;
+        },
+        onError: () => {
+            isBulkDeleting.value = false;
+        }
+    });
+};
+
+// Bulk Delete Missing Pins
+const showBulkDeleteMissingModal = ref(false);
+const isBulkDeletingMissing = ref(false);
+
+const openBulkDeleteMissingModal = () => {
+    if (selectedMissingPins.value.length === 0) return;
+    showBulkDeleteMissingModal.value = true;
+};
+
+const bulkDeleteMissingPins = () => {
+    if (selectedMissingPins.value.length === 0) return;
+    
+    isBulkDeletingMissing.value = true;
+    
+    router.post(route('superadmin.pinterest-pins.bulk-delete', { website: props.currentWebsite.id }), {
+        pin_ids: selectedMissingPins.value
+    }, {
+        onSuccess: () => {
+            selectedMissingPins.value = [];
+            showBulkDeleteMissingModal.value = false;
+            isBulkDeletingMissing.value = false;
+        },
+        onError: () => {
+            isBulkDeletingMissing.value = false;
+        }
+    });
+};
+
 // Missing Design Selection
 const selectedMissingPins = ref([]);
 const showBulkDesignModal = ref(false);
@@ -508,6 +564,17 @@ const getStatusBadgeClass = (status) => {
                     <p class="text-gray-400 mt-1">Create and manage Pinterest pin images for your articles</p>
                 </div>
                 <div class="flex items-center gap-3">
+                    <!-- Bulk Delete Button for Generated Pins -->
+                    <button
+                        v-if="selectedPins.length > 0"
+                        @click="openBulkDeleteModal"
+                        class="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-red-500/40"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Delete {{ selectedPins.length }} Selected
+                    </button>
                     <!-- Bulk Download Button -->
                     <button
                         v-if="selectedPins.length > 0"
@@ -523,6 +590,17 @@ const getStatusBadgeClass = (status) => {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
                         Download {{ selectedPins.length }} Designs
+                    </button>
+                    <!-- Bulk Delete Button for Missing Design Pins -->
+                    <button
+                        v-if="selectedMissingPins.length > 0"
+                        @click="openBulkDeleteMissingModal"
+                        class="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-red-500/40"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Delete {{ selectedMissingPins.length }} Selected
                     </button>
                     <!-- Bulk Design Button -->
                     <button
@@ -871,6 +949,88 @@ const getStatusBadgeClass = (status) => {
                         class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
                     >
                         Delete Pin
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Delete Confirmation Modal (Generated Pins) -->
+        <div v-if="showBulkDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center">
+            <div class="absolute inset-0 bg-black/70" @click="showBulkDeleteModal = false"></div>
+            <div class="relative bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6 max-w-md w-full mx-4">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="p-3 bg-red-500/20 rounded-xl">
+                        <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-white">Delete {{ selectedPins.length }} Pinterest Pins</h3>
+                        <p class="text-gray-400 text-sm">This action cannot be undone</p>
+                    </div>
+                </div>
+                <p class="text-gray-400 mb-6">
+                    Are you sure you want to delete <strong class="text-white">{{ selectedPins.length }}</strong> Pinterest pins? 
+                    All generated images will be permanently removed.
+                </p>
+                <div class="flex justify-end gap-3">
+                    <button
+                        @click="showBulkDeleteModal = false"
+                        class="px-4 py-2 bg-[#252525] hover:bg-[#2a2a2a] text-white rounded-lg transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        @click="bulkDeletePins"
+                        :disabled="isBulkDeleting"
+                        class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors flex items-center gap-2"
+                    >
+                        <svg v-if="isBulkDeleting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Delete {{ selectedPins.length }} Pins
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Delete Confirmation Modal (Missing Design Pins) -->
+        <div v-if="showBulkDeleteMissingModal" class="fixed inset-0 z-50 flex items-center justify-center">
+            <div class="absolute inset-0 bg-black/70" @click="showBulkDeleteMissingModal = false"></div>
+            <div class="relative bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6 max-w-md w-full mx-4">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="p-3 bg-red-500/20 rounded-xl">
+                        <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-white">Delete {{ selectedMissingPins.length }} Pins</h3>
+                        <p class="text-gray-400 text-sm">This action cannot be undone</p>
+                    </div>
+                </div>
+                <p class="text-gray-400 mb-6">
+                    Are you sure you want to delete <strong class="text-white">{{ selectedMissingPins.length }}</strong> pins that need design? 
+                    They will be permanently removed.
+                </p>
+                <div class="flex justify-end gap-3">
+                    <button
+                        @click="showBulkDeleteMissingModal = false"
+                        class="px-4 py-2 bg-[#252525] hover:bg-[#2a2a2a] text-white rounded-lg transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        @click="bulkDeleteMissingPins"
+                        :disabled="isBulkDeletingMissing"
+                        class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors flex items-center gap-2"
+                    >
+                        <svg v-if="isBulkDeletingMissing" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Delete {{ selectedMissingPins.length }} Pins
                     </button>
                 </div>
             </div>
