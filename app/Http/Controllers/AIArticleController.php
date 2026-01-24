@@ -151,6 +151,7 @@ class AIArticleController extends Controller
             'auto_publish' => 'boolean',
             'auto_categorize' => 'boolean',
             'background' => 'boolean', // New option for background processing
+            'article_type' => 'nullable|in:recipe,article', // Article type: recipe (with /recipes/ URL) or article (root URL)
         ]);
 
         // Validate category if provided
@@ -187,7 +188,8 @@ class AIArticleController extends Controller
                 $validated['auto_publish'] ?? false,
                 ($validated['auto_categorize'] ?? true) ? null : ($validated['category_id'] ?? null),
                 $validated['featured_image'] ?? null,
-                $validated['secondary_image'] ?? null
+                $validated['secondary_image'] ?? null,
+                $validated['article_type'] ?? 'recipe'
             );
 
             return redirect()->route('superadmin.ai-articles.index', ['website' => $website->id])
@@ -288,6 +290,7 @@ class AIArticleController extends Controller
                 'published_at' => $validated['auto_publish'] ?? false ? now() : null,
                 'ai_generated' => true,
                 'generation_type' => 'ai',
+                'article_type' => $validated['article_type'] ?? 'recipe',
             ]);
 
             Log::info('Article created successfully', ['article_id' => $article->id]);

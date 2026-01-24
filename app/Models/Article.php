@@ -30,6 +30,7 @@ class Article extends Model
         'gradients',
         'status',
         'generation_type',
+        'article_type',
         'views',
         'ai_generated',
         'published_at',
@@ -141,7 +142,29 @@ class Article extends Model
     {
         // Strip trailing ID pattern (e.g., -431) from slug for cleaner URLs
         $cleanSlug = preg_replace('/-\d+$/', '', $this->slug);
+        
+        // If article_type is 'article', use root path; otherwise use /recipes/ prefix
+        if ($this->article_type === 'article') {
+            return $this->website->getUrlForPath($cleanSlug);
+        }
+        
         return $this->website->getUrlForPath('recipes/' . $cleanSlug);
+    }
+
+    /**
+     * Check if this article is a recipe type.
+     */
+    public function isRecipe(): bool
+    {
+        return $this->article_type === 'recipe' || $this->article_type === null;
+    }
+
+    /**
+     * Check if this article is a regular article type.
+     */
+    public function isArticle(): bool
+    {
+        return $this->article_type === 'article';
     }
 
     /**

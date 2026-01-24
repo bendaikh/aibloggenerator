@@ -26,7 +26,7 @@ class PublicWebsiteController extends Controller
     }
 
     /**
-     * Display an article (subdomain/custom domain).
+     * Display an article (subdomain/custom domain) - for /recipes/{article} URLs.
      */
     public function showArticleByDomain(Request $request, string $articleSlug): Response
     {
@@ -47,11 +47,67 @@ class PublicWebsiteController extends Controller
         ]);
 
         // Try exact match first, then try with ID pattern (e.g., slug-431)
+        // This route is for recipes, so we filter by article_type = 'recipe' or null (backwards compatibility)
         $article = $website->articles()
             ->where(function ($query) use ($articleSlug) {
                 $query->where('slug', $articleSlug)
                     ->orWhere('slug', 'like', $articleSlug . '-%');
             })
+            ->where(function ($query) {
+                $query->where('article_type', 'recipe')
+                    ->orWhereNull('article_type');
+            })
+            ->where('status', 'published')
+            ->where('published_at', '<=', now())
+            ->with(['category', 'user', 'author'])
+            ->firstOrFail();
+
+        // Increment views
+        $article->incrementViews();
+
+        // Get related articles
+        $relatedArticles = $website->publishedArticles()
+            ->where('id', '!=', $article->id)
+            ->where('category_id', $article->category_id)
+            ->take(3)
+            ->get();
+
+        return Inertia::render('Public/Website/Article', [
+            'website' => $website,
+            'article' => $article,
+            'relatedArticles' => $relatedArticles,
+        ]);
+    }
+
+    /**
+     * Display a regular article (subdomain/custom domain) - for /{article} URLs (at root).
+     */
+    public function showRegularArticleByDomain(Request $request, string $articleSlug): Response
+    {
+        $website = $request->get('website');
+        
+        if (!$website) {
+            abort(404, 'Website not found');
+        }
+
+        // Load categories and pages for navigation
+        $website->load([
+            'categories' => function ($query) {
+                $query->where('is_active', true)->orderBy('order');
+            },
+            'pages' => function ($query) {
+                $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
+            }
+        ]);
+
+        // Try exact match first, then try with ID pattern (e.g., slug-431)
+        // This route is for regular articles only (article_type = 'article')
+        $article = $website->articles()
+            ->where(function ($query) use ($articleSlug) {
+                $query->where('slug', $articleSlug)
+                    ->orWhere('slug', 'like', $articleSlug . '-%');
+            })
+            ->where('article_type', 'article')
             ->where('status', 'published')
             ->where('published_at', '<=', now())
             ->with(['category', 'user', 'author'])
@@ -170,7 +226,7 @@ class PublicWebsiteController extends Controller
     }
 
     /**
-     * Display an article (legacy route).
+     * Display an article (legacy route) - for /recipes/{article} URLs.
      */
     public function showArticle(string $websiteSlug, string $articleSlug): Response
     {
@@ -189,11 +245,65 @@ class PublicWebsiteController extends Controller
         ]);
 
         // Try exact match first, then try with ID pattern (e.g., slug-431)
+        // This route is for recipes, so we filter by article_type = 'recipe' or null (backwards compatibility)
         $article = $website->articles()
             ->where(function ($query) use ($articleSlug) {
                 $query->where('slug', $articleSlug)
                     ->orWhere('slug', 'like', $articleSlug . '-%');
             })
+            ->where(function ($query) {
+                $query->where('article_type', 'recipe')
+                    ->orWhereNull('article_type');
+            })
+            ->where('status', 'published')
+            ->where('published_at', '<=', now())
+            ->with(['category', 'user', 'author'])
+            ->firstOrFail();
+
+        // Increment views
+        $article->incrementViews();
+
+        // Get related articles
+        $relatedArticles = $website->publishedArticles()
+            ->where('id', '!=', $article->id)
+            ->where('category_id', $article->category_id)
+            ->take(3)
+            ->get();
+
+        return Inertia::render('Public/Website/Article', [
+            'website' => $website,
+            'article' => $article,
+            'relatedArticles' => $relatedArticles,
+        ]);
+    }
+
+    /**
+     * Display a regular article (legacy route) - for /{article} URLs (at root).
+     */
+    public function showRegularArticle(string $websiteSlug, string $articleSlug): Response
+    {
+        $website = Website::where('slug', $websiteSlug)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        // Load categories and pages for navigation
+        $website->load([
+            'categories' => function ($query) {
+                $query->where('is_active', true)->orderBy('order');
+            },
+            'pages' => function ($query) {
+                $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
+            }
+        ]);
+
+        // Try exact match first, then try with ID pattern (e.g., slug-431)
+        // This route is for regular articles only (article_type = 'article')
+        $article = $website->articles()
+            ->where(function ($query) use ($articleSlug) {
+                $query->where('slug', $articleSlug)
+                    ->orWhere('slug', 'like', $articleSlug . '-%');
+            })
+            ->where('article_type', 'article')
             ->where('status', 'published')
             ->where('published_at', '<=', now())
             ->with(['category', 'user', 'author'])

@@ -34,6 +34,7 @@ class GenerateAIArticleJob implements ShouldQueue
     protected ?int $categoryId;
     protected ?string $featuredImage;
     protected ?string $secondaryImage;
+    protected string $articleType;
 
     /**
      * Create a new job instance.
@@ -49,7 +50,8 @@ class GenerateAIArticleJob implements ShouldQueue
         bool $autoPublish = false,
         ?int $categoryId = null,
         ?string $featuredImage = null,
-        ?string $secondaryImage = null
+        ?string $secondaryImage = null,
+        string $articleType = 'recipe'
     ) {
         $this->generationJobId = $generationJobId;
         $this->websiteId = $websiteId;
@@ -62,6 +64,7 @@ class GenerateAIArticleJob implements ShouldQueue
         $this->categoryId = $categoryId;
         $this->featuredImage = $featuredImage;
         $this->secondaryImage = $secondaryImage;
+        $this->articleType = $articleType;
     }
 
     /**
@@ -174,6 +177,7 @@ class GenerateAIArticleJob implements ShouldQueue
                 'published_at' => $this->autoPublish ? now() : null,
                 'ai_generated' => true,
                 'generation_type' => 'ai',
+                'article_type' => $this->articleType,
             ]);
 
             // Mark job as completed

@@ -723,6 +723,7 @@ HTML;
             'auto_publish' => 'boolean',
             'website_ids' => 'required|array|min:1',
             'website_ids.*' => 'exists:websites,id',
+            'article_type' => 'nullable|in:recipe,article',
         ]);
 
         // Replace hyphens with spaces in the topic (title)
@@ -766,7 +767,8 @@ HTML;
             $validated['keywords'] ?? '',
             $validated['ingredients'] ?? '',
             $validated['auto_publish'] ?? false,
-            $featuredImages
+            $featuredImages,
+            $validated['article_type'] ?? 'recipe'
         );
 
         return redirect()->back()->with('success', 'Global article generation started! We will push it to ' . count($generationJobIds) . ' websites.');

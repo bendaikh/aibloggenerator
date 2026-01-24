@@ -25,7 +25,7 @@
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status / Type</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Views</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
@@ -50,13 +50,21 @@
                                 {{ article.category?.name || 'Uncategorized' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span :class="[
-                                    'px-3 py-1 rounded-full text-xs font-semibold',
-                                    article.status === 'published' ? 'bg-emerald-900/50 text-emerald-400' : 
-                                    article.status === 'draft' ? 'bg-gray-700 text-gray-300' : 'bg-yellow-900/50 text-yellow-400'
-                                ]">
-                                    {{ article.status }}
-                                </span>
+                                <div class="flex items-center gap-2">
+                                    <span :class="[
+                                        'px-3 py-1 rounded-full text-xs font-semibold',
+                                        article.status === 'published' ? 'bg-emerald-900/50 text-emerald-400' : 
+                                        article.status === 'draft' ? 'bg-gray-700 text-gray-300' : 'bg-yellow-900/50 text-yellow-400'
+                                    ]">
+                                        {{ article.status }}
+                                    </span>
+                                    <span :class="[
+                                        'px-2 py-1 rounded text-xs font-medium',
+                                        article.article_type === 'article' ? 'bg-blue-900/50 text-blue-400' : 'bg-orange-900/50 text-orange-400'
+                                    ]" :title="article.article_type === 'article' ? 'URL: /slug' : 'URL: /recipes/slug'">
+                                        {{ article.article_type === 'article' ? 'Article' : 'Recipe' }}
+                                    </span>
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                                 {{ article.views || 0 }}

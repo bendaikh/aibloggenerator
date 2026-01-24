@@ -34,6 +34,7 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
     protected string $ingredients = '';
     protected bool $autoPublish = false;
     protected array $featuredImages = [];
+    protected string $articleType = 'recipe';
 
     /**
      * Create a new job instance.
@@ -48,7 +49,8 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
         string $keywords = '',
         string $ingredients = '',
         bool $autoPublish = false,
-        array $featuredImages = []
+        array $featuredImages = [],
+        string $articleType = 'recipe'
     ) {
         $this->generationJobIds = $generationJobIds;
         $this->websiteIds = $websiteIds;
@@ -60,6 +62,7 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
         $this->ingredients = $ingredients;
         $this->autoPublish = $autoPublish;
         $this->featuredImages = $featuredImages;
+        $this->articleType = $articleType;
     }
 
     /**
@@ -178,6 +181,7 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
                         'published_at' => $this->autoPublish ? now() : null,
                         'ai_generated' => true,
                         'generation_type' => 'ai',
+                        'article_type' => $this->articleType,
                     ]);
 
                     if ($generationJob) {

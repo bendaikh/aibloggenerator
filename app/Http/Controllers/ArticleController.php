@@ -85,12 +85,18 @@ class ArticleController extends Controller
             'meta_tags' => 'nullable|array',
             'status' => 'required|in:draft,published,scheduled',
             'generation_type' => 'required|in:manual,ai',
+            'article_type' => 'nullable|in:recipe,article',
             'published_at' => 'nullable|date',
             'prep_time' => 'nullable|string|max:255',
             'cook_time' => 'nullable|string|max:255',
             'rest_time' => 'nullable|string|max:255',
             'total_time' => 'nullable|string|max:255',
         ]);
+
+        // Default article_type to 'recipe' if not specified
+        if (!isset($validated['article_type'])) {
+            $validated['article_type'] = 'recipe';
+        }
 
         $validated['website_id'] = $website->id;
         $validated['user_id'] = auth()->id();
@@ -154,6 +160,7 @@ class ArticleController extends Controller
             'secondary_image' => 'nullable|string',
             'meta_tags' => 'nullable|array',
             'status' => 'required|in:draft,published,scheduled',
+            'article_type' => 'nullable|in:recipe,article',
             'published_at' => 'nullable|date',
             'prep_time' => 'nullable|string|max:255',
             'cook_time' => 'nullable|string|max:255',

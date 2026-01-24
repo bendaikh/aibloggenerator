@@ -63,6 +63,58 @@
                             <p v-if="form.errors.category_id" class="mt-2 text-sm text-red-500">{{ form.errors.category_id }}</p>
                         </div>
 
+                        <!-- Article Type Selection -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">
+                                Article Type
+                            </label>
+                            <div class="grid grid-cols-2 gap-4">
+                                <label 
+                                    :class="[
+                                        'flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all',
+                                        form.article_type === 'recipe' 
+                                            ? 'border-emerald-500 bg-emerald-900/20' 
+                                            : 'border-[#3a3a3a] hover:border-[#4a4a4a]'
+                                    ]"
+                                >
+                                    <input type="radio" v-model="form.article_type" value="recipe" class="sr-only" />
+                                    <div class="flex items-center gap-3">
+                                        <div :class="['w-10 h-10 rounded-lg flex items-center justify-center', form.article_type === 'recipe' ? 'bg-emerald-500' : 'bg-[#3a3a3a]']">
+                                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="text-white font-medium">Recipe</p>
+                                            <p class="text-xs text-gray-400">URL: /recipes/slug</p>
+                                        </div>
+                                    </div>
+                                </label>
+                                <label 
+                                    :class="[
+                                        'flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all',
+                                        form.article_type === 'article' 
+                                            ? 'border-emerald-500 bg-emerald-900/20' 
+                                            : 'border-[#3a3a3a] hover:border-[#4a4a4a]'
+                                    ]"
+                                >
+                                    <input type="radio" v-model="form.article_type" value="article" class="sr-only" />
+                                    <div class="flex items-center gap-3">
+                                        <div :class="['w-10 h-10 rounded-lg flex items-center justify-center', form.article_type === 'article' ? 'bg-emerald-500' : 'bg-[#3a3a3a]']">
+                                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="text-white font-medium">Article</p>
+                                            <p class="text-xs text-gray-400">URL: /slug (root)</p>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            <p class="mt-2 text-xs text-gray-500">Recipe articles appear at /recipes/slug, while regular articles appear directly at /slug</p>
+                        </div>
+
                         <!-- Title -->
                         <div class="mb-6">
                             <label for="title" class="block text-sm font-medium text-gray-300 mb-2">
@@ -258,6 +310,7 @@ const form = useForm({
     rest_time: props.article.rest_time || '',
     total_time: props.article.total_time || '',
     status: props.article.status || 'draft',
+    article_type: props.article.article_type || 'recipe',
     published_at: props.article.published_at ? props.article.published_at.substring(0, 16) : ''
 });
 
