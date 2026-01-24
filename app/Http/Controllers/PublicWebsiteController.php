@@ -422,14 +422,41 @@ class PublicWebsiteController extends Controller
 
         $latestArticles = $website->publishedArticles()
             ->with('category')
+            ->orderByDesc('published_at')
             ->take(6)
             ->get();
 
+        $latestIds = $latestArticles->pluck('id');
+
         $featuredArticles = $website->publishedArticles()
             ->with('category')
+            ->whereNotIn('id', $latestIds)
             ->orderByDesc('views')
-            ->take(4)
+            ->take(5)
             ->get();
+
+        $featuredIds = $featuredArticles->pluck('id');
+        $excludedIds = $latestIds->merge($featuredIds);
+
+        $familyFavorites = $website->publishedArticles()
+            ->with('category')
+            ->whereNotIn('id', $excludedIds)
+            ->inRandomOrder()
+            ->take(3)
+            ->get();
+
+        // If we don't have enough for family favorites after exclusion, 
+        // fallback to top viewed articles that might have some overlap but 
+        // prioritizing different ones than featuredArticles
+        if ($familyFavorites->count() < 3) {
+            $extraFavorites = $website->publishedArticles()
+                ->with('category')
+                ->whereNotIn('id', $excludedIds)
+                ->orderByDesc('views')
+                ->take(3 - $familyFavorites->count())
+                ->get();
+            $familyFavorites = $familyFavorites->concat($extraFavorites);
+        }
 
         // Load the first active author for the website
         $author = $website->authors()
@@ -440,6 +467,7 @@ class PublicWebsiteController extends Controller
             'website' => $website,
             'latestArticles' => $latestArticles,
             'featuredArticles' => $featuredArticles,
+            'familyFavorites' => $familyFavorites,
             'author' => $author,
         ]);
     }

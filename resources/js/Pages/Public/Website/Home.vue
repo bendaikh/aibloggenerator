@@ -125,7 +125,7 @@
                         <h3 class="text-2xl font-bold text-gray-900 mb-6">Family Favorites</h3>
                         <div class="space-y-4">
                             <a
-                                v-for="article in featuredArticles?.slice(0, 3)"
+                                v-for="article in familyFavorites"
                                 :key="article.id"
                                 :href="article.url"
                                 class="flex gap-4 items-center group"
@@ -188,6 +188,7 @@ const props = defineProps({
     website: Object,
     latestArticles: Array,
     featuredArticles: Array,
+    familyFavorites: Array,
     author: Object
 });
 
