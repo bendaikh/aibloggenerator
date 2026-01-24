@@ -9,7 +9,7 @@ const props = defineProps({
         default: () => ({
             totalWebsites: 0,
             totalArticles: 0,
-            totalCategories: 0,
+            totalVisitors: 0,
             totalPages: 0
         })
     },
@@ -61,18 +61,19 @@ const props = defineProps({
                     <p class="text-gray-500 text-sm mt-2">Across all websites</p>
                 </div>
 
-                <!-- Total Categories -->
+                <!-- Total Visitors -->
                 <div class="bg-[#1a1a1a] rounded-2xl p-6 border border-[#2a2a2a]">
                     <div class="flex items-center justify-between mb-4">
-                        <span class="text-gray-400 text-sm">Total Categories</span>
+                        <span class="text-gray-400 text-sm">Total Visitors</span>
                         <div class="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-500 rounded-lg flex items-center justify-center">
                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                         </div>
                     </div>
-                    <div class="text-4xl font-bold text-white">{{ stats.totalCategories }}</div>
-                    <p class="text-gray-500 text-sm mt-2">Across all websites</p>
+                    <div class="text-4xl font-bold text-white">{{ stats.totalVisitors.toLocaleString() }}</div>
+                    <p class="text-gray-500 text-sm mt-2">Article views across all websites</p>
                 </div>
 
                 <!-- Total Pages -->

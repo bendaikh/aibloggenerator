@@ -26,11 +26,13 @@ class OrganizationController extends Controller
             ->withCount(['articles', 'categories'])
             ->get();
 
+        $websiteIds = $websites->pluck('id');
+
         $stats = [
             'totalWebsites' => $websites->count(),
-            'totalArticles' => Article::whereIn('website_id', $websites->pluck('id'))->count(),
-            'totalCategories' => Category::whereIn('website_id', $websites->pluck('id'))->count(),
-            'totalPages' => Page::whereIn('website_id', $websites->pluck('id'))->count(),
+            'totalArticles' => Article::whereIn('website_id', $websiteIds)->count(),
+            'totalVisitors' => (int) Article::whereIn('website_id', $websiteIds)->sum('views'),
+            'totalPages' => Page::whereIn('website_id', $websiteIds)->count(),
         ];
 
         return Inertia::render('Organization/Dashboard', [
