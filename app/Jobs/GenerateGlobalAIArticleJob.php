@@ -138,6 +138,13 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
 
                     $generatedContent = $result->choices[0]->message->content ?? '';
 
+                    // Check if job still exists before continuing (user might have cancelled)
+                    $generationJob = ArticleGenerationJob::find($jobId);
+                    if (!$generationJob) {
+                        Log::info("GenerateGlobalAIArticleJob: Generation job {$jobId} was deleted/cancelled during processing");
+                        continue;
+                    }
+
                     if (empty($generatedContent)) {
                         if ($generationJob) {
                             $generationJob->markAsFailed('Empty content received from OpenAI');

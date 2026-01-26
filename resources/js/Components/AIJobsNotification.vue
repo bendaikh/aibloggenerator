@@ -150,14 +150,17 @@
                                     </a>
                                 </div>
 
-                                <!-- Dismiss Button -->
+                                <!-- Stop/Dismiss Button -->
                                 <button 
-                                    v-if="job.status === 'completed' || job.status === 'failed'"
-                                    @click.stop="dismissJob(job.id)"
+                                    @click.stop="dismissJob(job.id, job.status)"
                                     class="p-1 text-gray-500 hover:text-white transition-colors"
-                                    title="Dismiss"
+                                    :title="job.status === 'pending' || job.status === 'processing' ? 'Stop & Delete' : 'Dismiss'"
                                 >
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg v-if="job.status === 'pending' || job.status === 'processing'" class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9l6 6m0-6l-6 6" />
+                                    </svg>
+                                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
@@ -218,12 +221,15 @@ const fetchJobs = async () => {
     }
 };
 
-const dismissJob = async (jobId) => {
+const dismissJob = async (jobId, status) => {
+    if ((status === 'pending' || status === 'processing') && !confirm('Are you sure you want to stop this generation and delete the record?')) {
+        return;
+    }
     try {
         await axios.delete(`/superadmin/api/generation-jobs/${jobId}`);
         jobs.value = jobs.value.filter(j => j.id !== jobId);
     } catch (error) {
-        console.error('Failed to dismiss job:', error);
+        console.error('Failed to dismiss/stop job:', error);
     }
 };
 
