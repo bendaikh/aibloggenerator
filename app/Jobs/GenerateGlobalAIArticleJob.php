@@ -35,6 +35,7 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
     protected bool $autoPublish = false;
     protected array $featuredImages = [];
     protected string $articleType = 'recipe';
+    protected ?int $variationIndex = null;
 
     /**
      * Create a new job instance.
@@ -50,7 +51,8 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
         string $ingredients = '',
         bool $autoPublish = false,
         array $featuredImages = [],
-        string $articleType = 'recipe'
+        string $articleType = 'recipe',
+        ?int $variationIndex = null
     ) {
         $this->generationJobIds = $generationJobIds;
         $this->websiteIds = $websiteIds;
@@ -63,6 +65,7 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
         $this->autoPublish = $autoPublish;
         $this->featuredImages = $featuredImages;
         $this->articleType = $articleType;
+        $this->variationIndex = $variationIndex;
     }
 
     /**
@@ -107,12 +110,20 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
                 $website = Website::with(['categories', 'authors'])->find($websiteId);
                 if (!$website) continue;
 
+                $vIndex = $this->variationIndex !== null ? $this->variationIndex : $index;
+
                 $jobId = $this->generationJobIds[$websiteId] ?? null;
                 $generationJob = $jobId ? ArticleGenerationJob::find($jobId) : null;
 
+                // Check if this website already has a completed job to avoid duplicates on retry
+                if ($generationJob && $generationJob->status === 'completed') {
+                    Log::info("Skipping website {$websiteId} as it already has a completed article.");
+                    continue;
+                }
+
                 try {
                     // Build unique prompt for this website
-                    $prompt = $this->buildPrompt($wordCount, $website, $index);
+                    $prompt = $this->buildPrompt($wordCount, $website, $vIndex);
                     
                     // Call OpenAI API for THIS specific website (unique content) with increased max_tokens
                     $result = $client->chat()->create([
@@ -147,10 +158,10 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
                     $featuredImage = null;
                     $secondaryImage = null;
                     if ($imageCount > 0) {
-                        $featuredImage = $this->featuredImages[$index % $imageCount];
+                        $featuredImage = $this->featuredImages[$vIndex % $imageCount];
                         // If there are at least 2 images, use the next one as secondary
                         if ($imageCount >= 2) {
-                            $secondaryImage = $this->featuredImages[($index + 1) % $imageCount];
+                            $secondaryImage = $this->featuredImages[($vIndex + 1) % $imageCount];
                         }
                     }
 

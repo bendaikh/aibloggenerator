@@ -756,22 +756,26 @@ HTML;
         // Filter out empty images
         $featuredImages = array_filter($validated['featured_images'] ?? [], fn($img) => !empty($img));
 
-        // Dispatch the global job
-        GenerateGlobalAIArticleJob::dispatch(
-            $generationJobIds,
-            array_keys($generationJobIds),
-            $user->id,
-            $validated['topic'],
-            $validated['tone'] ?? $user->ai_default_tone ?? 'conversational',
-            $validated['length'] ?? 'medium',
-            $validated['keywords'] ?? '',
-            $validated['ingredients'] ?? '',
-            $validated['auto_publish'] ?? false,
-            $featuredImages,
-            $validated['article_type'] ?? 'recipe'
-        );
+        // Dispatch individual jobs for each website to avoid timeouts and duplicates
+        $index = 0;
+        foreach ($generationJobIds as $websiteId => $trackingJobId) {
+            GenerateGlobalAIArticleJob::dispatch(
+                [$websiteId => $trackingJobId],
+                [$websiteId],
+                $user->id,
+                $validated['topic'],
+                $validated['tone'] ?? $user->ai_default_tone ?? 'conversational',
+                $validated['length'] ?? 'medium',
+                $validated['keywords'] ?? '',
+                $validated['ingredients'] ?? '',
+                $validated['auto_publish'] ?? false,
+                $featuredImages,
+                $validated['article_type'] ?? 'recipe',
+                $index++
+            );
+        }
 
-        return redirect()->back()->with('success', 'Global article generation started! We will push it to ' . count($generationJobIds) . ' websites.');
+        return redirect()->back()->with('success', 'Global article generation started! We are pushing unique versions to ' . count($generationJobIds) . ' websites in the background.');
     }
 }
 
