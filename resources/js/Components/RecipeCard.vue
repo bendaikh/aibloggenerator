@@ -212,11 +212,21 @@ const dietaryCategories = ref([]);
 const ingredientSubheader = ref('Core Ingredients');
 const checkedIngredients = ref([]);
 
-// Computed times that prefer props over parsed content
-const displayPrepTime = computed(() => props.prepTime || internalPrepTime.value);
-const displayCookTime = computed(() => props.cookTime || internalCookTime.value);
-const displayRestTime = computed(() => props.restTime || internalRestTime.value);
-const displayTotalTime = computed(() => props.totalTime || internalTotalTime.value);
+// Helper to clean time values (remove ** markdown markers)
+const cleanTimeValue = (time) => {
+    if (!time) return '';
+    // Remove asterisks, markdown bold markers
+    let cleaned = time.replace(/\*+/g, '');
+    // Remove leading/trailing special characters
+    cleaned = cleaned.replace(/^[^\w\d]+|[^\w\d]+$/g, '');
+    return cleaned.trim();
+};
+
+// Computed times that prefer props over parsed content (with cleaning)
+const displayPrepTime = computed(() => cleanTimeValue(props.prepTime || internalPrepTime.value));
+const displayCookTime = computed(() => cleanTimeValue(props.cookTime || internalCookTime.value));
+const displayRestTime = computed(() => cleanTimeValue(props.restTime || internalRestTime.value));
+const displayTotalTime = computed(() => cleanTimeValue(props.totalTime || internalTotalTime.value));
 
 // ... default colors ...
 
@@ -319,6 +329,15 @@ const parseRecipeContent = () => {
             const isDuplicate = checkIfInstructionsAreDuplicates(ingredients.value, rawNotes);
             if (isDuplicate) {
                 console.warn('RecipeCard: Notes appear to be duplicates of ingredients, hiding notes');
+                rawNotes = [];
+            }
+        }
+        
+        // SAFEGUARD: Check if notes are duplicates of instructions
+        if (instructions.value.length > 0 && rawNotes.length > 0) {
+            const isDuplicate = checkIfInstructionsAreDuplicates(instructions.value, rawNotes);
+            if (isDuplicate) {
+                console.warn('RecipeCard: Notes appear to be duplicates of instructions, hiding notes');
                 rawNotes = [];
             }
         }
@@ -443,25 +462,25 @@ const extractMetadata = (container) => {
     const text = container.textContent;
     const textLower = text.toLowerCase();
     
-    // Look for time patterns - more flexible matching
+    // Look for time patterns - more flexible matching (with cleaning)
     const prepTimeMatch = textLower.match(/(?:prep|preparation)\s*time[:\s]*(\d+\s*(?:min|minute|minutes|hour|hours|hr|hrs|h|m))/i);
     if (prepTimeMatch) {
-        internalPrepTime.value = prepTimeMatch[1].trim();
+        internalPrepTime.value = cleanTimeValue(prepTimeMatch[1].trim());
     }
     
     const cookTimeMatch = textLower.match(/(?:cook|cooking)\s*time[:\s]*(\d+\s*(?:min|minute|minutes|hour|hours|hr|hrs|h|m))/i);
     if (cookTimeMatch) {
-        internalCookTime.value = cookTimeMatch[1].trim();
+        internalCookTime.value = cleanTimeValue(cookTimeMatch[1].trim());
     }
     
     const restTimeMatch = textLower.match(/(?:rest|resting)\s*time[:\s]*(\d+\s*(?:min|minute|minutes|hour|hours|hr|hrs|h|m))/i);
     if (restTimeMatch) {
-        internalRestTime.value = restTimeMatch[1].trim();
+        internalRestTime.value = cleanTimeValue(restTimeMatch[1].trim());
     }
     
     const totalTimeMatch = textLower.match(/(?:total)\s*time[:\s]*(\d+\s*(?:min|minute|minutes|hour|hours|hr|hrs|h|m))/i);
     if (totalTimeMatch) {
-        internalTotalTime.value = totalTimeMatch[1].trim();
+        internalTotalTime.value = cleanTimeValue(totalTimeMatch[1].trim());
     }
     
     // Look for servings/yield - more flexible

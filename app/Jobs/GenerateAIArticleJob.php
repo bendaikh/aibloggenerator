@@ -384,12 +384,15 @@ META_DESCRIPTION: [SEO description, 150-160 characters]
 
 TAGS: [REQUIRED - Comma separated list of 5-8 relevant tags for this recipe/article. Examples: comfort food, easy recipe, family dinner, quick meals, vegetarian, etc.]
 
-PREP_TIME: [e.g. 10 mins]
-COOK_TIME: [e.g. 25 mins]
-REST_TIME: [e.g. 5 mins]
-TOTAL_TIME: [e.g. 40 mins]
+PREP_TIME: [PLAIN TEXT ONLY - e.g. "15 mins" - NO asterisks, NO markdown, NO bold formatting]
+COOK_TIME: [PLAIN TEXT ONLY - e.g. "30 mins" - NO asterisks, NO markdown, NO bold formatting]
+REST_TIME: [PLAIN TEXT ONLY - e.g. "10 mins" - NO asterisks, NO markdown, NO bold formatting]
+TOTAL_TIME: [PLAIN TEXT ONLY - e.g. "55 mins" - NO asterisks, NO markdown, NO bold formatting]
 
-NOTES: [REQUIRED - 3-5 pro tips, expert advice, or important notes as separate lines. Each tip should be practical and valuable. Format: one tip per line. DO NOT repeat ingredients here.]
+NOTES: [REQUIRED - 3-5 PRO TIPS about cooking technique, storage, or variations. NO asterisks or markdown. Each tip on its own line. These must be DIFFERENT from the instructions - think "chef secrets" not "cooking steps". Example notes:
+- Use room temperature eggs for better texture
+- Can be made ahead and stored in fridge for 3 days
+- For extra crispy results, let rest uncovered in fridge overnight]
 
 CONTENT:
 [Full article in HTML - no ```html markers, just the HTML tags directly]
@@ -439,18 +442,18 @@ PROMPT;
             $metaTags = array_slice(array_filter($metaTags), 0, 10);
         }
 
-        // Extract times
+        // Extract times (and clean markdown ** characters)
         if (preg_match('/PREP_TIME:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
-            $prepTime = trim($matches[1]);
+            $prepTime = $this->cleanTimeValue(trim($matches[1]));
         }
         if (preg_match('/COOK_TIME:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
-            $cookTime = trim($matches[1]);
+            $cookTime = $this->cleanTimeValue(trim($matches[1]));
         }
         if (preg_match('/REST_TIME:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
-            $restTime = trim($matches[1]);
+            $restTime = $this->cleanTimeValue(trim($matches[1]));
         }
         if (preg_match('/TOTAL_TIME:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
-            $totalTime = trim($matches[1]);
+            $totalTime = $this->cleanTimeValue(trim($matches[1]));
         }
 
         // Extract NOTES
@@ -458,8 +461,16 @@ PROMPT;
             $notesString = trim($matches[1]);
             // Split by newlines and clean up
             $notesArray = array_filter(array_map('trim', explode("\n", $notesString)));
+            // Clean each note: remove markdown, bullets, and ensure they're meaningful tips
+            $notes = [];
+            foreach ($notesArray as $note) {
+                $cleanedNote = $this->cleanNoteValue($note);
+                if (!empty($cleanedNote)) {
+                    $notes[] = $cleanedNote;
+                }
+            }
             // Remove empty notes and limit to 10
-            $notes = array_slice(array_filter($notesArray), 0, 10);
+            $notes = array_slice(array_filter($notes), 0, 10);
         }
 
         // Extract CONTENT
@@ -497,6 +508,36 @@ PROMPT;
             'total_time' => $totalTime,
             'content' => $articleContent,
         ];
+    }
+
+    /**
+     * Clean time value by removing markdown and extra characters.
+     */
+    private function cleanTimeValue(string $time): string
+    {
+        // Remove markdown bold markers (**), asterisks, and other unwanted characters
+        $time = preg_replace('/\*+/', '', $time);
+        // Remove any leading/trailing special characters
+        $time = preg_replace('/^[^\w\d]+|[^\w\d]+$/u', '', $time);
+        // Normalize spaces
+        $time = preg_replace('/\s+/', ' ', $time);
+        return trim($time);
+    }
+
+    /**
+     * Clean note value by removing markdown and formatting issues.
+     */
+    private function cleanNoteValue(string $note): string
+    {
+        // Remove markdown bold markers (**)
+        $note = preg_replace('/\*+/', '', $note);
+        // Remove bullet points and numbering at the start
+        $note = preg_replace('/^[\-\•\*\d\.]+\s*/', '', $note);
+        // Remove HTML tags
+        $note = strip_tags($note);
+        // Normalize spaces
+        $note = preg_replace('/\s+/', ' ', $note);
+        return trim($note);
     }
 
     /**
