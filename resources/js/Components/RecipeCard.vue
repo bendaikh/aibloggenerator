@@ -312,7 +312,18 @@ const parseRecipeContent = () => {
     // Find Notes section
     const notesSection = findSection(tempDiv, ['notes', 'note', 'tips', 'tip', 'pro tips']);
     if (notesSection) {
-        notes.value = extractListItems(notesSection);
+        let rawNotes = extractListItems(notesSection);
+        
+        // SAFEGUARD: Check if notes are duplicates of ingredients
+        if (ingredients.value.length > 0 && rawNotes.length > 0) {
+            const isDuplicate = checkIfInstructionsAreDuplicates(ingredients.value, rawNotes);
+            if (isDuplicate) {
+                console.warn('RecipeCard: Notes appear to be duplicates of ingredients, hiding notes');
+                rawNotes = [];
+            }
+        }
+        
+        notes.value = rawNotes;
     }
 
     // Extract metadata from content

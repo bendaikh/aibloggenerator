@@ -290,6 +290,13 @@ PROMPT;
     {
         $keywordsText = !empty($this->keywords) ? "\n- Naturally weave in these keywords: {$this->keywords}" : '';
         
+        $ingredientsPrompt = "";
+        if ($this->articleType === 'recipe') {
+            $ingredientsPrompt = "CRITICAL FOR RECIPES - INGREDIENTS SECTION:\n";
+            $ingredientsPrompt .= "- You MUST generate a comprehensive list of ingredients with quantities.\n";
+            $ingredientsPrompt .= "- Format them as a <ul> list under a <h2>Ingredients</h2> header.\n";
+        }
+
         return <<<PROMPT
 You are a professional food blogger and recipe writer who creates authentic, engaging content that reads like it was written by a passionate home cook sharing their personal experience.
 
@@ -297,6 +304,8 @@ Write a detailed, comprehensive blog post about: "{$this->topic}"
 
 CRITICAL TITLE RULE:
 - The TITLE field below is pre-filled with the exact title the user wants. DO NOT CHANGE IT. Use it exactly as written - no additions, no modifications, no "improvements".
+
+{$ingredientsPrompt}
 
 MOST CRITICAL RULE - BOLD TITLES ON ALL CONTENT (DO NOT SKIP THIS):
 **EVERY SINGLE PARAGRAPH AND LIST ITEM** in the article MUST begin with a bold title. This is NON-NEGOTIABLE.
@@ -380,7 +389,7 @@ COOK_TIME: [e.g. 25 mins]
 REST_TIME: [e.g. 5 mins]
 TOTAL_TIME: [e.g. 40 mins]
 
-NOTES: [REQUIRED - 3-5 pro tips, expert advice, or important notes as separate lines. Each tip should be practical and valuable. Format: one tip per line]
+NOTES: [REQUIRED - 3-5 pro tips, expert advice, or important notes as separate lines. Each tip should be practical and valuable. Format: one tip per line. DO NOT repeat ingredients here.]
 
 CONTENT:
 [Full article in HTML - no ```html markers, just the HTML tags directly]

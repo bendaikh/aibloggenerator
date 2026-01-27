@@ -373,6 +373,18 @@ INGREDIENTS_INSTRUCTION;
         $variationStyle = $variationStyles[$variationIndex % count($variationStyles)];
         $randomSeed = rand(1000, 9999);
         
+        $ingredientsPrompt = "";
+        if ($this->articleType === 'recipe') {
+            $ingredientsPrompt = "CRITICAL FOR RECIPES - INGREDIENTS SECTION:\n";
+            if (!empty($this->ingredients)) {
+                $ingredientsPrompt .= "- Use ONLY these ingredients: {$this->ingredients}\n";
+                $ingredientsPrompt .= "- Format them as a <ul> list under a <h2>Ingredients</h2> header.\n";
+            } else {
+                $ingredientsPrompt .= "- You MUST generate a comprehensive list of ingredients with quantities.\n";
+                $ingredientsPrompt .= "- Format them as a <ul> list under a <h2>Ingredients</h2> header.\n";
+            }
+        }
+
         return <<<PROMPT
 You are a professional blog writer who creates authentic, engaging content.
 
@@ -385,6 +397,8 @@ UNIQUENESS REQUIREMENT (Variation #{$variationIndex}, Seed: {$randomSeed}):
 - {$variationStyle}
 - Use different examples, metaphors, and explanations than typical articles
 - Create a fresh, original perspective that stands out
+
+{$ingredientsPrompt}
 
 MOST CRITICAL RULE - BOLD TITLES ON ALL CONTENT (DO NOT SKIP THIS):
 **EVERY SINGLE PARAGRAPH AND LIST ITEM** in the article MUST begin with a bold title. This is NON-NEGOTIABLE.
@@ -442,7 +456,7 @@ Requirements:
 - Length: MINIMUM {$wordCount} words. This is a MINIMUM - feel free to write more! Be as detailed and comprehensive as possible. DO NOT stop early.
 - Tone: {$this->tone} (but always authentic and personal)
 - Use proper HTML formatting: <h2> for major sections, <h3> for subsections, <p>, <ul>, <ol>, <strong>, <em>, <blockquote> for tips/quotes
-- Make it SEO-friendly but human-first{$keywordsText}{$ingredientsText}
+- Make it SEO-friendly but human-first{$keywordsText}
 
 CRITICAL FOR RECIPES - READ CAREFULLY:
 - Instructions section: Use <h2>Instructions</h2> followed by <ol> with step-by-step COOKING DIRECTIONS
@@ -467,7 +481,7 @@ COOK_TIME: [e.g. 25 mins]
 REST_TIME: [e.g. 5 mins]
 TOTAL_TIME: [e.g. 40 mins]
 
-NOTES: [REQUIRED - 3-5 pro tips, expert advice, or important notes as separate lines. Each tip should be practical and valuable. Format: one tip per line]
+NOTES: [REQUIRED - 3-5 pro tips, expert advice, or important notes as separate lines. Each tip should be practical and valuable. Format: one tip per line. DO NOT repeat ingredients here.]
 
 CONTENT:
 [Full article in HTML - no markers, just the HTML tags directly]
