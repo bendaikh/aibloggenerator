@@ -435,10 +435,13 @@ CONTENT DEPTH REQUIREMENTS:
 - Include a "Storage and Reheating" section with detailed instructions.
 - Include a "Frequently Asked Questions" section with at least 5 Q&As.
 
-FOR RECIPE CONTENT:
+FOR RECIPE CONTENT - INSTRUCTIONS SECTION IS MANDATORY:
 - Ingredients section: List items with quantities (e.g., "2 cups flour", "1 lb lamb").
-- Instructions section: Step-by-step COOKING ACTIONS starting with verbs (e.g., "1. Preheat oven to 350°F", "2. Sauté onions until golden"). Include detailed explanations for WHY each step matters.
-- CRITICAL: Instructions must be ACTION STEPS - NOT ingredient descriptions!
+- You MUST include an <h2>Instructions</h2> section - this is NON-NEGOTIABLE
+- Instructions section: Use <ol> with step-by-step COOKING ACTIONS starting with verbs (e.g., "1. Preheat oven to 350°F", "2. Sauté onions until golden")
+- Include at least 8-12 detailed instruction steps with explanations for WHY each step matters
+- CRITICAL: Instructions must be ACTION STEPS (preheat, mix, chop, sauté, bake, simmer, serve) - NOT ingredient descriptions!
+- THE ARTICLE WILL BE REJECTED IF THERE IS NO INSTRUCTIONS SECTION
 - End naturally with a "Final Thoughts" section (but don't call it "Conclusion") that encourages readers to try it and share their results - make this at least 2-3 paragraphs.
 
 Requirements:
@@ -448,18 +451,23 @@ Requirements:
 - Use proper HTML formatting: <h2> for major sections, <h3> for subsections, <p>, <ul>, <ol>, <strong>, <em>, <blockquote> for tips/quotes
 - Make it SEO-friendly but human-first
 
+CRITICAL OUTPUT FORMAT RULE:
+- DO NOT use markdown syntax like ** or __ in your output
+- Use HTML tags only: <strong> for bold, <em> for italic
+- All metadata must be plain text without any markdown formatting
+
 Format your response EXACTLY as follows (no markdown code blocks, just plain text):
 
-TITLE: [Write a specific, enticing title that promises value - not generic]
+TITLE: [Write a specific, enticing title - plain text, no markdown]
 
-EXCERPT: [2-3 sentences that capture the essence and make readers want more - write it like a teaser, not a summary]
+EXCERPT: [2-3 sentences teaser - plain text, no markdown]
 
-META_TITLE: [SEO title, 50-60 characters]
+META_TITLE: [SEO title, 50-60 characters - plain text]
 
-META_DESCRIPTION: [SEO description, 150-160 characters]
+META_DESCRIPTION: [SEO description, 150-160 characters - plain text]
 
 CONTENT:
-[Full article in HTML - no ```html markers, just the HTML tags directly]
+[Full article in HTML - use <strong> tags for bold, NOT ** markdown]
 PROMPT;
     }
 
@@ -536,6 +544,11 @@ PROMPT;
         
         // Remove any remaining triple backticks in the middle of content
         $content = preg_replace('/```(?:html|xml|markdown|md)?/i', '', $content);
+        
+        // Remove markdown bold markers (**text** -> text) but preserve HTML <strong> tags
+        $content = preg_replace('/\*\*([^*]+)\*\*/', '$1', $content);
+        // Remove any standalone ** markers that might be left over
+        $content = preg_replace('/\*\*/', '', $content);
         
         // Remove common AI phrases that slip through
         $aiPhrases = [

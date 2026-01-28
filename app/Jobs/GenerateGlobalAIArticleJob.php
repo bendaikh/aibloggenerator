@@ -458,33 +458,43 @@ Requirements:
 - Use proper HTML formatting: <h2> for major sections, <h3> for subsections, <p>, <ul>, <ol>, <strong>, <em>, <blockquote> for tips/quotes
 - Make it SEO-friendly but human-first{$keywordsText}
 
-CRITICAL FOR RECIPES - READ CAREFULLY:
-- Instructions section: Use <h2>Instructions</h2> followed by <ol> with step-by-step COOKING DIRECTIONS
+CRITICAL FOR RECIPES - INSTRUCTIONS SECTION IS MANDATORY:
+- You MUST include an <h2>Instructions</h2> section with step-by-step cooking directions
+- Use <ol> numbered list for the instructions
 - Each instruction step must START WITH AN ACTION VERB: Preheat, Mix, Chop, Sauté, Bake, Stir, Add, Pour, Heat, Season, Serve, etc.
+- Include at least 8-12 detailed instruction steps
 - WRONG: "Meat: Traditionally lamb is used" (this is an ingredient description, NOT an instruction)
 - RIGHT: "Season the lamb with salt and pepper, then sear in a hot pan for 3 minutes per side"
+- THE ARTICLE WILL BE REJECTED IF THERE IS NO INSTRUCTIONS SECTION
+
+CRITICAL OUTPUT FORMAT RULE:
+- DO NOT use markdown syntax like ** or __ in your output
+- Use HTML tags only: <strong> for bold, <em> for italic
+- Times, notes, and all metadata must be plain text without any markdown formatting
+- WRONG: PREP_TIME: **10 mins** or NOTES: **Tip:** Use fresh...
+- RIGHT: PREP_TIME: 10 mins or NOTES: Use fresh ingredients for best results
 
 Format your response EXACTLY as follows:
 
 TITLE: {$this->topic}
 
-EXCERPT: [2-3 sentences teaser]
+EXCERPT: [2-3 sentences teaser - plain text, no markdown]
 
-META_TITLE: [SEO title, 50-60 characters]
+META_TITLE: [SEO title, 50-60 characters - plain text]
 
-META_DESCRIPTION: [SEO description, 150-160 characters]
+META_DESCRIPTION: [SEO description, 150-160 characters - plain text]
 
-TAGS: [REQUIRED - Comma separated list of 5-8 relevant tags for this recipe/article]
+TAGS: [REQUIRED - Comma separated list of 5-8 relevant tags for this recipe/article - plain text]
 
-PREP_TIME: [e.g. 10 mins]
-COOK_TIME: [e.g. 25 mins]
-REST_TIME: [e.g. 5 mins]
-TOTAL_TIME: [e.g. 40 mins]
+PREP_TIME: [e.g. 10 mins - plain text only, NO ** markers]
+COOK_TIME: [e.g. 25 mins - plain text only, NO ** markers]
+REST_TIME: [e.g. 5 mins - plain text only, NO ** markers]
+TOTAL_TIME: [e.g. 40 mins - plain text only, NO ** markers]
 
-NOTES: [REQUIRED - 3-5 pro tips, expert advice, or important notes as separate lines. Each tip should be practical and valuable. Format: one tip per line. DO NOT repeat ingredients here.]
+NOTES: [REQUIRED - 3-5 pro tips as separate lines. Plain text only, NO ** or markdown. DO NOT start tips with **. Just write the tip directly.]
 
 CONTENT:
-[Full article in HTML - no markers, just the HTML tags directly]
+[Full article in HTML - use <strong> tags for bold, NOT ** markdown]
 PROMPT;
     }
 
@@ -523,24 +533,24 @@ PROMPT;
             $metaTags = array_slice(array_filter($metaTags), 0, 10);
         }
         if (preg_match('/PREP_TIME:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
-            $prepTime = trim($matches[1]);
+            $prepTime = $this->cleanMarkdown(trim($matches[1]));
         }
         if (preg_match('/COOK_TIME:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
-            $cookTime = trim($matches[1]);
+            $cookTime = $this->cleanMarkdown(trim($matches[1]));
         }
         if (preg_match('/REST_TIME:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
-            $restTime = trim($matches[1]);
+            $restTime = $this->cleanMarkdown(trim($matches[1]));
         }
         if (preg_match('/TOTAL_TIME:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
-            $totalTime = trim($matches[1]);
+            $totalTime = $this->cleanMarkdown(trim($matches[1]));
         }
         // Extract NOTES
         if (preg_match('/NOTES:\s*(.+?)(?=\n\n|CONTENT:|$)/is', $content, $matches)) {
             $notesString = trim($matches[1]);
             // Split by newlines and clean up
             $notesArray = array_filter(array_map('trim', explode("\n", $notesString)));
-            // Remove empty notes and limit to 10
-            $notes = array_slice(array_filter($notesArray), 0, 10);
+            // Clean markdown from each note and remove empty notes, limit to 10
+            $notes = array_slice(array_filter(array_map([$this, 'cleanMarkdown'], $notesArray)), 0, 10);
         }
         if (preg_match('/CONTENT:\s*(.+)$/is', $content, $matches)) {
             $articleContent = trim($matches[1]);
@@ -677,6 +687,11 @@ PROMPT;
         $content = preg_replace('/\n?```\s*$/i', '', $content);
         $content = preg_replace('/```(?:html|xml|markdown|md)?/i', '', $content);
         
+        // Remove markdown bold markers (**text** -> text) but preserve HTML <strong> tags
+        $content = preg_replace('/\*\*([^*]+)\*\*/', '$1', $content);
+        // Remove any standalone ** markers that might be left over
+        $content = preg_replace('/\*\*/', '', $content);
+        
         $aiPhrases = [
             '/\b(In this article,? we will|In this blog post,? we will|Let\'s dive in|Without further ado|In conclusion,?|To summarize,?|To sum up,?|Let me explain)\b/i',
         ];
@@ -689,5 +704,17 @@ PROMPT;
         $content = preg_replace('/\n{3,}/', "\n\n", $content);
         
         return trim($content);
+    }
+    
+    /**
+     * Clean markdown markers from a string value.
+     */
+    private function cleanMarkdown(string $value): string
+    {
+        // Remove markdown bold markers (**text** -> text)
+        $value = preg_replace('/\*\*([^*]+)\*\*/', '$1', $value);
+        // Remove any standalone ** markers
+        $value = preg_replace('/\*\*/', '', $value);
+        return trim($value);
     }
 }
