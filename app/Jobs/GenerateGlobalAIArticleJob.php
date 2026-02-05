@@ -126,14 +126,16 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
                     $prompt = $this->buildPrompt($wordCount, $website, $vIndex);
                     
                     // Call OpenAI API for THIS specific website (unique content) with increased max_tokens
+                    // Using JSON mode for structured, reliable output
                     $result = $client->chat()->create([
                         'model' => $model,
                         'messages' => [
-                            ['role' => 'system', 'content' => 'You are an expert blog writer who creates engaging, SEO-optimized, comprehensive content. Each article you write must be completely unique and different from others on the same topic. You write detailed articles with well-organized paragraphs and in-depth coverage.'],
+                            ['role' => 'system', 'content' => 'You are an expert blog writer who creates engaging, SEO-optimized, comprehensive content. Each article you write must be completely unique and different from others on the same topic. You write detailed articles with well-organized paragraphs and in-depth coverage. You MUST respond with valid JSON only.'],
                             ['role' => 'user', 'content' => $prompt],
                         ],
                         'max_tokens' => 8000,
                         'temperature' => 0.9, // Higher temperature for more variation
+                        'response_format' => ['type' => 'json_object'],
                     ]);
 
                     $generatedContent = $result->choices[0]->message->content ?? '';
@@ -325,24 +327,21 @@ PROMPT;
     {
         $keywordsText = !empty($this->keywords) ? "\n- Naturally weave in these keywords: {$this->keywords}" : '';
         
-        // Handle ingredients: if provided, we will add them programmatically at the end, so tell AI NOT to include them
-        // But AI MUST still generate REAL cooking instructions (not ingredient descriptions!)
+        // Handle ingredients: if provided by user, tell AI to use them; otherwise AI generates
         $ingredientsText = '';
         if (!empty($this->ingredients)) {
             $ingredientsText = <<<INGREDIENTS_INSTRUCTION
 
-IMPORTANT - INGREDIENTS ARE PROVIDED SEPARATELY:
-- DO NOT include an Ingredients section - it will be added automatically.
-- You MUST include an Instructions section with ACTUAL COOKING STEPS.
+IMPORTANT - INGREDIENTS ARE PROVIDED BY USER:
+- The user has provided these ingredients: {$this->ingredients}
+- Use ONLY these ingredients in the "ingredients" JSON array (split by comma/newline)
+- You MUST include detailed "instructions" array with ACTUAL COOKING STEPS
 
 INSTRUCTIONS MUST BE COOKING ACTIONS, FOR EXAMPLE:
-1. Preheat your oven to 350°F (175°C).
-2. In a large bowl, combine the dry ingredients.
-3. Heat oil in a pan over medium heat.
-4. Add the onions and sauté until translucent.
-5. Stir in the spices and cook for 1 minute until fragrant.
-6. Add the meat and brown on all sides.
-7. Simmer for 30 minutes until tender.
+- "Preheat your oven to 350°F (175°C)"
+- "In a large bowl, combine the dry ingredients"
+- "Heat oil in a pan over medium heat"
+- "Add the onions and sauté until translucent"
 
 DO NOT repeat ingredient names as instructions. Instructions are VERBS/ACTIONS (preheat, mix, chop, sauté, bake, stir, simmer, serve).
 INGREDIENTS_INSTRUCTION;
@@ -350,8 +349,8 @@ INGREDIENTS_INSTRUCTION;
             $ingredientsText = <<<INGREDIENTS_INSTRUCTION
 
 FOR RECIPE CONTENT:
-- Include an Ingredients section: a list of items with quantities (e.g., "2 cups flour", "1 lb chicken")
-- Include an Instructions section: step-by-step COOKING ACTIONS (e.g., "1. Preheat oven to 350°F", "2. Mix ingredients in a bowl")
+- You MUST generate a comprehensive "ingredients" array with exact quantities (e.g., ["2 cups flour", "1 lb chicken breast", "1 tsp salt"])
+- You MUST include an "instructions" array with step-by-step COOKING ACTIONS
 - These MUST be different! Ingredients = WHAT you need. Instructions = HOW to cook (action verbs).
 INGREDIENTS_INSTRUCTION;
         }
@@ -375,14 +374,19 @@ INGREDIENTS_INSTRUCTION;
         
         $ingredientsPrompt = "";
         if ($this->articleType === 'recipe') {
-            $ingredientsPrompt = "CRITICAL FOR RECIPES - INGREDIENTS SECTION:\n";
+            $ingredientsPrompt = "⚠️ CRITICAL FOR RECIPES - INGREDIENTS ARE ABSOLUTELY MANDATORY ⚠️\n";
+            $ingredientsPrompt .= "YOUR RECIPE WILL BE REJECTED IF THE \"ingredients\" ARRAY IS EMPTY!\n\n";
             if (!empty($this->ingredients)) {
-                $ingredientsPrompt .= "- Use ONLY these ingredients: {$this->ingredients}\n";
-                $ingredientsPrompt .= "- Format them as a <ul> list under a <h2>Ingredients</h2> header.\n";
+                $ingredientsPrompt .= "- The \"ingredients\" array MUST contain ONLY these ingredients: {$this->ingredients}\n";
+                $ingredientsPrompt .= "- Split them properly into the array format.\n";
             } else {
-                $ingredientsPrompt .= "- You MUST generate a comprehensive list of ingredients with quantities.\n";
-                $ingredientsPrompt .= "- Format them as a <ul> list under a <h2>Ingredients</h2> header.\n";
+                $ingredientsPrompt .= "- The \"ingredients\" array MUST contain 8-15 ingredients with EXACT quantities (e.g., \"2 cups flour\", \"1 lb chicken breast\", \"3 cloves garlic, minced\").\n";
+                $ingredientsPrompt .= "- NEVER leave the ingredients array empty - this is the MOST IMPORTANT part of a recipe!\n";
             }
+            $ingredientsPrompt .= "- The \"instructions\" array MUST contain 8-12 detailed cooking steps.\n";
+            $ingredientsPrompt .= "- Each instruction MUST be a PLAIN TEXT cooking step starting with an ACTION VERB (Preheat, Mix, Add, Stir, Bake, etc.).\n";
+            $ingredientsPrompt .= "- DO NOT include HTML tags inside ingredients or instructions arrays - they should be PLAIN TEXT strings.\n";
+            $ingredientsPrompt .= "- DO NOT include ingredients or instructions in the \"content\" HTML - they go ONLY in their own arrays.\n";
         }
 
         return <<<PROMPT
@@ -458,52 +462,392 @@ Requirements:
 - Use proper HTML formatting: <h2> for major sections, <h3> for subsections, <p>, <ul>, <ol>, <strong>, <em>, <blockquote> for tips/quotes
 - Make it SEO-friendly but human-first{$keywordsText}
 
-CRITICAL FOR RECIPES - INSTRUCTIONS SECTION IS MANDATORY:
-- You MUST include an <h2>Instructions</h2> section with step-by-step cooking directions
-- Use <ol> numbered list for the instructions
+CRITICAL FOR RECIPES - JSON ARRAYS ARE MANDATORY:
+- The "ingredients" JSON array MUST contain all ingredients with exact quantities
+- The "instructions" JSON array MUST contain 8-12 step-by-step cooking directions
 - Each instruction step must START WITH AN ACTION VERB: Preheat, Mix, Chop, Sauté, Bake, Stir, Add, Pour, Heat, Season, Serve, etc.
-- Include at least 8-12 detailed instruction steps
-- WRONG: "Meat: Traditionally lamb is used" (this is an ingredient description, NOT an instruction)
-- RIGHT: "Season the lamb with salt and pepper, then sear in a hot pan for 3 minutes per side"
-- THE ARTICLE WILL BE REJECTED IF THERE IS NO INSTRUCTIONS SECTION
+- WRONG instruction: "Meat: Traditionally lamb is used" (this is an ingredient description, NOT an instruction)
+- RIGHT instruction: "Season the lamb with salt and pepper, then sear in a hot pan for 3 minutes per side"
+- THE JSON RESPONSE WILL BE REJECTED IF "ingredients" OR "instructions" ARRAYS ARE EMPTY
 
 CRITICAL OUTPUT FORMAT RULE:
 - DO NOT use markdown syntax like ** or __ in your output
 - Use HTML tags only: <strong> for bold, <em> for italic
 - Times, notes, and all metadata must be plain text without any markdown formatting
-- WRONG: PREP_TIME: **10 mins** or NOTES: **Tip:** Use fresh...
-- RIGHT: PREP_TIME: 10 mins or NOTES: Use fresh ingredients for best results
 
-Format your response EXACTLY as follows:
+YOU MUST RESPOND WITH A VALID JSON OBJECT. The JSON structure must be EXACTLY as follows:
 
-TITLE: {$this->topic}
+{
+  "title": "{$this->topic}",
+  "excerpt": "2-3 sentences teaser - plain text, no markdown",
+  "meta_title": "SEO title, 50-60 characters - plain text",
+  "meta_description": "SEO description, 150-160 characters - plain text",
+  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
+  "prep_time": "10 mins",
+  "cook_time": "25 mins",
+  "rest_time": "5 mins",
+  "total_time": "40 mins",
+  "notes": ["Pro tip 1", "Pro tip 2", "Pro tip 3"],
+  "ingredients": ["1 cup flour", "2 eggs", "1 tsp salt"],
+  "instructions": ["Step 1: Preheat oven to 350°F", "Step 2: Mix dry ingredients", "Step 3: Add wet ingredients"],
+  "content": "<h2>Introduction</h2><p><strong>Opening Title:</strong> Your engaging introduction...</p>..."
+}
 
-EXCERPT: [2-3 sentences teaser - plain text, no markdown]
+REQUIRED JSON FIELDS (ALL MUST BE PRESENT):
+- "title": EXACTLY "{$this->topic}" (do not change)
+- "excerpt": String, 2-3 sentences teaser (PLAIN TEXT, no HTML)
+- "meta_title": String, SEO title 50-60 characters (PLAIN TEXT, no HTML)
+- "meta_description": String, SEO description 150-160 characters (PLAIN TEXT, no HTML)
+- "tags": Array of 5-8 relevant tag strings (PLAIN TEXT, no HTML)
+- "prep_time": String, e.g. "10 mins" (PLAIN TEXT, empty string if not applicable)
+- "cook_time": String, e.g. "25 mins" (PLAIN TEXT, empty string if not applicable)
+- "rest_time": String, e.g. "5 mins" (PLAIN TEXT, empty string if not applicable)
+- "total_time": String, e.g. "40 mins" (PLAIN TEXT, empty string if not applicable)
+- "notes": Array of 3-5 pro tip strings (PLAIN TEXT, no HTML)
+- "ingredients": ⚠️ MANDATORY ARRAY - must contain 8-15 ingredient strings with exact quantities (PLAIN TEXT ONLY, e.g. ["2 cups flour", "1 lb chicken breast", "3 cloves garlic, minced"])
+- "instructions": ⚠️ MANDATORY ARRAY - must contain 8-12 cooking step strings (PLAIN TEXT ONLY, each starting with action verb, e.g. ["Preheat oven to 350°F.", "Mix the dry ingredients in a bowl."])
+- "content": String containing the full article in HTML format (use <strong> for bold, <em> for italic)
 
-META_TITLE: [SEO title, 50-60 characters - plain text]
+⚠️ CRITICAL FOR RECIPES - READ CAREFULLY ⚠️
+- The "ingredients" array is MANDATORY and MUST contain 8-15 ingredients with exact quantities
+- The "instructions" array is MANDATORY and MUST contain 8-12 step-by-step cooking directions
+- Each instruction MUST start with an ACTION VERB: Preheat, Mix, Chop, Sauté, Bake, Stir, Add, Pour, Heat, Season, Serve, etc.
+- BOTH "ingredients" AND "instructions" arrays MUST be PLAIN TEXT - NO HTML TAGS inside them!
+- Example ingredients: ["2 cups all-purpose flour", "1 lb ground beef", "3 cloves garlic, minced", "1/2 cup olive oil"]
+- Example instructions: ["Preheat the oven to 375°F.", "In a large bowl, combine flour and salt.", "Heat oil in a skillet over medium heat."]
+- IF EITHER ARRAY IS EMPTY, THE RECIPE WILL BE REJECTED!
 
-META_DESCRIPTION: [SEO description, 150-160 characters - plain text]
-
-TAGS: [REQUIRED - Comma separated list of 5-8 relevant tags for this recipe/article - plain text]
-
-PREP_TIME: [e.g. 10 mins - plain text only, NO ** markers]
-COOK_TIME: [e.g. 25 mins - plain text only, NO ** markers]
-REST_TIME: [e.g. 5 mins - plain text only, NO ** markers]
-TOTAL_TIME: [e.g. 40 mins - plain text only, NO ** markers]
-
-NOTES: [REQUIRED - 3-5 pro tips as separate lines. Plain text only, NO ** or markdown. DO NOT start tips with **. Just write the tip directly.]
-
-CONTENT:
-[Full article in HTML - use <strong> tags for bold, NOT ** markdown]
+IMPORTANT: Return ONLY the JSON object, no additional text before or after.
 PROMPT;
     }
 
     /**
-     * Parse the generated content.
+     * Parse the generated content from JSON response.
      */
     private function parseGeneratedContent(string $content): array
     {
-        $title = '';
+        // Default values
+        $title = $this->topic;
+        $excerpt = '';
+        $metaTitle = '';
+        $metaDescription = '';
+        $metaTags = [];
+        $notes = [];
+        $prepTime = '';
+        $cookTime = '';
+        $restTime = '';
+        $totalTime = '';
+        $articleContent = '';
+        $ingredients = [];
+        $instructions = [];
+
+        // Try to parse JSON response
+        $jsonData = json_decode($content, true);
+        
+        if (json_last_error() === JSON_ERROR_NONE && is_array($jsonData)) {
+            // Successfully parsed JSON
+            Log::info('Successfully parsed JSON response from AI');
+            
+            // ALWAYS use the original topic as the title - never let AI change it
+            $title = $this->topic;
+            
+            // Use stripHtmlAndClean for plain text fields to remove any HTML elements
+            $excerpt = $this->stripHtmlAndClean($jsonData['excerpt'] ?? '');
+            $metaTitle = $this->stripHtmlAndClean($jsonData['meta_title'] ?? '');
+            $metaDescription = $this->stripHtmlAndClean($jsonData['meta_description'] ?? '');
+            
+            // Handle tags - could be array or comma-separated string (strip HTML from each tag)
+            if (isset($jsonData['tags'])) {
+                if (is_array($jsonData['tags'])) {
+                    $metaTags = array_slice(array_filter(array_map([$this, 'stripHtmlAndClean'], $jsonData['tags'])), 0, 10);
+                } else {
+                    $tagsArray = array_map('trim', explode(',', $jsonData['tags']));
+                    $metaTags = array_slice(array_filter(array_map([$this, 'stripHtmlAndClean'], $tagsArray)), 0, 10);
+                }
+            }
+            
+            // Strip HTML from time fields
+            $prepTime = $this->stripHtmlAndClean($jsonData['prep_time'] ?? '');
+            $cookTime = $this->stripHtmlAndClean($jsonData['cook_time'] ?? '');
+            $restTime = $this->stripHtmlAndClean($jsonData['rest_time'] ?? '');
+            $totalTime = $this->stripHtmlAndClean($jsonData['total_time'] ?? '');
+            
+            // Handle notes - could be array or newline-separated string (strip HTML from each note)
+            if (isset($jsonData['notes'])) {
+                if (is_array($jsonData['notes'])) {
+                    $notes = array_slice(array_filter(array_map([$this, 'stripHtmlAndClean'], $jsonData['notes'])), 0, 10);
+                } else {
+                    $notesArray = array_filter(array_map('trim', explode("\n", $jsonData['notes'])));
+                    $notes = array_slice(array_filter(array_map([$this, 'stripHtmlAndClean'], $notesArray)), 0, 10);
+                }
+            }
+            
+            // Get ingredients from JSON (strip HTML from each ingredient)
+            if (isset($jsonData['ingredients']) && is_array($jsonData['ingredients'])) {
+                $ingredients = array_filter(array_map([$this, 'stripHtmlAndClean'], $jsonData['ingredients']));
+            }
+            
+            // Get instructions from JSON (strip HTML from each instruction)
+            if (isset($jsonData['instructions']) && is_array($jsonData['instructions'])) {
+                $instructions = array_filter(array_map([$this, 'stripHtmlAndClean'], $jsonData['instructions']));
+            }
+            
+            $articleContent = $jsonData['content'] ?? '';
+            
+        } else {
+            // Fallback: try to parse as the old text format if JSON parsing fails
+            Log::warning('JSON parsing failed, falling back to text parsing', [
+                'error' => json_last_error_msg(),
+                'content_preview' => substr($content, 0, 500)
+            ]);
+            
+            // Use legacy regex parsing as fallback
+            return $this->parseGeneratedContentLegacy($content);
+        }
+
+        $articleContent = $this->cleanContent($articleContent);
+
+        // Build ingredients and instructions HTML sections from JSON data
+        $articleContent = $this->buildRecipeSectionsFromJson($articleContent, $ingredients, $instructions);
+
+        // Fallback for empty fields
+        if (empty($excerpt)) $excerpt = Str::limit(strip_tags($articleContent), 200);
+        if (empty($metaTitle)) $metaTitle = Str::limit($title, 60);
+        if (empty($metaDescription)) $metaDescription = Str::limit($excerpt, 160);
+
+        return [
+            'title' => $title,
+            'excerpt' => $excerpt,
+            'meta_title' => $metaTitle,
+            'meta_description' => $metaDescription,
+            'meta_tags' => $metaTags,
+            'notes' => $notes,
+            'prep_time' => $prepTime,
+            'cook_time' => $cookTime,
+            'rest_time' => $restTime,
+            'total_time' => $totalTime,
+            'content' => $articleContent,
+        ];
+    }
+
+    /**
+     * Build recipe sections (ingredients and instructions) from JSON arrays.
+     */
+    private function buildRecipeSectionsFromJson(string $content, array $ingredients, array $instructions): string
+    {
+        // If user provided ingredients, use those instead of AI-generated ones
+        if (!empty($this->ingredients)) {
+            $ingredients = array_map('trim', preg_split('/[,\n]+/', $this->ingredients));
+            $ingredients = array_filter($ingredients);
+        }
+        
+        // Remove any existing ingredients section from content (we'll add our own)
+        $content = $this->removeExistingIngredientsSection($content);
+        
+        // Remove any existing instructions section from content if we have JSON instructions
+        if (!empty($instructions)) {
+            $content = $this->removeExistingInstructionsSection($content);
+        }
+        
+        // Build ingredients HTML
+        $ingredientsHtml = '';
+        if (!empty($ingredients)) {
+            $ingredientsHtml = "\n\n<h2>Ingredients</h2>\n<ul>\n";
+            foreach ($ingredients as $ingredient) {
+                $ingredient = trim($ingredient);
+                if (!empty($ingredient)) {
+                    $ingredientsHtml .= "    <li>" . htmlspecialchars($ingredient) . "</li>\n";
+                }
+            }
+            $ingredientsHtml .= "</ul>";
+        }
+        
+        // Build instructions HTML
+        $instructionsHtml = '';
+        if (!empty($instructions)) {
+            $instructionsHtml = "\n\n<h2>Instructions</h2>\n<ol>\n";
+            foreach ($instructions as $index => $instruction) {
+                $instruction = trim($instruction);
+                if (!empty($instruction)) {
+                    // Remove leading step numbers if present (e.g., "1. ", "Step 1: ")
+                    $instruction = preg_replace('/^(?:Step\s*)?\d+[.:]\s*/i', '', $instruction);
+                    $instructionsHtml .= "    <li><strong>Step " . ($index + 1) . ":</strong> " . htmlspecialchars($instruction) . "</li>\n";
+                }
+            }
+            $instructionsHtml .= "</ol>";
+        }
+        
+        // Find the best position to insert ingredients and instructions
+        // Look for where the main content sections end (before FAQ, Tips, etc.)
+        $insertPosition = $this->findInsertPositionForRecipeSections($content);
+        
+        if ($insertPosition !== false) {
+            return substr($content, 0, $insertPosition) . $ingredientsHtml . $instructionsHtml . substr($content, $insertPosition);
+        }
+        
+        // Default: append at the end
+        return $content . $ingredientsHtml . $instructionsHtml;
+    }
+
+    /**
+     * Remove existing ingredients section from content.
+     */
+    private function removeExistingIngredientsSection(string $content): string
+    {
+        // Use DOM parser to safely remove ingredients section
+        $dom = new \DOMDocument();
+        @$dom->loadHTML('<?xml encoding="utf-8" ?><div>' . $content . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        
+        $xpath = new \DOMXPath($dom);
+        $headers = $xpath->query('//h2|//h3');
+        $elementsToRemove = [];
+        
+        foreach ($headers as $header) {
+            $headerText = strtolower(trim($header->textContent));
+            
+            if ((strpos($headerText, 'ingredient') !== false) && 
+                (strpos($headerText, 'instruction') === false) &&
+                (strpos($headerText, 'step') === false) &&
+                (strpos($headerText, 'direction') === false)) {
+                
+                $elementsToRemove[] = $header;
+                
+                $sibling = $header->nextSibling;
+                while ($sibling) {
+                    if ($sibling->nodeType === XML_TEXT_NODE) {
+                        $sibling = $sibling->nextSibling;
+                        continue;
+                    }
+                    
+                    if ($sibling->nodeName === 'ul' || $sibling->nodeName === 'ol') {
+                        $elementsToRemove[] = $sibling;
+                        break;
+                    }
+                    
+                    if ($sibling->nodeName === 'h2' || $sibling->nodeName === 'h3') {
+                        break;
+                    }
+                    
+                    $sibling = $sibling->nextSibling;
+                }
+            }
+        }
+        
+        foreach ($elementsToRemove as $element) {
+            if ($element->parentNode) {
+                $element->parentNode->removeChild($element);
+            }
+        }
+        
+        $wrapper = $dom->getElementsByTagName('div')->item(0);
+        $cleanedContent = '';
+        if ($wrapper) {
+            foreach ($wrapper->childNodes as $child) {
+                $cleanedContent .= $dom->saveHTML($child);
+            }
+        }
+        
+        return preg_replace('/\n{3,}/', "\n\n", trim($cleanedContent));
+    }
+
+    /**
+     * Remove existing instructions section from content.
+     */
+    private function removeExistingInstructionsSection(string $content): string
+    {
+        $dom = new \DOMDocument();
+        @$dom->loadHTML('<?xml encoding="utf-8" ?><div>' . $content . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        
+        $xpath = new \DOMXPath($dom);
+        $headers = $xpath->query('//h2|//h3');
+        $elementsToRemove = [];
+        
+        foreach ($headers as $header) {
+            $headerText = strtolower(trim($header->textContent));
+            
+            if ((strpos($headerText, 'instruction') !== false) || 
+                (strpos($headerText, 'direction') !== false) ||
+                (strpos($headerText, 'how to make') !== false) ||
+                (strpos($headerText, 'method') !== false && strpos($headerText, 'cooking method') !== false)) {
+                
+                $elementsToRemove[] = $header;
+                
+                $sibling = $header->nextSibling;
+                while ($sibling) {
+                    if ($sibling->nodeType === XML_TEXT_NODE) {
+                        $sibling = $sibling->nextSibling;
+                        continue;
+                    }
+                    
+                    if ($sibling->nodeName === 'ul' || $sibling->nodeName === 'ol') {
+                        $elementsToRemove[] = $sibling;
+                        break;
+                    }
+                    
+                    if ($sibling->nodeName === 'h2' || $sibling->nodeName === 'h3') {
+                        break;
+                    }
+                    
+                    $sibling = $sibling->nextSibling;
+                }
+            }
+        }
+        
+        foreach ($elementsToRemove as $element) {
+            if ($element->parentNode) {
+                $element->parentNode->removeChild($element);
+            }
+        }
+        
+        $wrapper = $dom->getElementsByTagName('div')->item(0);
+        $cleanedContent = '';
+        if ($wrapper) {
+            foreach ($wrapper->childNodes as $child) {
+                $cleanedContent .= $dom->saveHTML($child);
+            }
+        }
+        
+        return preg_replace('/\n{3,}/', "\n\n", trim($cleanedContent));
+    }
+
+    /**
+     * Find the best position to insert recipe sections (ingredients and instructions).
+     */
+    private function findInsertPositionForRecipeSections(string $content): int|false
+    {
+        // Look for typical sections that should come AFTER ingredients/instructions
+        $sectionsAfterRecipe = [
+            'tips',
+            'faq',
+            'frequently asked',
+            'common mistakes',
+            'storage',
+            'serving',
+            'variations',
+            'notes',
+        ];
+        
+        // Find the earliest occurrence of these sections
+        $earliestPosition = false;
+        
+        foreach ($sectionsAfterRecipe as $section) {
+            if (preg_match('/<h[23][^>]*>[^<]*' . preg_quote($section, '/') . '[^<]*<\/h[23]>/i', $content, $matches, \PREG_OFFSET_CAPTURE)) {
+                $position = $matches[0][1];
+                if ($earliestPosition === false || $position < $earliestPosition) {
+                    $earliestPosition = $position;
+                }
+            }
+        }
+        
+        return $earliestPosition;
+    }
+
+    /**
+     * Legacy parsing method for backwards compatibility when JSON parsing fails.
+     */
+    private function parseGeneratedContentLegacy(string $content): array
+    {
+        $title = $this->topic;
         $excerpt = '';
         $metaTitle = '';
         $metaDescription = '';
@@ -515,42 +859,36 @@ PROMPT;
         $totalTime = '';
         $articleContent = '';
 
-        // ALWAYS use the original topic as the title - never let AI change it
-        $title = $this->topic;
         if (preg_match('/EXCERPT:\s*(.+?)(?=\n\n|META_TITLE|$)/is', $content, $matches)) {
-            $excerpt = trim($matches[1]);
+            $excerpt = $this->stripHtmlAndClean(trim($matches[1]));
         }
         if (preg_match('/META_TITLE:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
-            $metaTitle = trim($matches[1]);
+            $metaTitle = $this->stripHtmlAndClean(trim($matches[1]));
         }
         if (preg_match('/META_DESCRIPTION:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
-            $metaDescription = trim($matches[1]);
+            $metaDescription = $this->stripHtmlAndClean(trim($matches[1]));
         }
         if (preg_match('/TAGS:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
             $tagsString = trim($matches[1]);
-            $metaTags = array_map('trim', explode(',', $tagsString));
-            // Remove empty tags and limit to 10
-            $metaTags = array_slice(array_filter($metaTags), 0, 10);
+            $tagsArray = array_map('trim', explode(',', $tagsString));
+            $metaTags = array_slice(array_filter(array_map([$this, 'stripHtmlAndClean'], $tagsArray)), 0, 10);
         }
         if (preg_match('/PREP_TIME:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
-            $prepTime = $this->cleanMarkdown(trim($matches[1]));
+            $prepTime = $this->stripHtmlAndClean(trim($matches[1]));
         }
         if (preg_match('/COOK_TIME:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
-            $cookTime = $this->cleanMarkdown(trim($matches[1]));
+            $cookTime = $this->stripHtmlAndClean(trim($matches[1]));
         }
         if (preg_match('/REST_TIME:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
-            $restTime = $this->cleanMarkdown(trim($matches[1]));
+            $restTime = $this->stripHtmlAndClean(trim($matches[1]));
         }
         if (preg_match('/TOTAL_TIME:\s*(.+?)(?:\n|$)/i', $content, $matches)) {
-            $totalTime = $this->cleanMarkdown(trim($matches[1]));
+            $totalTime = $this->stripHtmlAndClean(trim($matches[1]));
         }
-        // Extract NOTES
         if (preg_match('/NOTES:\s*(.+?)(?=\n\n|CONTENT:|$)/is', $content, $matches)) {
             $notesString = trim($matches[1]);
-            // Split by newlines and clean up
             $notesArray = array_filter(array_map('trim', explode("\n", $notesString)));
-            // Clean markdown from each note and remove empty notes, limit to 10
-            $notes = array_slice(array_filter(array_map([$this, 'cleanMarkdown'], $notesArray)), 0, 10);
+            $notes = array_slice(array_filter(array_map([$this, 'stripHtmlAndClean'], $notesArray)), 0, 10);
         }
         if (preg_match('/CONTENT:\s*(.+)$/is', $content, $matches)) {
             $articleContent = trim($matches[1]);
@@ -558,12 +896,10 @@ PROMPT;
 
         $articleContent = $this->cleanContent($articleContent);
 
-        // Ensure ingredients are at the end if provided
         if (!empty($this->ingredients)) {
             $articleContent = $this->ensureIngredientsAtEnd($articleContent);
         }
 
-        if (empty($title)) $title = $this->topic;
         if (empty($excerpt)) $excerpt = Str::limit(strip_tags($articleContent), 200);
         if (empty($metaTitle)) $metaTitle = Str::limit($title, 60);
         if (empty($metaDescription)) $metaDescription = Str::limit($excerpt, 160);
@@ -687,6 +1023,11 @@ PROMPT;
         $content = preg_replace('/\n?```\s*$/i', '', $content);
         $content = preg_replace('/```(?:html|xml|markdown|md)?/i', '', $content);
         
+        // Decode HTML entities that might have been escaped by AI
+        // This converts &lt;p&gt; back to <p>, etc.
+        // We need to be careful to only decode specific entities that should be HTML tags
+        $content = $this->decodeEscapedHtmlTags($content);
+        
         // Remove markdown bold markers (**text** -> text) but preserve HTML <strong> tags
         $content = preg_replace('/\*\*([^*]+)\*\*/', '$1', $content);
         // Remove any standalone ** markers that might be left over
@@ -707,6 +1048,55 @@ PROMPT;
     }
     
     /**
+     * Decode HTML entities for valid HTML tags that were escaped by AI.
+     * This fixes cases where AI returns &lt;p&gt; instead of <p>.
+     */
+    private function decodeEscapedHtmlTags(string $content): string
+    {
+        // Fix escaped forward slashes in closing tags (from JSON encoding)
+        // This converts <\/strong> to </strong>, <\/p> to </p>, etc.
+        $content = preg_replace('/<\\\\\/([a-zA-Z0-9]+)>/u', '</$1>', $content);
+        
+        // Also fix double-escaped versions: <\\/tag> or <\\\/tag>
+        $content = preg_replace('/<\\\\+\/([a-zA-Z0-9]+)>/u', '</$1>', $content);
+        
+        // List of valid HTML tags we want to decode
+        $validTags = [
+            'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+            'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'u',
+            'blockquote', 'div', 'span', 'a', 'img',
+            'table', 'tr', 'td', 'th', 'thead', 'tbody',
+        ];
+        
+        foreach ($validTags as $tag) {
+            // Decode opening tags: &lt;p&gt; -> <p> and &lt;p ...&gt; -> <p ...>
+            $content = preg_replace(
+                '/&lt;(' . preg_quote($tag, '/') . ')(\s[^&]*)?&gt;/i',
+                '<$1$2>',
+                $content
+            );
+            
+            // Decode closing tags: &lt;/p&gt; -> </p>
+            $content = preg_replace(
+                '/&lt;\/(' . preg_quote($tag, '/') . ')&gt;/i',
+                '</$1>',
+                $content
+            );
+        }
+        
+        // Also handle self-closing tags like &lt;br/&gt; or &lt;br /&gt;
+        $content = preg_replace('/&lt;(br|hr|img)(\s[^&]*)?\s*\/?&gt;/i', '<$1$2>', $content);
+        
+        // Handle cases where quotes in attributes are also escaped
+        // &lt;a href=&quot;...&quot;&gt; -> <a href="...">
+        $content = str_replace('&quot;', '"', $content);
+        $content = str_replace('&#039;', "'", $content);
+        $content = str_replace('&apos;', "'", $content);
+        
+        return $content;
+    }
+    
+    /**
      * Clean markdown markers from a string value.
      */
     private function cleanMarkdown(string $value): string
@@ -715,6 +1105,29 @@ PROMPT;
         $value = preg_replace('/\*\*([^*]+)\*\*/', '$1', $value);
         // Remove any standalone ** markers
         $value = preg_replace('/\*\*/', '', $value);
+        return trim($value);
+    }
+    
+    /**
+     * Strip HTML tags and clean up a plain text value.
+     * Use this for fields that should NOT contain HTML (excerpt, meta fields, notes, etc.)
+     */
+    private function stripHtmlAndClean(string $value): string
+    {
+        // First decode any HTML entities
+        $value = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        
+        // Remove all HTML tags
+        $value = strip_tags($value);
+        
+        // Remove markdown bold markers (**text** -> text)
+        $value = preg_replace('/\*\*([^*]+)\*\*/', '$1', $value);
+        // Remove any standalone ** markers
+        $value = preg_replace('/\*\*/', '', $value);
+        
+        // Clean up multiple spaces and newlines
+        $value = preg_replace('/\s+/', ' ', $value);
+        
         return trim($value);
     }
 }

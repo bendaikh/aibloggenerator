@@ -277,12 +277,42 @@ onMounted(() => {
     parseRecipeContent();
 });
 
+// Helper function to clean escaped HTML from content
+const cleanEscapedHtml = (content) => {
+    if (!content) return '';
+    
+    // Fix escaped forward slashes in closing tags (from JSON encoding)
+    // This converts <\/strong> to </strong>, <\/p> to </p>, etc.
+    content = content.replace(/<\\\/([a-zA-Z0-9]+)>/g, '</$1>');
+    content = content.replace(/<\\+\/([a-zA-Z0-9]+)>/g, '</$1>');
+    
+    return content;
+};
+
+// Helper function to clean text that may contain HTML remnants
+const cleanTextContent = (text) => {
+    if (!text) return '';
+    
+    // Remove any remaining escaped HTML patterns that appear as text
+    // Like "<\/strong>" or "<\/li>" appearing literally
+    text = text.replace(/<\\?\/[a-zA-Z0-9]+>/g, '');
+    text = text.replace(/<[a-zA-Z0-9]+>/g, '');
+    
+    // Clean up extra whitespace
+    text = text.replace(/\s+/g, ' ').trim();
+    
+    return text;
+};
+
 const parseRecipeContent = () => {
     if (!props.content) return;
 
+    // Clean escaped HTML before parsing
+    const cleanedContent = cleanEscapedHtml(props.content);
+
     // Create a temporary DOM element to parse HTML
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = props.content;
+    tempDiv.innerHTML = cleanedContent;
 
     // Find Ingredients section
     const ingredientsSection = findSection(tempDiv, ['ingredients', 'ingredient']);
@@ -430,7 +460,9 @@ const extractListItems = (listElement) => {
     const listItems = listElement.querySelectorAll('li');
     
     listItems.forEach(li => {
-        const text = li.textContent.trim();
+        // Get text content and clean any HTML remnants
+        let text = li.textContent.trim();
+        text = cleanTextContent(text);
         if (text) {
             items.push(text);
         }
@@ -524,7 +556,9 @@ const extractDescription = (container) => {
     // Try to find a description paragraph before the recipe sections
     const paragraphs = container.querySelectorAll('p');
     for (const p of paragraphs) {
-        const text = p.textContent.trim();
+        let text = p.textContent.trim();
+        // Clean any HTML remnants from the text
+        text = cleanTextContent(text);
         if (text.length > 50 && text.length < 300) {
             // Check if it's not part of ingredients/instructions
             const lowerText = text.toLowerCase();

@@ -449,8 +449,52 @@ const cleanedContent = computed(() => {
     content = content.replace(/\n?```\s*$/gi, '');
     content = content.replace(/```(?:html|xml|markdown|md)?/gi, '');
     
+    // Decode escaped HTML tags that AI might have returned
+    // This fixes cases where content has &lt;p&gt; instead of <p>
+    content = decodeEscapedHtmlTags(content);
+    
     return content.trim();
 });
+
+// Helper function to decode escaped HTML tags
+const decodeEscapedHtmlTags = (content) => {
+    if (!content) return '';
+    
+    // Fix escaped forward slashes in closing tags (from JSON encoding)
+    // This converts <\/strong> to </strong>, <\/p> to </p>, etc.
+    content = content.replace(/<\\\/([a-zA-Z0-9]+)>/g, '</$1>');
+    
+    // Also fix double-escaped versions: <\\/strong> or <\\\/strong>
+    content = content.replace(/<\\+\/([a-zA-Z0-9]+)>/g, '</$1>');
+    
+    // List of valid HTML tags we want to decode
+    const validTags = [
+        'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'u',
+        'blockquote', 'div', 'span', 'a', 'img',
+        'table', 'tr', 'td', 'th', 'thead', 'tbody',
+    ];
+    
+    for (const tag of validTags) {
+        // Decode opening tags: &lt;p&gt; -> <p> and &lt;p ...&gt; -> <p ...>
+        const openingRegex = new RegExp(`&lt;(${tag})(\\s[^&]*)?&gt;`, 'gi');
+        content = content.replace(openingRegex, '<$1$2>');
+        
+        // Decode closing tags: &lt;/p&gt; -> </p>
+        const closingRegex = new RegExp(`&lt;\\/(${tag})&gt;`, 'gi');
+        content = content.replace(closingRegex, '</$1>');
+    }
+    
+    // Handle self-closing tags like &lt;br/&gt; or &lt;br /&gt;
+    content = content.replace(/&lt;(br|hr|img)(\s[^&]*)?\s*\/?&gt;/gi, '<$1$2>');
+    
+    // Handle escaped quotes in attributes
+    content = content.replace(/&quot;/g, '"');
+    content = content.replace(/&#039;/g, "'");
+    content = content.replace(/&apos;/g, "'");
+    
+    return content;
+};
 
 // Remove Ingredients and Instructions sections from the main content
 // so they only appear in the RecipeCard component
