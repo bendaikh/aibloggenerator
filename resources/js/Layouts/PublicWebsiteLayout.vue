@@ -416,7 +416,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import axios from 'axios';
 import { useSubscribePopup } from '@/composables/useSubscribePopup';
 
@@ -429,6 +429,17 @@ const props = defineProps({
         type: String,
         default: ''
     }
+});
+
+// Debug: Log website ad configuration on mount
+onMounted(() => {
+    nextTick(() => {
+        console.log('[Layout] Website HBAgency config:', {
+            hasScript: !!props.website?.hbagency_script,
+            scriptLength: props.website?.hbagency_script?.length || 0,
+            placements: props.website?.hbagency_placements,
+        });
+    });
 });
 
 // Get subscription popup settings

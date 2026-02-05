@@ -321,34 +321,84 @@ const checkDevice = () => {
 // Get the openSubscribePopup function from the shared composable
 const { openSubscribePopup } = useSubscribePopup();
 
+// Function to initialize HBAgency ads
+const initHBAgencyAds = () => {
+    if (typeof window === 'undefined') return;
+    
+    // Debug: Log placement configuration
+    console.log('[HBAgency] Placements config:', props.website?.hbagency_placements);
+    
+    // Get all ad placement divs
+    const adDivs = document.querySelectorAll('[id^="hbagency_space_"]');
+    console.log('[HBAgency] Found ad divs:', adDivs.length);
+    adDivs.forEach(div => console.log('[HBAgency] Ad div:', div.id));
+    
+    // Method 1: Try HBAgency's global refresh/render functions
+    if (window.hbagency) {
+        console.log('[HBAgency] hbagency object found:', Object.keys(window.hbagency));
+        if (typeof window.hbagency.refresh === 'function') {
+            window.hbagency.refresh();
+        }
+        if (typeof window.hbagency.render === 'function') {
+            window.hbagency.render();
+        }
+        if (typeof window.hbagency.init === 'function') {
+            window.hbagency.init();
+        }
+    }
+    
+    // Method 2: Try HB (Header Bidding) object
+    if (window.HB) {
+        console.log('[HBAgency] HB object found');
+        if (typeof window.HB.refresh === 'function') {
+            window.HB.refresh();
+        }
+    }
+    
+    // Method 3: Try googletag (Google Publisher Tag) - commonly used with HBAgency
+    if (window.googletag && window.googletag.cmd) {
+        console.log('[HBAgency] googletag found');
+        window.googletag.cmd.push(function() {
+            // Refresh all ad slots
+            if (window.googletag.pubads) {
+                window.googletag.pubads().refresh();
+            }
+        });
+    }
+    
+    // Method 4: Try pbjs (Prebid.js) - commonly used with HBAgency
+    if (window.pbjs) {
+        console.log('[HBAgency] pbjs found');
+        window.pbjs.que = window.pbjs.que || [];
+        window.pbjs.que.push(function() {
+            if (typeof window.pbjs.requestBids === 'function') {
+                window.pbjs.requestBids({
+                    bidsBackHandler: function() {
+                        console.log('[HBAgency] Prebid bids returned');
+                    }
+                });
+            }
+        });
+    }
+    
+    // Method 5: Dispatch custom events that ad scripts might listen to
+    window.dispatchEvent(new Event('load'));
+    window.dispatchEvent(new CustomEvent('DOMContentLoaded'));
+    window.dispatchEvent(new CustomEvent('hbagency:ready'));
+};
+
 // Trigger HBAgency to refresh ads after Vue renders the ad divs
 onMounted(() => {
     nextTick(() => {
-        // Wait a bit for all ad divs to be in the DOM
+        // Wait a bit for all ad divs to be in the DOM and HBAgency script to load
         setTimeout(() => {
-            // Try to trigger HBAgency ad refresh if available
-            if (typeof window !== 'undefined') {
-                // Method 1: Dispatch a custom event that HBAgency might listen to
-                window.dispatchEvent(new Event('load'));
-                
-                // Method 2: If HBAgency has a refresh function
-                if (window.hbagency && typeof window.hbagency.refresh === 'function') {
-                    window.hbagency.refresh();
-                }
-                
-                // Method 3: If using pbjs (Prebid.js)
-                if (window.pbjs && typeof window.pbjs.requestBids === 'function') {
-                    window.pbjs.que = window.pbjs.que || [];
-                    window.pbjs.que.push(function() {
-                        window.pbjs.requestBids({
-                            bidsBackHandler: function() {
-                                // Ads should load now
-                            }
-                        });
-                    });
-                }
-            }
-        }, 1000); // Wait 1 second for HBAgency script to be ready
+            initHBAgencyAds();
+        }, 1500); // Wait 1.5 seconds for HBAgency script to be ready
+        
+        // Try again after 3 seconds in case initial load was slow
+        setTimeout(() => {
+            initHBAgencyAds();
+        }, 3000);
         
         // Check device type
         checkDevice();
