@@ -1,5 +1,13 @@
 <template>
     <div class="min-h-screen bg-white">
+        <!-- Cookie Consent Banner (CMP) -->
+        <CookieConsent 
+            v-if="showCMP"
+            :show-settings-button="true"
+            :auto-show="true"
+            @consent-given="onConsentGiven"
+            @consent-rejected="onConsentRejected"
+        />
         <!-- Top Banner -->
         <div class="bg-gradient-to-r from-emerald-400 to-teal-400 py-2">
             <div class="container mx-auto px-4">
@@ -419,6 +427,8 @@
 import { ref, computed, onMounted, nextTick } from 'vue';
 import axios from 'axios';
 import { useSubscribePopup } from '@/composables/useSubscribePopup';
+import { useConsentManagement, CONSENT_CATEGORIES } from '@/composables/useConsentManagement';
+import CookieConsent from '@/Components/CookieConsent.vue';
 
 const props = defineProps({
     website: {
@@ -430,6 +440,25 @@ const props = defineProps({
         default: ''
     }
 });
+
+// Consent Management
+const { hasConsentFor, consentGiven, initializeHBAgencyAds } = useConsentManagement();
+
+// Check if CMP should be shown (only on public pages with HBAgency configured)
+const showCMP = computed(() => {
+    return props.website?.hbagency_script || props.website?.hbagency_placements;
+});
+
+// Handle consent given
+const onConsentGiven = (details) => {
+    console.log('[Layout] Consent given:', details);
+    // Ads will be loaded automatically by the consent management system
+};
+
+// Handle consent rejected
+const onConsentRejected = () => {
+    console.log('[Layout] Consent rejected - ads will not be shown');
+};
 
 // Debug: Log website ad configuration on mount
 onMounted(() => {

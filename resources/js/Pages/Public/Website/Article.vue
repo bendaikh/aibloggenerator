@@ -292,10 +292,11 @@
 
 <script setup>
 import { Head } from '@inertiajs/vue3';
-import { computed, ref, onMounted, nextTick } from 'vue';
+import { computed, ref, onMounted, nextTick, onUnmounted } from 'vue';
 import PublicWebsiteLayout from '@/Layouts/PublicWebsiteLayout.vue';
 import RecipeCard from '@/Components/RecipeCard.vue';
 import { useSubscribePopup } from '@/composables/useSubscribePopup';
+import { useConsentManagement, CONSENT_CATEGORIES } from '@/composables/useConsentManagement';
 
 const props = defineProps({
     website: Object,
@@ -321,9 +322,21 @@ const checkDevice = () => {
 // Get the openSubscribePopup function from the shared composable
 const { openSubscribePopup } = useSubscribePopup();
 
-// Function to initialize HBAgency ads
+// Consent Management
+const { hasConsentFor, consentGiven, initializeHBAgencyAds } = useConsentManagement();
+
+// Function to initialize HBAgency ads (only if consent is given)
 const initHBAgencyAds = () => {
     if (typeof window === 'undefined') return;
+    
+    // Check if advertising consent is given
+    const hasAdvertisingConsent = hasConsentFor(CONSENT_CATEGORIES.ADVERTISING);
+    console.log('[HBAgency] Advertising consent:', hasAdvertisingConsent);
+    
+    if (!hasAdvertisingConsent) {
+        console.log('[HBAgency] No advertising consent - ads will not be initialized');
+        return;
+    }
     
     // Debug: Log placement configuration
     console.log('[HBAgency] Placements config:', props.website?.hbagency_placements);
@@ -387,18 +400,38 @@ const initHBAgencyAds = () => {
     window.dispatchEvent(new CustomEvent('hbagency:ready'));
 };
 
+// Listen for consent events to initialize ads when consent is given
+const handleConsentGranted = () => {
+    console.log('[HBAgency] Consent granted event received');
+    setTimeout(() => {
+        initHBAgencyAds();
+    }, 1000);
+};
+
 // Trigger HBAgency to refresh ads after Vue renders the ad divs
 onMounted(() => {
     nextTick(() => {
-        // Wait a bit for all ad divs to be in the DOM and HBAgency script to load
-        setTimeout(() => {
-            initHBAgencyAds();
-        }, 1500); // Wait 1.5 seconds for HBAgency script to be ready
+        // Add event listener for consent events
+        if (typeof window !== 'undefined') {
+            window.addEventListener('ads_consent_granted', handleConsentGranted);
+            window.addEventListener('consent_accepted_all', handleConsentGranted);
+        }
         
-        // Try again after 3 seconds in case initial load was slow
-        setTimeout(() => {
-            initHBAgencyAds();
-        }, 3000);
+        // Only initialize ads if consent is already given
+        const hasAdvertisingConsent = hasConsentFor(CONSENT_CATEGORIES.ADVERTISING);
+        if (hasAdvertisingConsent) {
+            // Wait a bit for all ad divs to be in the DOM and HBAgency script to load
+            setTimeout(() => {
+                initHBAgencyAds();
+            }, 1500); // Wait 1.5 seconds for HBAgency script to be ready
+            
+            // Try again after 3 seconds in case initial load was slow
+            setTimeout(() => {
+                initHBAgencyAds();
+            }, 3000);
+        } else {
+            console.log('[HBAgency] Waiting for consent before initializing ads...');
+        }
         
         // Check device type
         checkDevice();
@@ -432,6 +465,15 @@ onMounted(() => {
             }
         }
     });
+});
+
+// Cleanup event listeners
+onUnmounted(() => {
+    if (typeof window !== 'undefined') {
+        window.removeEventListener('ads_consent_granted', handleConsentGranted);
+        window.removeEventListener('consent_accepted_all', handleConsentGranted);
+        window.removeEventListener('resize', checkDevice);
+    }
 });
 
 // Get font families from website theme settings
