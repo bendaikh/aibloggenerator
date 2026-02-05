@@ -141,7 +141,7 @@
                             </div>
 
                             <!-- Article Content (with recipe sections removed) -->
-                            <div class="prose prose-emerald prose-lg max-w-none article-body mb-12" :style="{ fontFamily: articleFontFamily }" v-html="contentWithoutRecipeSections"></div>
+                            <div class="prose prose-emerald prose-lg max-w-none article-body mb-12" :style="{ fontFamily: articleFontFamily, '--article-title-font': articleTitleFontFamily }" v-html="contentWithoutRecipeSections"></div>
 
                             <!-- ========== AD PLACEMENT 3: After Article Content ========== -->
                             <div v-if="website.hbagency_placements?.in_article_2" class="ad-placement mb-8 flex justify-center">
@@ -755,7 +755,7 @@ body {
 }
 
 .article-body h2 {
-    font-family: 'Playfair Display', serif;
+    font-family: var(--article-title-font, 'Playfair Display', serif);
     font-size: 2.5rem;
     font-weight: 800;
     margin-top: 3rem;
@@ -765,7 +765,7 @@ body {
 }
 
 .article-body h3 {
-    font-family: 'Playfair Display', serif;
+    font-family: var(--article-title-font, 'Playfair Display', serif);
     font-size: 1.875rem;
     font-weight: 700;
     margin-top: 2.5rem;
