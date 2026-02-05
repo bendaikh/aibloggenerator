@@ -263,61 +263,74 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
     }
 
     /**
-     * Determine the best category for the article topic using AI
+     * Determine the best category for the article topic using LOCAL keyword matching.
+     * This is much faster than making an additional API call (~0ms vs ~5-10 seconds).
      */
     private function determineBestCategory($client, string $model, Website $website): ?Category
     {
-        $categories = $website->categories->map(function ($cat) {
-            return [
-                'id' => $cat->id,
-                'name' => $cat->name,
-                'description' => $cat->description ?? ''
-            ];
-        })->toArray();
+        $categories = $website->categories;
 
-        if (empty($categories)) {
+        if ($categories->isEmpty()) {
             return null;
         }
 
-        $categoriesJson = json_encode($categories);
+        // Prepare topic words for matching (lowercase, remove common words)
+        $topicWords = $this->extractKeywords($this->topic);
+        $keywordWords = !empty($this->keywords) ? $this->extractKeywords($this->keywords) : [];
+        $allSearchWords = array_unique(array_merge($topicWords, $keywordWords));
 
-        $prompt = <<<PROMPT
-Given the following article topic and available categories, determine which category is the BEST fit for this article.
+        $bestMatch = null;
+        $bestScore = 0;
 
-Article Topic: "{$this->topic}"
-
-Available Categories:
-{$categoriesJson}
-
-Respond with ONLY the category ID number that best matches the topic. Just the number, nothing else.
-If none of the categories fit well, respond with the ID of the most general/closest category.
-PROMPT;
-
-        try {
-            $result = $client->chat()->create([
-                'model' => $model,
-                'messages' => [
-                    ['role' => 'system', 'content' => 'You are a content categorization expert. Respond only with the category ID number.'],
-                    ['role' => 'user', 'content' => $prompt],
-                ],
-                'max_tokens' => 10,
-                'temperature' => 0.1,
-            ]);
-
-            $categoryId = trim($result->choices[0]->message->content ?? '');
-            $categoryId = preg_replace('/[^0-9]/', '', $categoryId);
-
-            if (!empty($categoryId)) {
-                $category = $website->categories->firstWhere('id', (int) $categoryId);
-                if ($category) {
-                    return $category;
+        foreach ($categories as $category) {
+            $categoryWords = $this->extractKeywords($category->name . ' ' . ($category->description ?? ''));
+            
+            // Calculate match score
+            $score = 0;
+            foreach ($allSearchWords as $word) {
+                foreach ($categoryWords as $catWord) {
+                    // Exact match
+                    if ($word === $catWord) {
+                        $score += 3;
+                    }
+                    // Partial match (word contains or is contained)
+                    elseif (strlen($word) >= 3 && strlen($catWord) >= 3) {
+                        if (str_contains($catWord, $word) || str_contains($word, $catWord)) {
+                            $score += 1;
+                        }
+                    }
                 }
             }
-        } catch (\Exception $e) {
-            Log::warning('Failed to determine category via AI', ['error' => $e->getMessage()]);
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestMatch = $category;
+            }
         }
 
-        return $website->categories->first();
+        // Return best match, or first category if no good match found
+        return $bestMatch ?? $categories->first();
+    }
+
+    /**
+     * Extract keywords from a string for category matching.
+     */
+    private function extractKeywords(string $text): array
+    {
+        // Convert to lowercase and extract words
+        $text = strtolower($text);
+        
+        // Remove common stop words
+        $stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'shall', 'can', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'what', 'which', 'who', 'whom', 'when', 'where', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just', 'recipe', 'recipes', 'best', 'easy', 'homemade', 'delicious', 'simple', 'quick', 'make', 'how'];
+        
+        // Extract words (letters only, min 2 chars)
+        preg_match_all('/[a-z]{2,}/', $text, $matches);
+        $words = $matches[0] ?? [];
+        
+        // Remove stop words
+        $words = array_diff($words, $stopWords);
+        
+        return array_values(array_unique($words));
     }
 
     /**
