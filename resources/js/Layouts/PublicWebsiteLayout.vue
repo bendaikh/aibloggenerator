@@ -1,6 +1,8 @@
 <template>
     <div class="min-h-screen bg-white">
         <!-- Cookie Consent Banner (CMP) -->
+        <!-- DISABLED: HBAgency script provides its own CMP -->
+        <!-- 
         <CookieConsent 
             v-if="showCMP"
             :show-settings-button="true"
@@ -8,6 +10,7 @@
             @consent-given="onConsentGiven"
             @consent-rejected="onConsentRejected"
         />
+        -->
         <!-- Top Banner -->
         <div class="bg-gradient-to-r from-emerald-400 to-teal-400 py-2">
             <div class="container mx-auto px-4">
@@ -427,8 +430,6 @@
 import { ref, computed, onMounted, nextTick } from 'vue';
 import axios from 'axios';
 import { useSubscribePopup } from '@/composables/useSubscribePopup';
-import { useConsentManagement, CONSENT_CATEGORIES } from '@/composables/useConsentManagement';
-import CookieConsent from '@/Components/CookieConsent.vue';
 
 const props = defineProps({
     website: {
@@ -441,35 +442,8 @@ const props = defineProps({
     }
 });
 
-// Consent Management
-const { hasConsentFor, consentGiven, initializeHBAgencyAds } = useConsentManagement();
-
-// Check if CMP should be shown (only on public pages with HBAgency configured)
-const showCMP = computed(() => {
-    return props.website?.hbagency_script || props.website?.hbagency_placements;
-});
-
-// Handle consent given
-const onConsentGiven = (details) => {
-    console.log('[Layout] Consent given:', details);
-    // Ads will be loaded automatically by the consent management system
-};
-
-// Handle consent rejected
-const onConsentRejected = () => {
-    console.log('[Layout] Consent rejected - ads will not be shown');
-};
-
-// Debug: Log website ad configuration on mount
-onMounted(() => {
-    nextTick(() => {
-        console.log('[Layout] Website HBAgency config:', {
-            hasScript: !!props.website?.hbagency_script,
-            scriptLength: props.website?.hbagency_script?.length || 0,
-            placements: props.website?.hbagency_placements,
-        });
-    });
-});
+// HBAgency script loads directly in the head and handles its own CMP
+// No need for custom consent management
 
 // Get subscription popup settings
 const themeSettings = computed(() => props.website?.theme_settings || {});

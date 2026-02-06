@@ -296,7 +296,6 @@ import { computed, ref, onMounted, nextTick, onUnmounted } from 'vue';
 import PublicWebsiteLayout from '@/Layouts/PublicWebsiteLayout.vue';
 import RecipeCard from '@/Components/RecipeCard.vue';
 import { useSubscribePopup } from '@/composables/useSubscribePopup';
-import { useConsentManagement, CONSENT_CATEGORIES } from '@/composables/useConsentManagement';
 
 const props = defineProps({
     website: Object,
@@ -322,117 +321,12 @@ const checkDevice = () => {
 // Get the openSubscribePopup function from the shared composable
 const { openSubscribePopup } = useSubscribePopup();
 
-// Consent Management
-const { hasConsentFor, consentGiven, initializeHBAgencyAds } = useConsentManagement();
-
-// Function to initialize HBAgency ads (only if consent is given)
-const initHBAgencyAds = () => {
-    if (typeof window === 'undefined') return;
-    
-    // Check if advertising consent is given
-    const hasAdvertisingConsent = hasConsentFor(CONSENT_CATEGORIES.ADVERTISING);
-    console.log('[HBAgency] Advertising consent:', hasAdvertisingConsent);
-    
-    if (!hasAdvertisingConsent) {
-        console.log('[HBAgency] No advertising consent - ads will not be initialized');
-        return;
-    }
-    
-    // Debug: Log placement configuration
-    console.log('[HBAgency] Placements config:', props.website?.hbagency_placements);
-    
-    // Get all ad placement divs
-    const adDivs = document.querySelectorAll('[id^="hbagency_space_"]');
-    console.log('[HBAgency] Found ad divs:', adDivs.length);
-    adDivs.forEach(div => console.log('[HBAgency] Ad div:', div.id));
-    
-    // Method 1: Try HBAgency's global refresh/render functions
-    if (window.hbagency) {
-        console.log('[HBAgency] hbagency object found:', Object.keys(window.hbagency));
-        if (typeof window.hbagency.refresh === 'function') {
-            window.hbagency.refresh();
-        }
-        if (typeof window.hbagency.render === 'function') {
-            window.hbagency.render();
-        }
-        if (typeof window.hbagency.init === 'function') {
-            window.hbagency.init();
-        }
-    }
-    
-    // Method 2: Try HB (Header Bidding) object
-    if (window.HB) {
-        console.log('[HBAgency] HB object found');
-        if (typeof window.HB.refresh === 'function') {
-            window.HB.refresh();
-        }
-    }
-    
-    // Method 3: Try googletag (Google Publisher Tag) - commonly used with HBAgency
-    if (window.googletag && window.googletag.cmd) {
-        console.log('[HBAgency] googletag found');
-        window.googletag.cmd.push(function() {
-            // Refresh all ad slots
-            if (window.googletag.pubads) {
-                window.googletag.pubads().refresh();
-            }
-        });
-    }
-    
-    // Method 4: Try pbjs (Prebid.js) - commonly used with HBAgency
-    if (window.pbjs) {
-        console.log('[HBAgency] pbjs found');
-        window.pbjs.que = window.pbjs.que || [];
-        window.pbjs.que.push(function() {
-            if (typeof window.pbjs.requestBids === 'function') {
-                window.pbjs.requestBids({
-                    bidsBackHandler: function() {
-                        console.log('[HBAgency] Prebid bids returned');
-                    }
-                });
-            }
-        });
-    }
-    
-    // Method 5: Dispatch custom events that ad scripts might listen to
-    window.dispatchEvent(new Event('load'));
-    window.dispatchEvent(new CustomEvent('DOMContentLoaded'));
-    window.dispatchEvent(new CustomEvent('hbagency:ready'));
-};
-
-// Listen for consent events to initialize ads when consent is given
-const handleConsentGranted = () => {
-    console.log('[HBAgency] Consent granted event received');
-    setTimeout(() => {
-        initHBAgencyAds();
-    }, 1000);
-};
+// HBAgency script now loads directly in the head and handles its own CMP
+// No need for manual consent management or ad initialization
 
 // Trigger HBAgency to refresh ads after Vue renders the ad divs
 onMounted(() => {
     nextTick(() => {
-        // Add event listener for consent events
-        if (typeof window !== 'undefined') {
-            window.addEventListener('ads_consent_granted', handleConsentGranted);
-            window.addEventListener('consent_accepted_all', handleConsentGranted);
-        }
-        
-        // Only initialize ads if consent is already given
-        const hasAdvertisingConsent = hasConsentFor(CONSENT_CATEGORIES.ADVERTISING);
-        if (hasAdvertisingConsent) {
-            // Wait a bit for all ad divs to be in the DOM and HBAgency script to load
-            setTimeout(() => {
-                initHBAgencyAds();
-            }, 1500); // Wait 1.5 seconds for HBAgency script to be ready
-            
-            // Try again after 3 seconds in case initial load was slow
-            setTimeout(() => {
-                initHBAgencyAds();
-            }, 3000);
-        } else {
-            console.log('[HBAgency] Waiting for consent before initializing ads...');
-        }
-        
         // Check device type
         checkDevice();
         
@@ -470,8 +364,6 @@ onMounted(() => {
 // Cleanup event listeners
 onUnmounted(() => {
     if (typeof window !== 'undefined') {
-        window.removeEventListener('ads_consent_granted', handleConsentGranted);
-        window.removeEventListener('consent_accepted_all', handleConsentGranted);
         window.removeEventListener('resize', checkDevice);
     }
 });
