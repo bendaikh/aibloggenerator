@@ -1,8 +1,9 @@
 <template>
     <div class="min-h-screen bg-white">
-        <!-- Cookie Consent Banner (CMP) -->
+        <!-- Cookie Consent Banner (Custom CMP - only shown when HBAgency is NOT configured) -->
+        <!-- When HBAgency script is present, their script automatically injects their own CMP -->
         <CookieConsent 
-            v-if="showCMP"
+            v-if="showCustomCMP"
             :show-settings-button="true"
             :auto-show="true"
             @consent-given="onConsentGiven"
@@ -444,9 +445,10 @@ const props = defineProps({
 // Consent Management
 const { hasConsentFor, consentGiven, initializeHBAgencyAds } = useConsentManagement();
 
-// Check if CMP should be shown (only on public pages with HBAgency configured)
-const showCMP = computed(() => {
-    return props.website?.hbagency_script || props.website?.hbagency_placements;
+// Only show custom CMP when HBAgency is NOT configured
+// When HBAgency script is present, their script handles CMP automatically
+const showCustomCMP = computed(() => {
+    return !props.website?.hbagency_script;
 });
 
 // Handle consent given
