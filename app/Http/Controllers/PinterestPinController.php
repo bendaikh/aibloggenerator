@@ -587,12 +587,22 @@ class PinterestPinController extends Controller
         $zipPath = $zipDir . '/' . $zipFilename;
 
         if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === TRUE) {
+            $nameCounts = [];
             foreach ($pins as $pin) {
                 $filePath = public_path($pin->generated_image);
                 if (file_exists($filePath)) {
                     $extension = pathinfo($filePath, PATHINFO_EXTENSION);
-                    // Use a more unique name to avoid collisions if titles are same
-                    $nameInZip = \Illuminate\Support\Str::slug($pin->title) . '-' . $pin->id . '.' . ($extension ?: 'png');
+                    $baseName = \Illuminate\Support\Str::slug($pin->title);
+                    
+                    // Handle duplicate names by adding a counter only if needed
+                    if (isset($nameCounts[$baseName])) {
+                        $nameCounts[$baseName]++;
+                        $nameInZip = $baseName . '-' . $nameCounts[$baseName] . '.' . ($extension ?: 'png');
+                    } else {
+                        $nameCounts[$baseName] = 0;
+                        $nameInZip = $baseName . '.' . ($extension ?: 'png');
+                    }
+                    
                     $zip->addFile($filePath, $nameInZip);
                 }
             }
