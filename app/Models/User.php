@@ -28,11 +28,21 @@ class User extends Authenticatable
     ];
 
     /**
+     * Get the role that belongs to the user.
+     */
+    public function roleRelation()
+    {
+        return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    /**
      * Check if user is a superadmin.
      */
     public function isSuperAdmin(): bool
     {
-        return $this->role === 'superadmin';
+        // Check both old string-based role and new role relationship
+        return $this->role === 'superadmin' || 
+               ($this->roleRelation && $this->roleRelation->name === 'superadmin');
     }
 
     /**
@@ -40,7 +50,36 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        return in_array($this->role, ['admin', 'superadmin']);
+        // Check both old string-based role and new role relationship
+        $hasOldRole = in_array($this->role, ['admin', 'superadmin']);
+        $hasNewRole = $this->roleRelation && 
+                      in_array($this->roleRelation->name, ['admin', 'superadmin']);
+        
+        return $hasOldRole || $hasNewRole;
+    }
+
+    /**
+     * Check if user has a specific permission.
+     */
+    public function hasPermission(string $permissionName): bool
+    {
+        if (!$this->roleRelation) {
+            return false;
+        }
+
+        return $this->roleRelation->hasPermission($permissionName);
+    }
+
+    /**
+     * Get all permissions for the user through their role.
+     */
+    public function getPermissions()
+    {
+        if (!$this->roleRelation) {
+            return collect([]);
+        }
+
+        return $this->roleRelation->permissions;
     }
 
     /**

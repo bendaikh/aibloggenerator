@@ -1,0 +1,18 @@
+Subject: CMP and Script Integration Complete - Ads Not Displaying on cookorigin.com
+
+Dear hbagency Team,
+
+I hope this email finds you well.
+
+We have successfully integrated the CMP (Consent Management Platform) and the script as per your instructions. However, we are still not seeing ads displayed on our website.
+
+Could you please verify the integration specifically for our website: https://cookorigin.com/
+
+We would appreciate it if you could check what might be causing this issue and let us know what needs to be addressed.
+
+Thank you for your assistance, and we look forward to your response.
+
+Best regards,
+[Your Name]
+[Your Title]
+[Your Contact Information]

@@ -13,6 +13,9 @@ use App\Http\Controllers\SocialMediaController;
 use App\Http\Controllers\ImageUploadController;
 use App\Http\Controllers\AuthorController;
 use App\Http\Controllers\PinterestPinController;
+use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\PermissionController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -82,6 +85,25 @@ $registerMainAppRoutes = function () {
         // Global Articles
         Route::get('/global-articles', [OrganizationController::class, 'globalArticlesIndex'])->name('organization.global-articles.index');
         Route::post('/global-articles/generate', [OrganizationController::class, 'globalArticlesGenerate'])->name('organization.global-articles.generate');
+
+        // User Management Routes (Organization-wide)
+        Route::get('/users', [UserManagementController::class, 'index'])->name('organization.users.index');
+        Route::post('/users', [UserManagementController::class, 'store'])->name('organization.users.store');
+        Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('organization.users.update');
+        Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('organization.users.destroy');
+
+        // Role Management Routes (Organization-wide)
+        Route::get('/roles', [RoleController::class, 'index'])->name('organization.roles.index');
+        Route::post('/roles', [RoleController::class, 'store'])->name('organization.roles.store');
+        Route::put('/roles/{role}', [RoleController::class, 'update'])->name('organization.roles.update');
+        Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('organization.roles.destroy');
+
+        // Permission Management Routes (Organization-wide)
+        Route::get('/permissions', [PermissionController::class, 'index'])->name('organization.permissions.index');
+        Route::post('/permissions', [PermissionController::class, 'store'])->name('organization.permissions.store');
+        Route::put('/permissions/{permission}', [PermissionController::class, 'update'])->name('organization.permissions.update');
+        Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->name('organization.permissions.destroy');
+        Route::put('/roles/{role}/permissions', [PermissionController::class, 'updateRolePermissions'])->name('organization.roles.permissions.update');
     });
 
     // SuperAdmin Routes (Website-Specific)

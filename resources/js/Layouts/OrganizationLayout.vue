@@ -8,6 +8,7 @@ const user = computed(() => page.props.auth?.user);
 const websites = computed(() => page.props.websites || []);
 
 const sidebarOpen = ref(false);
+const userManagementOpen = ref(false);
 
 const isActive = (routeName) => {
     return route().current(routeName);
@@ -15,6 +16,12 @@ const isActive = (routeName) => {
 
 const isActivePrefix = (prefix) => {
     return route().current()?.startsWith(prefix);
+};
+
+const isUserManagementActive = () => {
+    return isActivePrefix('organization.users') || 
+           isActivePrefix('organization.roles') || 
+           isActivePrefix('organization.permissions');
 };
 
 const toggleSidebar = () => {
@@ -161,6 +168,65 @@ onUnmounted(() => {
                         </svg>
                         Global Articles
                     </Link>
+
+                    <!-- User Management -->
+                    <div v-if="user?.role === 'superadmin'">
+                        <button 
+                            @click="userManagementOpen = !userManagementOpen"
+                            :class="[
+                                'flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm transition-colors',
+                                isUserManagementActive()
+                                    ? 'bg-[#1f1f1f] text-white' 
+                                    : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
+                            ]"
+                        >
+                            <div class="flex items-center gap-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                                User Management
+                            </div>
+                            <svg 
+                                :class="['w-4 h-4 transition-transform', userManagementOpen ? 'rotate-180' : '']" 
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        
+                        <div v-show="userManagementOpen" class="mt-1 ml-8 space-y-1">
+                            <Link 
+                                :href="route('organization.users.index')" 
+                                @click="handleNavClick"
+                                :class="[
+                                    'block px-3 py-2 rounded-lg text-sm transition-colors',
+                                    isActivePrefix('organization.users') ? 'text-white bg-[#252525]' : 'text-gray-400 hover:text-white hover:bg-[#1a1a1a]'
+                                ]"
+                            >
+                                Users
+                            </Link>
+                            <Link 
+                                :href="route('organization.roles.index')" 
+                                @click="handleNavClick"
+                                :class="[
+                                    'block px-3 py-2 rounded-lg text-sm transition-colors',
+                                    isActivePrefix('organization.roles') ? 'text-white bg-[#252525]' : 'text-gray-400 hover:text-white hover:bg-[#1a1a1a]'
+                                ]"
+                            >
+                                Roles
+                            </Link>
+                            <Link 
+                                :href="route('organization.permissions.index')" 
+                                @click="handleNavClick"
+                                :class="[
+                                    'block px-3 py-2 rounded-lg text-sm transition-colors',
+                                    isActivePrefix('organization.permissions') ? 'text-white bg-[#252525]' : 'text-gray-400 hover:text-white hover:bg-[#1a1a1a]'
+                                ]"
+                            >
+                                Permissions
+                            </Link>
+                        </div>
+                    </div>
                 </nav>
 
                 <!-- Websites List -->
