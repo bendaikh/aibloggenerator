@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            // Add role_id foreign key, nullable for backward compatibility
-            $table->foreignId('role_id')->nullable()->after('role')->constrained()->onDelete('set null');
-        });
+        if (!Schema::hasColumn('users', 'role_id')) {
+            Schema::table('users', function (Blueprint $table) {
+                // Add role_id foreign key, nullable for backward compatibility
+                $table->foreignId('role_id')->nullable()->after('role')->constrained()->onDelete('set null');
+            });
+        }
     }
 
     /**
