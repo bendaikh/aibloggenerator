@@ -7,6 +7,7 @@ use App\Models\Article;
 use App\Models\Category;
 use App\Models\Page;
 use App\Models\ArticleGenerationJob;
+use App\Models\Subscriber;
 use App\Jobs\GenerateGlobalAIArticleJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -776,6 +777,84 @@ HTML;
         }
 
         return redirect()->back()->with('success', 'Global article generation started! We are pushing unique versions to ' . count($generationJobIds) . ' websites in the background.');
+    }
+
+    /**
+     * Global Subscribers Index - Shows all subscribers from all websites
+     */
+    public function globalSubscribersIndex()
+    {
+        $user = Auth::user();
+        $websites = Website::where('user_id', $user->id)
+            ->withCount(['articles', 'categories'])
+            ->get();
+
+        $websiteIds = $websites->pluck('id');
+
+        // Get all subscribers from all user's websites
+        $subscribers = Subscriber::whereIn('website_id', $websiteIds)
+            ->with(['website:id,name,subdomain,domain', 'website.user:id,name'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(50);
+
+        // Stats
+        $stats = [
+            'total' => Subscriber::whereIn('website_id', $websiteIds)->count(),
+            'active' => Subscriber::whereIn('website_id', $websiteIds)->where('is_active', true)->count(),
+            'this_month' => Subscriber::whereIn('website_id', $websiteIds)
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count(),
+        ];
+
+        return Inertia::render('Organization/GlobalSubscribers', [
+            'subscribers' => $subscribers,
+            'stats' => $stats,
+            'websites' => $websites,
+        ]);
+    }
+
+    /**
+     * Export global subscribers as CSV
+     */
+    public function globalSubscribersExport()
+    {
+        $user = Auth::user();
+        $websiteIds = Website::where('user_id', $user->id)->pluck('id');
+
+        $subscribers = Subscriber::whereIn('website_id', $websiteIds)
+            ->with(['website:id,name,subdomain,domain', 'website.user:id,name'])
+            ->where('is_active', true)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $filename = 'global-subscribers-' . now()->format('Y-m-d') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ];
+
+        $callback = function () use ($subscribers) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['Email', 'Name', 'Website', 'Website Owner', 'Source', 'Subscribed At', 'Created At']);
+
+            foreach ($subscribers as $subscriber) {
+                fputcsv($file, [
+                    $subscriber->email,
+                    $subscriber->name ?? '',
+                    $subscriber->website->name ?? 'Unknown',
+                    $subscriber->website->user->name ?? 'Unknown',
+                    $subscriber->source ?? 'website',
+                    $subscriber->subscribed_at?->format('Y-m-d H:i:s'),
+                    $subscriber->created_at->format('Y-m-d H:i:s'),
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }
 

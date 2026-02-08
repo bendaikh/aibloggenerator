@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Head, useForm, router } from '@inertiajs/vue3';
+import { Head, useForm, router, Link } from '@inertiajs/vue3';
 import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
 
 const props = defineProps({
@@ -120,12 +120,15 @@ const getRoleBadgeColor = (roleName) => {
                         <tbody class="divide-y divide-[#2a2a2a]">
                             <tr v-for="user in users.data" :key="user.id" class="hover:bg-[#252525] transition-colors">
                                 <td class="px-6 py-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                                    <Link 
+                                        :href="route('organization.users.show', { user: user.id })"
+                                        class="flex items-center gap-3 group cursor-pointer"
+                                    >
+                                        <div class="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold group-hover:ring-2 group-hover:ring-emerald-500 transition-all">
                                             {{ user.name.charAt(0).toUpperCase() }}
                                         </div>
-                                        <span class="text-white font-medium">{{ user.name }}</span>
-                                    </div>
+                                        <span class="text-white font-medium group-hover:text-emerald-400 transition-colors">{{ user.name }}</span>
+                                    </Link>
                                 </td>
                                 <td class="px-6 py-4 text-gray-400">{{ user.email }}</td>
                                 <td class="px-6 py-4">

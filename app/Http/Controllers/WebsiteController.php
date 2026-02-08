@@ -654,6 +654,7 @@ HTML;
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:5120',
             'favicon' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,ico|max:2048',
             'ads_txt' => 'nullable|string',
+            'pinterest_verification' => 'nullable|string|max:100',
             'remove_logo' => 'nullable|boolean',
             'remove_favicon' => 'nullable|boolean',
         ]);

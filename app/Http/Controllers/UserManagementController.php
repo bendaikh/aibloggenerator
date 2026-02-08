@@ -35,6 +35,26 @@ class UserManagementController extends Controller
     }
 
     /**
+     * Display the specified user profile.
+     */
+    public function show(User $user)
+    {
+        $user->load('roleRelation');
+
+        $userWebsites = Website::where('user_id', $user->id)
+            ->withCount(['articles', 'categories'])
+            ->get();
+
+        $userArticlesCount = $user->articles()->count();
+
+        return Inertia::render('SuperAdmin/UserManagement/UserShow', [
+            'user' => $user,
+            'userWebsites' => $userWebsites,
+            'userArticlesCount' => $userArticlesCount,
+        ]);
+    }
+
+    /**
      * Store a newly created user.
      */
     public function store(Request $request)

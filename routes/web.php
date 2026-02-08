@@ -86,8 +86,13 @@ $registerMainAppRoutes = function () {
         Route::get('/global-articles', [OrganizationController::class, 'globalArticlesIndex'])->name('organization.global-articles.index');
         Route::post('/global-articles/generate', [OrganizationController::class, 'globalArticlesGenerate'])->name('organization.global-articles.generate');
 
+        // Global Subscribers
+        Route::get('/global-subscribers', [OrganizationController::class, 'globalSubscribersIndex'])->name('organization.global-subscribers.index');
+        Route::post('/global-subscribers/export', [OrganizationController::class, 'globalSubscribersExport'])->name('organization.global-subscribers.export');
+
         // User Management Routes (Organization-wide)
         Route::get('/users', [UserManagementController::class, 'index'])->name('organization.users.index');
+        Route::get('/users/{user}', [UserManagementController::class, 'show'])->name('organization.users.show');
         Route::post('/users', [UserManagementController::class, 'store'])->name('organization.users.store');
         Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('organization.users.update');
         Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('organization.users.destroy');

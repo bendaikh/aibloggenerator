@@ -14,6 +14,7 @@ const props = defineProps({
 const form = useForm({
     name: props.currentWebsite.name || '',
     ads_txt: props.currentWebsite.ads_txt || '',
+    pinterest_verification: props.currentWebsite.pinterest_verification || '',
     logo: null,
     favicon: null,
     remove_logo: false,
@@ -123,6 +124,42 @@ const submit = () => {
                         ></textarea>
                         <p class="mt-1 text-xs text-gray-500">Paste the content for your website's ads.txt file. This is required by many ad networks like Google Ads and HB Agency.</p>
                         <p v-if="form.errors.ads_txt" class="mt-1 text-sm text-red-500">{{ form.errors.ads_txt }}</p>
+                    </div>
+
+                    <!-- Pinterest Claim Website Section -->
+                    <div>
+                        <label for="pinterest_verification" class="block text-sm font-medium text-gray-300 mb-2">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 text-red-400" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 0a12 12 0 00-4.373 23.178c-.07-.627-.133-1.59.028-2.273.146-.622.937-3.977.937-3.977s-.239-.479-.239-1.188c0-1.113.645-1.944 1.448-1.944.683 0 1.013.513 1.013 1.128 0 .687-.437 1.713-.663 2.664-.189.797.4 1.447 1.185 1.447 1.422 0 2.515-1.5 2.515-3.664 0-1.915-1.377-3.254-3.342-3.254-2.276 0-3.612 1.707-3.612 3.471 0 .688.265 1.425.595 1.826a.24.24 0 01.056.23c-.061.252-.196.797-.222.908-.035.146-.115.177-.267.107-1-.465-1.624-1.927-1.624-3.1 0-2.523 1.834-4.84 5.286-4.84 2.775 0 4.932 1.977 4.932 4.62 0 2.757-1.739 4.976-4.151 4.976-.811 0-1.573-.421-1.834-.919l-.498 1.902c-.181.695-.669 1.566-.995 2.097A12 12 0 1012 0z"/>
+                                </svg>
+                                Pinterest Website Claim (Optional)
+                            </div>
+                        </label>
+                        <input
+                            id="pinterest_verification"
+                            v-model="form.pinterest_verification"
+                            type="text"
+                            class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 font-mono text-sm"
+                            placeholder="71443e52cd737e0a1bf625ef293124db"
+                        />
+                        <div class="mt-2 p-3 bg-[#252525] rounded-lg border border-[#3a3a3a]">
+                            <p class="text-xs text-gray-400 mb-2">
+                                <strong class="text-gray-300">How to get this code:</strong>
+                            </p>
+                            <ol class="text-xs text-gray-500 space-y-1 list-decimal list-inside">
+                                <li>Go to Pinterest Settings → Claim</li>
+                                <li>Select "Add HTML tag" method</li>
+                                <li>Copy only the <code class="text-amber-400 bg-[#1a1a1a] px-1 rounded">content</code> value from the meta tag</li>
+                                <li>Paste it here (just the verification code, not the full tag)</li>
+                            </ol>
+                            <p class="text-xs text-gray-500 mt-2">
+                                Example: From <code class="text-amber-400 bg-[#1a1a1a] px-1 rounded">&lt;meta name="p:domain_verify" content="71443e52cd..."&gt;</code>
+                                <br/>
+                                Paste only: <code class="text-emerald-400 bg-[#1a1a1a] px-1 rounded">71443e52cd...</code>
+                            </p>
+                        </div>
+                        <p v-if="form.errors.pinterest_verification" class="mt-1 text-sm text-red-500">{{ form.errors.pinterest_verification }}</p>
                     </div>
 
                     <!-- Logo Upload -->
