@@ -40,12 +40,20 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'status' => 'pending',
         ]);
 
         event(new Registered($user));
 
-        Auth::login($user);
+        // Don't auto-login pending users - redirect to pending confirmation page
+        return redirect(route('registration.pending', absolute: false));
+    }
 
-        return redirect(route('dashboard', absolute: false));
+    /**
+     * Display the registration pending confirmation view.
+     */
+    public function pending(): Response
+    {
+        return Inertia::render('Auth/RegistrationPending');
     }
 }

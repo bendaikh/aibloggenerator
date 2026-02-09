@@ -7,6 +7,19 @@ const props = defineProps({
     users: Object,
     websites: Array,
     roles: Array,
+    currentStatus: {
+        type: String,
+        default: 'all',
+    },
+    statusCounts: {
+        type: Object,
+        default: () => ({
+            all: 0,
+            pending: 0,
+            approved: 0,
+            declined: 0,
+        }),
+    },
 });
 
 const showModal = ref(false);
@@ -81,6 +94,38 @@ const getRoleBadgeColor = (roleName) => {
     ];
     return colors[hash % colors.length];
 };
+
+const getStatusBadgeColor = (status) => {
+    switch (status) {
+        case 'pending':
+            return 'bg-yellow-900 text-yellow-300';
+        case 'approved':
+            return 'bg-emerald-900 text-emerald-300';
+        case 'declined':
+            return 'bg-red-900 text-red-300';
+        default:
+            return 'bg-gray-700 text-gray-300';
+    }
+};
+
+const filterByStatus = (status) => {
+    router.get(route('organization.users.index'), { status }, {
+        preserveState: true,
+        preserveScroll: true,
+    });
+};
+
+const approveUser = (user) => {
+    if (confirm(`Are you sure you want to approve ${user.name}?`)) {
+        router.post(route('organization.users.approve', { user: user.id }));
+    }
+};
+
+const declineUser = (user) => {
+    if (confirm(`Are you sure you want to decline ${user.name}? They will not be able to access the system.`)) {
+        router.post(route('organization.users.decline', { user: user.id }));
+    }
+};
 </script>
 
 <template>
@@ -88,7 +133,7 @@ const getRoleBadgeColor = (roleName) => {
 
     <OrganizationLayout>
         <div class="p-8">
-            <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center justify-between mb-6">
                 <div>
                     <h1 class="text-3xl font-bold text-white">Users</h1>
                     <p class="text-gray-400 mt-1">Manage system users and their access levels</p>
@@ -104,6 +149,55 @@ const getRoleBadgeColor = (roleName) => {
                 </button>
             </div>
 
+            <!-- Status Tabs -->
+            <div class="flex gap-2 mb-6">
+                <button
+                    @click="filterByStatus('all')"
+                    :class="[
+                        'px-4 py-2 rounded-lg font-medium transition-colors',
+                        currentStatus === 'all'
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-[#1a1a1a] text-gray-400 hover:bg-[#252525] hover:text-white'
+                    ]"
+                >
+                    All ({{ statusCounts.all }})
+                </button>
+                <button
+                    @click="filterByStatus('pending')"
+                    :class="[
+                        'px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2',
+                        currentStatus === 'pending'
+                            ? 'bg-yellow-500 text-white'
+                            : 'bg-[#1a1a1a] text-gray-400 hover:bg-[#252525] hover:text-white'
+                    ]"
+                >
+                    <span v-if="statusCounts.pending > 0" class="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></span>
+                    Pending ({{ statusCounts.pending }})
+                </button>
+                <button
+                    @click="filterByStatus('approved')"
+                    :class="[
+                        'px-4 py-2 rounded-lg font-medium transition-colors',
+                        currentStatus === 'approved'
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-[#1a1a1a] text-gray-400 hover:bg-[#252525] hover:text-white'
+                    ]"
+                >
+                    Approved ({{ statusCounts.approved }})
+                </button>
+                <button
+                    @click="filterByStatus('declined')"
+                    :class="[
+                        'px-4 py-2 rounded-lg font-medium transition-colors',
+                        currentStatus === 'declined'
+                            ? 'bg-red-500 text-white'
+                            : 'bg-[#1a1a1a] text-gray-400 hover:bg-[#252525] hover:text-white'
+                    ]"
+                >
+                    Declined ({{ statusCounts.declined }})
+                </button>
+            </div>
+
             <!-- Users Table -->
             <div v-if="users.data.length > 0" class="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] overflow-hidden">
                 <div class="overflow-x-auto">
@@ -113,6 +207,7 @@ const getRoleBadgeColor = (roleName) => {
                                 <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">User</th>
                                 <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
                                 <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Role</th>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
                                 <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Created</th>
                                 <th class="px-6 py-4 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -139,11 +234,31 @@ const getRoleBadgeColor = (roleName) => {
                                         No Role
                                     </span>
                                 </td>
+                                <td class="px-6 py-4">
+                                    <span :class="['text-xs px-2 py-1 rounded capitalize', getStatusBadgeColor(user.status)]">
+                                        {{ user.status || 'approved' }}
+                                    </span>
+                                </td>
                                 <td class="px-6 py-4 text-gray-400 text-sm">
                                     {{ new Date(user.created_at).toLocaleDateString() }}
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex items-center justify-end gap-2">
+                                        <!-- Approve/Decline buttons for pending users -->
+                                        <template v-if="user.status === 'pending'">
+                                            <button
+                                                @click="approveUser(user)"
+                                                class="px-3 py-1.5 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-500 hover:text-white rounded-lg text-sm transition-colors"
+                                            >
+                                                Approve
+                                            </button>
+                                            <button
+                                                @click="declineUser(user)"
+                                                class="px-3 py-1.5 bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white rounded-lg text-sm transition-colors"
+                                            >
+                                                Decline
+                                            </button>
+                                        </template>
                                         <button
                                             @click="openEditModal(user)"
                                             class="px-3 py-1.5 bg-[#252525] hover:bg-[#303030] text-white rounded-lg text-sm transition-colors"

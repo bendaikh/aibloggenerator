@@ -96,6 +96,8 @@ $registerMainAppRoutes = function () {
         Route::post('/users', [UserManagementController::class, 'store'])->name('organization.users.store');
         Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('organization.users.update');
         Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('organization.users.destroy');
+        Route::post('/users/{user}/approve', [UserManagementController::class, 'approve'])->name('organization.users.approve');
+        Route::post('/users/{user}/decline', [UserManagementController::class, 'decline'])->name('organization.users.decline');
 
         // Role Management Routes (Organization-wide)
         Route::get('/roles', [RoleController::class, 'index'])->name('organization.roles.index');

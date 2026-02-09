@@ -17,6 +17,17 @@ Route::middleware('guest')->group(function () {
 
     Route::post('register', [RegisteredUserController::class, 'store']);
 
+    Route::get('registration/pending', [RegisteredUserController::class, 'pending'])
+        ->name('registration.pending');
+
+    Route::get('account/pending', function () {
+        return \Inertia\Inertia::render('Auth/AccountPending');
+    })->name('account.pending');
+
+    Route::get('account/declined', function () {
+        return \Inertia\Inertia::render('Auth/AccountDeclined');
+    })->name('account.declined');
+
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
 

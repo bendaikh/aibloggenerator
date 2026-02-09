@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'status',
         'openai_api_key',
         'ai_model',
         'ai_default_tone',
@@ -56,6 +57,30 @@ class User extends Authenticatable
                       in_array($this->roleRelation->name, ['admin', 'superadmin']);
         
         return $hasOldRole || $hasNewRole;
+    }
+
+    /**
+     * Check if user account is pending approval.
+     */
+    public function isPending(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    /**
+     * Check if user account is approved.
+     */
+    public function isApproved(): bool
+    {
+        return $this->status === 'approved';
+    }
+
+    /**
+     * Check if user account is declined.
+     */
+    public function isDeclined(): bool
+    {
+        return $this->status === 'declined';
     }
 
     /**

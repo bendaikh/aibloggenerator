@@ -15,22 +15,40 @@ class UserManagementController extends Controller
     /**
      * Display a listing of users.
      */
-    public function index()
+    public function index(Request $request)
     {
         $websites = Website::where('user_id', auth()->id())
             ->withCount(['articles', 'categories'])
             ->get();
 
-        $users = User::with('roleRelation')
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        $status = $request->get('status', 'all');
+        
+        $query = User::with('roleRelation')
+            ->orderBy('created_at', 'desc');
+        
+        // Filter by status if specified
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+        
+        $users = $query->paginate(20)->appends(['status' => $status]);
 
         $roles = Role::orderBy('display_name')->get();
+        
+        // Get counts for each status
+        $statusCounts = [
+            'all' => User::count(),
+            'pending' => User::where('status', 'pending')->count(),
+            'approved' => User::where('status', 'approved')->count(),
+            'declined' => User::where('status', 'declined')->count(),
+        ];
 
         return Inertia::render('SuperAdmin/UserManagement/Users', [
             'websites' => $websites,
             'users' => $users,
             'roles' => $roles,
+            'currentStatus' => $status,
+            'statusCounts' => $statusCounts,
         ]);
     }
 
@@ -124,5 +142,41 @@ class UserManagementController extends Controller
         return redirect()
             ->route('organization.users.index')
             ->with('success', 'User deleted successfully.');
+    }
+
+    /**
+     * Approve a pending user.
+     */
+    public function approve(User $user)
+    {
+        if ($user->status !== 'pending') {
+            return redirect()
+                ->route('organization.users.index')
+                ->with('error', 'User is not in pending status.');
+        }
+
+        $user->update(['status' => 'approved']);
+
+        return redirect()
+            ->route('organization.users.index', ['status' => 'pending'])
+            ->with('success', 'User approved successfully.');
+    }
+
+    /**
+     * Decline a pending user.
+     */
+    public function decline(User $user)
+    {
+        if ($user->status !== 'pending') {
+            return redirect()
+                ->route('organization.users.index')
+                ->with('error', 'User is not in pending status.');
+        }
+
+        $user->update(['status' => 'declined']);
+
+        return redirect()
+            ->route('organization.users.index', ['status' => 'pending'])
+            ->with('success', 'User declined successfully.');
     }
 }
