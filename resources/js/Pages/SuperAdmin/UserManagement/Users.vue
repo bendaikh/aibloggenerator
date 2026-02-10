@@ -266,6 +266,7 @@ const declineUser = (user) => {
                                             Edit
                                         </button>
                                         <button
+                                            v-if="user.role !== 'superadmin' && user.role_relation?.name !== 'superadmin'"
                                             @click="deleteUser(user)"
                                             class="px-3 py-1.5 bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white rounded-lg text-sm transition-colors"
                                         >
