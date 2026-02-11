@@ -187,6 +187,41 @@ onUnmounted(() => {
                         Global Subscribers
                     </Link>
 
+                    <!-- Onboard Domain (for all users) -->
+                    <Link 
+                        :href="route('organization.domains.index')" 
+                        @click="handleNavClick"
+                        :class="[
+                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                            isActivePrefix('organization.domains') 
+                                ? 'bg-[#1f1f1f] text-white' 
+                                : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
+                        ]"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                        Onboard Domain
+                    </Link>
+
+                    <!-- Pending Domains (Superadmin only) -->
+                    <Link 
+                        v-if="user?.role === 'superadmin'"
+                        :href="route('organization.pending-domains.index')" 
+                        @click="handleNavClick"
+                        :class="[
+                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                            isActivePrefix('organization.pending-domains') 
+                                ? 'bg-[#1f1f1f] text-white' 
+                                : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
+                        ]"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Pending Domains
+                    </Link>
+
                     <!-- User Management -->
                     <div v-if="user?.role === 'superadmin'">
                         <button 

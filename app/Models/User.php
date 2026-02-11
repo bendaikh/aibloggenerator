@@ -124,6 +124,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the domain requests submitted by the user.
+     */
+    public function domainRequests()
+    {
+        return $this->hasMany(DomainRequest::class);
+    }
+
+    /**
      * The attributes that should be hidden for serialization.
      *
      * @var list<string>

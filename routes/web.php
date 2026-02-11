@@ -16,6 +16,7 @@ use App\Http\Controllers\PinterestPinController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\DomainRequestController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -111,6 +112,19 @@ $registerMainAppRoutes = function () {
         Route::put('/permissions/{permission}', [PermissionController::class, 'update'])->name('organization.permissions.update');
         Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->name('organization.permissions.destroy');
         Route::put('/roles/{role}/permissions', [PermissionController::class, 'updateRolePermissions'])->name('organization.roles.permissions.update');
+
+        // Domain Onboarding Routes (User)
+        Route::get('/domains', [DomainRequestController::class, 'index'])->name('organization.domains.index');
+        Route::post('/domains', [DomainRequestController::class, 'store'])->name('organization.domains.store');
+        Route::delete('/domains/{domainRequest}', [DomainRequestController::class, 'destroy'])->name('organization.domains.destroy');
+
+        // Pending Domains Routes (Superadmin only)
+        Route::get('/pending-domains', [DomainRequestController::class, 'adminIndex'])->name('organization.pending-domains.index');
+        Route::post('/domains/{domainRequest}/parking', [DomainRequestController::class, 'markParking'])->name('organization.domains.parking');
+        Route::post('/domains/{domainRequest}/parked', [DomainRequestController::class, 'markParked'])->name('organization.domains.parked');
+        Route::post('/domains/{domainRequest}/approve', [DomainRequestController::class, 'approve'])->name('organization.domains.approve');
+        Route::post('/domains/{domainRequest}/reject', [DomainRequestController::class, 'reject'])->name('organization.domains.reject');
+        Route::put('/domains/{domainRequest}/notes', [DomainRequestController::class, 'updateNotes'])->name('organization.domains.notes');
     });
 
     // SuperAdmin Routes (Website-Specific)

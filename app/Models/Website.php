@@ -107,6 +107,14 @@ class Website extends Model
     }
 
     /**
+     * Get the domain request associated with this website.
+     */
+    public function domainRequest()
+    {
+        return $this->hasOne(DomainRequest::class);
+    }
+
+    /**
      * Get published articles.
      */
     public function publishedArticles(): HasMany
