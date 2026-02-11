@@ -14,31 +14,98 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
+use Carbon\Carbon;
 
 class OrganizationController extends Controller
 {
     /**
      * Organization Dashboard
      */
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         $user = Auth::user();
+        
+        // Date filtering
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+        $datePreset = $request->input('preset', 'all_time');
+        
+        // Apply preset if no custom dates
+        if (!$dateFrom && !$dateTo && $datePreset !== 'all_time') {
+            switch ($datePreset) {
+                case 'today':
+                    $dateFrom = now()->startOfDay()->toDateString();
+                    $dateTo = now()->endOfDay()->toDateString();
+                    break;
+                case 'yesterday':
+                    $dateFrom = now()->subDay()->startOfDay()->toDateString();
+                    $dateTo = now()->subDay()->endOfDay()->toDateString();
+                    break;
+                case 'last_7_days':
+                    $dateFrom = now()->subDays(6)->startOfDay()->toDateString();
+                    $dateTo = now()->endOfDay()->toDateString();
+                    break;
+                case 'last_30_days':
+                    $dateFrom = now()->subDays(29)->startOfDay()->toDateString();
+                    $dateTo = now()->endOfDay()->toDateString();
+                    break;
+                case 'this_month':
+                    $dateFrom = now()->startOfMonth()->toDateString();
+                    $dateTo = now()->endOfMonth()->toDateString();
+                    break;
+                case 'last_month':
+                    $dateFrom = now()->subMonth()->startOfMonth()->toDateString();
+                    $dateTo = now()->subMonth()->endOfMonth()->toDateString();
+                    break;
+                case 'this_year':
+                    $dateFrom = now()->startOfYear()->toDateString();
+                    $dateTo = now()->endOfYear()->toDateString();
+                    break;
+            }
+        }
+        
         $websites = Website::where('user_id', $user->id)
             ->withCount(['articles', 'categories'])
             ->get();
 
         $websiteIds = $websites->pluck('id');
 
+        // Base queries
+        $articlesQuery = Article::whereIn('website_id', $websiteIds);
+        $pagesQuery = Page::whereIn('website_id', $websiteIds);
+        $subscribersQuery = Subscriber::whereIn('website_id', $websiteIds);
+        
+        // Apply date filters if set
+        if ($dateFrom) {
+            $articlesQuery->whereDate('created_at', '>=', $dateFrom);
+            $pagesQuery->whereDate('created_at', '>=', $dateFrom);
+            $subscribersQuery->whereDate('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $articlesQuery->whereDate('created_at', '<=', $dateTo);
+            $pagesQuery->whereDate('created_at', '<=', $dateTo);
+            $subscribersQuery->whereDate('created_at', '<=', $dateTo);
+        }
+        
+        // Get articles created in date range for views calculation
+        $articlesInRange = $articlesQuery->get();
+        
         $stats = [
             'totalWebsites' => $websites->count(),
-            'totalArticles' => Article::whereIn('website_id', $websiteIds)->count(),
-            'totalVisitors' => (int) Article::whereIn('website_id', $websiteIds)->sum('views'),
-            'totalPages' => Page::whereIn('website_id', $websiteIds)->count(),
+            'totalArticles' => $articlesInRange->count(),
+            'totalVisitors' => (int) $articlesInRange->sum('views'),
+            'totalPages' => $pagesQuery->count(),
+            'totalSubscribers' => $subscribersQuery->count(),
         ];
 
         return Inertia::render('Organization/Dashboard', [
             'stats' => $stats,
             'websites' => $websites,
+            'filters' => [
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+                'preset' => $datePreset,
+            ],
         ]);
     }
 
