@@ -125,6 +125,8 @@ class OrganizationController extends Controller
                 'openai_api_key_masked' => $user->openai_api_key ? 'sk-....' . substr($user->openai_api_key, -4) : null,
                 'ai_model' => $user->ai_model ?? 'gpt-4o',
                 'ai_default_tone' => $user->ai_default_tone ?? 'conversational',
+                'article_generation_mode' => $user->article_generation_mode ?? 'full_ai',
+                'max_variations' => $user->max_variations ?? 5,
             ],
             'websites' => $websites,
         ]);
@@ -141,11 +143,15 @@ class OrganizationController extends Controller
             'openai_api_key' => 'nullable|string',
             'ai_model' => 'required|in:gpt-4o,gpt-4-turbo,gpt-3.5-turbo',
             'ai_default_tone' => 'required|in:conversational,professional,casual,friendly,formal',
+            'article_generation_mode' => 'required|in:full_ai,hybrid_rewrite',
+            'max_variations' => 'required|integer|min:1|max:20',
         ]);
 
         $updateData = [
             'ai_model' => $validated['ai_model'],
             'ai_default_tone' => $validated['ai_default_tone'],
+            'article_generation_mode' => $validated['article_generation_mode'],
+            'max_variations' => $validated['max_variations'],
         ];
 
         if (!empty($validated['openai_api_key'])) {

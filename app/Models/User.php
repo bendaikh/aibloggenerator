@@ -26,6 +26,8 @@ class User extends Authenticatable
         'openai_api_key',
         'ai_model',
         'ai_default_tone',
+        'article_generation_mode',
+        'max_variations',
     ];
 
     /**

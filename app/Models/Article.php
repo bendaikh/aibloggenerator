@@ -17,6 +17,7 @@ class Article extends Model
         'category_id',
         'user_id',
         'author_id',
+        'master_article_id',
         'title',
         'slug',
         'excerpt',
@@ -30,7 +31,10 @@ class Article extends Model
         'gradients',
         'status',
         'generation_type',
+        'generation_mode',
         'article_type',
+        'variation_index',
+        'variation_metadata',
         'views',
         'ai_generated',
         'published_at',
@@ -46,6 +50,7 @@ class Article extends Model
         'meta_tags' => 'array',
         'notes' => 'array',
         'gradients' => 'array',
+        'variation_metadata' => 'array',
         'views' => 'integer',
         'ai_generated' => 'boolean',
         'published_at' => 'datetime',
@@ -103,6 +108,22 @@ class Article extends Model
     }
 
     /**
+     * Get the master article if this is a variation.
+     */
+    public function masterArticle(): BelongsTo
+    {
+        return $this->belongsTo(Article::class, 'master_article_id');
+    }
+
+    /**
+     * Get all variations of this article if it's a master.
+     */
+    public function variations(): HasMany
+    {
+        return $this->hasMany(Article::class, 'master_article_id');
+    }
+
+    /**
      * Scope a query to only include published articles.
      */
     public function scopePublished($query)
@@ -125,6 +146,30 @@ class Article extends Model
     public function scopeManual($query)
     {
         return $query->where('generation_type', 'manual');
+    }
+
+    /**
+     * Scope a query to only include master articles (not variations).
+     */
+    public function scopeMasterOnly($query)
+    {
+        return $query->whereNull('master_article_id');
+    }
+
+    /**
+     * Scope a query to only include variation articles.
+     */
+    public function scopeVariationsOnly($query)
+    {
+        return $query->whereNotNull('master_article_id');
+    }
+
+    /**
+     * Scope a query to filter by generation mode.
+     */
+    public function scopeByGenerationMode($query, string $mode)
+    {
+        return $query->where('generation_mode', $mode);
     }
 
     /**
@@ -165,6 +210,43 @@ class Article extends Model
     public function isArticle(): bool
     {
         return $this->article_type === 'article';
+    }
+
+    /**
+     * Check if this article is a master article (not a variation).
+     */
+    public function isMaster(): bool
+    {
+        return $this->master_article_id === null;
+    }
+
+    /**
+     * Check if this article is a variation.
+     */
+    public function isVariation(): bool
+    {
+        return $this->master_article_id !== null;
+    }
+
+    /**
+     * Check if this article was generated using hybrid rewrite mode.
+     */
+    public function isHybridRewrite(): bool
+    {
+        return $this->generation_mode === 'hybrid_rewrite';
+    }
+
+    /**
+     * Get the total number of variations for this article.
+     * Returns 0 if this is a variation itself.
+     */
+    public function getVariationCount(): int
+    {
+        if ($this->isVariation()) {
+            return 0;
+        }
+        
+        return $this->variations()->count();
     }
 
     /**

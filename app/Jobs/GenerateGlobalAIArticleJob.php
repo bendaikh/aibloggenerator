@@ -9,6 +9,8 @@ use App\Models\User;
 use App\Models\Author;
 use App\Models\ArticleGenerationJob;
 use App\Services\PinterestDesignService;
+use App\Services\RewritingService;
+use App\Services\VariationEngine;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -85,6 +87,18 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
             if ($job) $job->markAsProcessing();
         }
 
+        // Determine generation mode
+        $generationMode = $user->article_generation_mode ?? 'full_ai';
+        $maxVariations = $user->max_variations ?? 5;
+        $websiteCount = count($this->websiteIds);
+
+        Log::info('Starting global background AI article generation', [
+            'topic' => $this->topic, 
+            'websites' => $websiteCount,
+            'mode' => $generationMode,
+            'max_variations' => $maxVariations
+        ]);
+
         // Determine word count based on length (increased for more comprehensive articles)
         $wordCount = match($this->length) {
             'short' => '1000-1500',
@@ -94,141 +108,12 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
         };
 
         try {
-            Log::info('Starting global background AI article generation', [
-                'topic' => $this->topic, 
-                'websites' => count($this->websiteIds)
-            ]);
-            
-            $apiKey = $user->openai_api_key;
-            $client = \OpenAI::client($apiKey);
-            $model = $user->ai_model ?? 'gpt-4o';
-
-            $imageCount = count($this->featuredImages);
-
-            // Generate UNIQUE article for EACH website
-            foreach ($this->websiteIds as $index => $websiteId) {
-                $website = Website::with(['categories', 'authors'])->find($websiteId);
-                if (!$website) continue;
-
-                $vIndex = $this->variationIndex !== null ? $this->variationIndex : $index;
-
-                $jobId = $this->generationJobIds[$websiteId] ?? null;
-                $generationJob = $jobId ? ArticleGenerationJob::find($jobId) : null;
-
-                // Check if this website already has a completed job to avoid duplicates on retry
-                if ($generationJob && $generationJob->status === 'completed') {
-                    Log::info("Skipping website {$websiteId} as it already has a completed article.");
-                    continue;
-                }
-
-                try {
-                    // Build unique prompt for this website
-                    $prompt = $this->buildPrompt($wordCount, $website, $vIndex);
-                    
-                    // Call OpenAI API for THIS specific website (unique content) with increased max_tokens
-                    // Using JSON mode for structured, reliable output
-                    $result = $client->chat()->create([
-                        'model' => $model,
-                        'messages' => [
-                            ['role' => 'system', 'content' => 'You are an expert blog writer who creates engaging, SEO-optimized, comprehensive content. Each article you write must be completely unique and different from others on the same topic. You write detailed articles with well-organized paragraphs and in-depth coverage. You MUST respond with valid JSON only.'],
-                            ['role' => 'user', 'content' => $prompt],
-                        ],
-                        'max_tokens' => 8000,
-                        'temperature' => 0.9, // Higher temperature for more variation
-                        'response_format' => ['type' => 'json_object'],
-                    ]);
-
-                    $generatedContent = $result->choices[0]->message->content ?? '';
-
-                    // Check if job still exists before continuing (user might have cancelled)
-                    $generationJob = ArticleGenerationJob::find($jobId);
-                    if (!$generationJob) {
-                        Log::info("GenerateGlobalAIArticleJob: Generation job {$jobId} was deleted/cancelled during processing");
-                        continue;
-                    }
-
-                    if (empty($generatedContent)) {
-                        if ($generationJob) {
-                            $generationJob->markAsFailed('Empty content received from OpenAI');
-                        }
-                        continue;
-                    }
-
-                    // Parse the generated content
-                    $parsed = $this->parseGeneratedContent($generatedContent);
-
-                    // Per-site category determination
-                    $category = null;
-                    if ($website->categories->count() > 0) {
-                        $category = $this->determineBestCategory($client, $model, $website);
-                    }
-
-                    // Assign image sequentially
-                    $featuredImage = null;
-                    $secondaryImage = null;
-                    if ($imageCount > 0) {
-                        $featuredImage = $this->featuredImages[$vIndex % $imageCount];
-                        // If there are at least 2 images, use the next one as secondary
-                        if ($imageCount >= 2) {
-                            $secondaryImage = $this->featuredImages[($vIndex + 1) % $imageCount];
-                        }
-                    }
-
-                    // Get default author for this website
-                    $defaultAuthor = $this->getDefaultAuthor($website);
-
-                    // Create the article
-                    $article = Article::create([
-                        'website_id' => $website->id,
-                        'category_id' => $category?->id,
-                        'user_id' => $this->userId,
-                        'author_id' => $defaultAuthor?->id,
-                        'title' => $parsed['title'],
-                        'slug' => Str::slug($parsed['title']) . '-' . rand(100, 999),
-                        'content' => $parsed['content'],
-                        'excerpt' => $parsed['excerpt'],
-                        'featured_image' => $featuredImage,
-                        'secondary_image' => $secondaryImage,
-                        'meta_title' => $parsed['meta_title'],
-                        'meta_description' => $parsed['meta_description'],
-                        'meta_tags' => $parsed['meta_tags'] ?? [],
-                        'notes' => $parsed['notes'] ?? [],
-                        'prep_time' => $parsed['prep_time'] ?? null,
-                        'cook_time' => $parsed['cook_time'] ?? null,
-                        'rest_time' => $parsed['rest_time'] ?? null,
-                        'total_time' => $parsed['total_time'] ?? null,
-                        'status' => $this->autoPublish ? 'published' : 'draft',
-                        'published_at' => $this->autoPublish ? now() : null,
-                        'ai_generated' => true,
-                        'generation_type' => 'ai',
-                        'article_type' => $this->articleType,
-                    ]);
-
-                    if ($generationJob) {
-                        $generationJob->markAsCompleted($article->id);
-                    }
-                    
-                    Log::info("Generated unique article for website {$websiteId}", ['title' => $parsed['title']]);
-
-                    // Generate Pinterest pin if article has images (marked as missing design for manual review)
-                    if ($article->featured_image) {
-                        try {
-                            PinterestDesignService::createFromArticle($article, null, null, 'simple_center', 'missing_design', true);
-                            Log::info("Pinterest pin created (missing_design) for article on website {$websiteId}", ['article_id' => $article->id]);
-                        } catch (\Exception $e) {
-                            Log::warning("Failed to create Pinterest pin for website {$websiteId}", [
-                                'article_id' => $article->id,
-                                'error' => $e->getMessage()
-                            ]);
-                        }
-                    }
-                    
-                } catch (\Exception $e) {
-                    if ($generationJob) {
-                        $generationJob->markAsFailed($e->getMessage());
-                    }
-                    Log::error("Failed to generate article for website {$websiteId}: " . $e->getMessage());
-                }
+            if ($generationMode === 'hybrid_rewrite' && $websiteCount > 1) {
+                // HYBRID MODE: Generate 1 master article + rewrite for variations
+                $this->handleHybridMode($user, $wordCount, $maxVariations);
+            } else {
+                // FULL AI MODE: Generate unique AI article for each website
+                $this->handleFullAIMode($user, $wordCount);
             }
 
             Log::info('Global background AI articles created successfully');
@@ -239,6 +124,338 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Handle FULL AI mode - generate unique AI content for each website
+     */
+    private function handleFullAIMode(User $user, string $wordCount): void
+    {
+        $apiKey = $user->openai_api_key;
+        $client = \OpenAI::client($apiKey);
+        $model = $user->ai_model ?? 'gpt-4o';
+        $imageCount = count($this->featuredImages);
+
+        // Generate UNIQUE article for EACH website
+        foreach ($this->websiteIds as $index => $websiteId) {
+            $website = Website::with(['categories', 'authors'])->find($websiteId);
+            if (!$website) continue;
+
+            $vIndex = $this->variationIndex !== null ? $this->variationIndex : $index;
+
+            $jobId = $this->generationJobIds[$websiteId] ?? null;
+            $generationJob = $jobId ? ArticleGenerationJob::find($jobId) : null;
+
+            // Check if this website already has a completed job to avoid duplicates on retry
+            if ($generationJob && $generationJob->status === 'completed') {
+                Log::info("Skipping website {$websiteId} as it already has a completed article.");
+                continue;
+            }
+
+            try {
+                // Build unique prompt for this website
+                $prompt = $this->buildPrompt($wordCount, $website, $vIndex);
+                
+                // Call OpenAI API for THIS specific website (unique content) with increased max_tokens
+                // Using JSON mode for structured, reliable output
+                $result = $client->chat()->create([
+                    'model' => $model,
+                    'messages' => [
+                        ['role' => 'system', 'content' => 'You are an expert blog writer who creates engaging, SEO-optimized, comprehensive content. Each article you write must be completely unique and different from others on the same topic. You write detailed articles with well-organized paragraphs and in-depth coverage. You MUST respond with valid JSON only.'],
+                        ['role' => 'user', 'content' => $prompt],
+                    ],
+                    'max_tokens' => 8000,
+                    'temperature' => 0.9, // Higher temperature for more variation
+                    'response_format' => ['type' => 'json_object'],
+                ]);
+
+                $generatedContent = $result->choices[0]->message->content ?? '';
+
+                // Check if job still exists before continuing (user might have cancelled)
+                $generationJob = ArticleGenerationJob::find($jobId);
+                if (!$generationJob) {
+                    Log::info("GenerateGlobalAIArticleJob: Generation job {$jobId} was deleted/cancelled during processing");
+                    continue;
+                }
+
+                if (empty($generatedContent)) {
+                    if ($generationJob) {
+                        $generationJob->markAsFailed('Empty content received from OpenAI');
+                    }
+                    continue;
+                }
+
+                // Parse the generated content
+                $parsed = $this->parseGeneratedContent($generatedContent);
+
+                // Per-site category determination
+                $category = null;
+                if ($website->categories->count() > 0) {
+                    $category = $this->determineBestCategory($client, $model, $website);
+                }
+
+                // Assign image sequentially
+                $featuredImage = null;
+                $secondaryImage = null;
+                if ($imageCount > 0) {
+                    $featuredImage = $this->featuredImages[$vIndex % $imageCount];
+                    // If there are at least 2 images, use the next one as secondary
+                    if ($imageCount >= 2) {
+                        $secondaryImage = $this->featuredImages[($vIndex + 1) % $imageCount];
+                    }
+                }
+
+                // Get default author for this website
+                $defaultAuthor = $this->getDefaultAuthor($website);
+
+                // Create the article
+                $article = Article::create([
+                    'website_id' => $website->id,
+                    'category_id' => $category?->id,
+                    'user_id' => $this->userId,
+                    'author_id' => $defaultAuthor?->id,
+                    'title' => $parsed['title'],
+                    'slug' => Str::slug($parsed['title']) . '-' . rand(100, 999),
+                    'content' => $parsed['content'],
+                    'excerpt' => $parsed['excerpt'],
+                    'featured_image' => $featuredImage,
+                    'secondary_image' => $secondaryImage,
+                    'meta_title' => $parsed['meta_title'],
+                    'meta_description' => $parsed['meta_description'],
+                    'meta_tags' => $parsed['meta_tags'] ?? [],
+                    'notes' => $parsed['notes'] ?? [],
+                    'prep_time' => $parsed['prep_time'] ?? null,
+                    'cook_time' => $parsed['cook_time'] ?? null,
+                    'rest_time' => $parsed['rest_time'] ?? null,
+                    'total_time' => $parsed['total_time'] ?? null,
+                    'status' => $this->autoPublish ? 'published' : 'draft',
+                    'published_at' => $this->autoPublish ? now() : null,
+                    'ai_generated' => true,
+                    'generation_type' => 'ai',
+                    'generation_mode' => 'full_ai',
+                    'article_type' => $this->articleType,
+                ]);
+
+                if ($generationJob) {
+                    $generationJob->markAsCompleted($article->id);
+                }
+                
+                Log::info("Generated unique article for website {$websiteId}", ['title' => $parsed['title']]);
+
+                // Generate Pinterest pin if article has images (marked as missing design for manual review)
+                if ($article->featured_image) {
+                    try {
+                        PinterestDesignService::createFromArticle($article, null, null, 'simple_center', 'missing_design', true);
+                        Log::info("Pinterest pin created (missing_design) for article on website {$websiteId}", ['article_id' => $article->id]);
+                    } catch (\Exception $e) {
+                        Log::warning("Failed to create Pinterest pin for website {$websiteId}", [
+                            'article_id' => $article->id,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+                
+            } catch (\Exception $e) {
+                if ($generationJob) {
+                    $generationJob->markAsFailed($e->getMessage());
+                }
+                Log::error("Failed to generate article for website {$websiteId}: " . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * Handle HYBRID mode - generate 1 master article via AI, then rewrite locally for variations
+     */
+    private function handleHybridMode(User $user, string $wordCount, int $maxVariations): void
+    {
+        $apiKey = $user->openai_api_key;
+        $client = \OpenAI::client($apiKey);
+        $model = $user->ai_model ?? 'gpt-4o';
+        $imageCount = count($this->featuredImages);
+        
+        // Initialize services
+        $rewritingService = new RewritingService();
+        $variationEngine = new VariationEngine($rewritingService);
+
+        // Step 1: Generate the MASTER article using AI (only once!)
+        Log::info('Hybrid Mode: Generating master article via AI');
+        
+        $firstWebsiteId = $this->websiteIds[0];
+        $masterWebsite = Website::with(['categories', 'authors'])->find($firstWebsiteId);
+        
+        if (!$masterWebsite) {
+            $this->failAllJobs('Master website not found');
+            return;
+        }
+
+        try {
+            // Build prompt for master article
+            $prompt = $this->buildPrompt($wordCount, $masterWebsite, 0);
+            
+            // Generate master article via AI
+            $result = $client->chat()->create([
+                'model' => $model,
+                'messages' => [
+                    ['role' => 'system', 'content' => 'You are an expert blog writer who creates engaging, SEO-optimized, comprehensive content. You write detailed articles with well-organized paragraphs and in-depth coverage. You MUST respond with valid JSON only.'],
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+                'max_tokens' => 8000,
+                'temperature' => 0.7,
+                'response_format' => ['type' => 'json_object'],
+            ]);
+
+            $masterContent = $result->choices[0]->message->content ?? '';
+            
+            if (empty($masterContent)) {
+                $this->failAllJobs('Empty master content received from OpenAI');
+                return;
+            }
+
+            // Parse master content
+            $masterParsed = $this->parseGeneratedContent($masterContent);
+            
+            Log::info('Hybrid Mode: Master article generated successfully', [
+                'title' => $masterParsed['title']
+            ]);
+
+            // Step 2: Create master article and variations
+            $variationCount = min($maxVariations, count($this->websiteIds));
+            
+            foreach ($this->websiteIds as $index => $websiteId) {
+                $website = Website::with(['categories', 'authors'])->find($websiteId);
+                if (!$website) continue;
+
+                $jobId = $this->generationJobIds[$websiteId] ?? null;
+                $generationJob = $jobId ? ArticleGenerationJob::find($jobId) : null;
+
+                if ($generationJob && $generationJob->status === 'completed') {
+                    Log::info("Skipping website {$websiteId} - already completed");
+                    continue;
+                }
+
+                try {
+                    $isMaster = ($index === 0);
+                    $articleData = null;
+                    $masterArticleId = null;
+
+                    if ($isMaster) {
+                        // First website gets the master article (original AI content)
+                        $articleData = $masterParsed;
+                        Log::info("Creating master article for website {$websiteId}");
+                    } else {
+                        // Subsequent websites get locally rewritten variations
+                        Log::info("Creating variation {$index} for website {$websiteId}");
+                        $articleData = $variationEngine->createVariation($masterParsed, $index);
+                        
+                        // Calculate uniqueness score
+                        $uniquenessScore = $variationEngine->calculateUniquenessScore($articleData, $masterParsed);
+                        Log::info("Variation uniqueness score: {$uniquenessScore}%");
+                    }
+
+                    // Determine category
+                    $category = null;
+                    if ($website->categories->count() > 0) {
+                        $category = $this->determineBestCategory($client, $model, $website);
+                    }
+
+                    // Assign images
+                    $featuredImage = null;
+                    $secondaryImage = null;
+                    if ($imageCount > 0) {
+                        $featuredImage = $this->featuredImages[$index % $imageCount];
+                        if ($imageCount >= 2) {
+                            $secondaryImage = $this->featuredImages[($index + 1) % $imageCount];
+                        }
+                    }
+
+                    $defaultAuthor = $this->getDefaultAuthor($website);
+
+                    // Create article
+                    $article = Article::create([
+                        'website_id' => $website->id,
+                        'category_id' => $category?->id,
+                        'user_id' => $this->userId,
+                        'author_id' => $defaultAuthor?->id,
+                        'master_article_id' => $isMaster ? null : null, // Will be set after master is created
+                        'title' => $articleData['title'],
+                        'slug' => Str::slug($articleData['title']) . '-' . rand(100, 999),
+                        'content' => $articleData['content'],
+                        'excerpt' => $articleData['excerpt'],
+                        'featured_image' => $featuredImage,
+                        'secondary_image' => $secondaryImage,
+                        'meta_title' => $articleData['meta_title'],
+                        'meta_description' => $articleData['meta_description'],
+                        'meta_tags' => $articleData['meta_tags'] ?? [],
+                        'notes' => $articleData['notes'] ?? [],
+                        'prep_time' => $articleData['prep_time'] ?? null,
+                        'cook_time' => $articleData['cook_time'] ?? null,
+                        'rest_time' => $articleData['rest_time'] ?? null,
+                        'total_time' => $articleData['total_time'] ?? null,
+                        'status' => $this->autoPublish ? 'published' : 'draft',
+                        'published_at' => $this->autoPublish ? now() : null,
+                        'ai_generated' => true,
+                        'generation_type' => 'ai',
+                        'generation_mode' => 'hybrid_rewrite',
+                        'article_type' => $this->articleType,
+                        'variation_index' => $isMaster ? null : $index,
+                        'variation_metadata' => $isMaster ? null : [
+                            'rewritten_locally' => true,
+                            'variation_index' => $index,
+                            'created_at' => now()->toISOString(),
+                        ],
+                    ]);
+
+                    // Link variations to master
+                    if ($isMaster) {
+                        $masterArticleId = $article->id;
+                        Log::info("Master article created with ID: {$masterArticleId}");
+                    } else {
+                        // Update variation to link to master
+                        // We need to find the master article for this batch
+                        $masterArticle = Article::where('user_id', $this->userId)
+                            ->where('generation_mode', 'hybrid_rewrite')
+                            ->whereNull('master_article_id')
+                            ->where('title', 'LIKE', '%' . substr($this->topic, 0, 20) . '%')
+                            ->latest()
+                            ->first();
+                        
+                        if ($masterArticle) {
+                            $article->update(['master_article_id' => $masterArticle->id]);
+                            Log::info("Linked variation to master article {$masterArticle->id}");
+                        }
+                    }
+
+                    if ($generationJob) {
+                        $generationJob->markAsCompleted($article->id);
+                    }
+
+                    Log::info("Created article for website {$websiteId}", [
+                        'is_master' => $isMaster,
+                        'title' => $article->title
+                    ]);
+
+                    // Generate Pinterest pin
+                    if ($article->featured_image) {
+                        try {
+                            PinterestDesignService::createFromArticle($article, null, null, 'simple_center', 'missing_design', true);
+                        } catch (\Exception $e) {
+                            Log::warning("Failed to create Pinterest pin: " . $e->getMessage());
+                        }
+                    }
+
+                } catch (\Exception $e) {
+                    if ($generationJob) {
+                        $generationJob->markAsFailed($e->getMessage());
+                    }
+                    Log::error("Failed to create article for website {$websiteId}: " . $e->getMessage());
+                }
+            }
+
+        } catch (\Exception $e) {
+            $this->failAllJobs('Master article generation failed: ' . $e->getMessage());
             throw $e;
         }
     }
