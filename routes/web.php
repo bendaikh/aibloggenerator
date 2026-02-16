@@ -79,6 +79,15 @@ $registerMainAppRoutes = function () {
         Route::get('/settings', [OrganizationController::class, 'settings'])->name('organization.settings');
         Route::post('/settings', [OrganizationController::class, 'updateSettings'])->name('organization.settings.update');
         Route::post('/settings/test', [OrganizationController::class, 'testAiConnection'])->name('organization.settings.test');
+        
+        // API Keys Routes
+        Route::get('/api-keys', [OrganizationController::class, 'apiKeys'])->name('organization.api-keys');
+        Route::post('/api-keys', [OrganizationController::class, 'updateApiKeys'])->name('organization.api-keys.update');
+        
+        // Agent Rewrite Routes
+        Route::get('/agent-rewrite', [OrganizationController::class, 'agentRewrite'])->name('organization.agent-rewrite');
+        Route::post('/agent-rewrite', [OrganizationController::class, 'updateAgentRewrite'])->name('organization.agent-rewrite.update');
+        
         Route::get('/websites', [OrganizationController::class, 'websitesIndex'])->name('organization.websites.index');
         Route::get('/websites/create', [OrganizationController::class, 'websitesCreate'])->name('organization.websites.create');
         Route::post('/websites', [OrganizationController::class, 'websitesStore'])->name('organization.websites.store');

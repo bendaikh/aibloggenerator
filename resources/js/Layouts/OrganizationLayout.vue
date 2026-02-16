@@ -135,6 +135,40 @@ onUnmounted(() => {
                         Websites
                     </Link>
 
+                    <!-- API Keys -->
+                    <Link 
+                        :href="route('organization.api-keys')" 
+                        @click="handleNavClick"
+                        :class="[
+                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                            isActive('organization.api-keys') 
+                                ? 'bg-[#1f1f1f] text-white' 
+                                : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
+                        ]"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                        API Keys
+                    </Link>
+
+                    <!-- Agent Rewrite -->
+                    <Link 
+                        :href="route('organization.agent-rewrite')" 
+                        @click="handleNavClick"
+                        :class="[
+                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                            isActive('organization.agent-rewrite') 
+                                ? 'bg-[#1f1f1f] text-white' 
+                                : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
+                        ]"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Agent Rewrite
+                    </Link>
+
                     <!-- Global Settings -->
                     <Link 
                         :href="route('organization.settings')" 

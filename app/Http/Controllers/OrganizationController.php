@@ -133,6 +133,90 @@ class OrganizationController extends Controller
     }
 
     /**
+     * API Keys Page
+     */
+    public function apiKeys()
+    {
+        $user = Auth::user();
+        $websites = Website::where('user_id', $user->id)
+            ->withCount(['articles', 'categories'])
+            ->get();
+
+        return Inertia::render('Organization/ApiKeys', [
+            'settings' => [
+                'openai_api_key_set' => !empty($user->openai_api_key),
+                'openai_api_key_masked' => $user->openai_api_key ? 'sk-....' . substr($user->openai_api_key, -4) : null,
+                'ai_model' => $user->ai_model ?? 'gpt-4o',
+                'ai_default_tone' => $user->ai_default_tone ?? 'conversational',
+            ],
+            'websites' => $websites,
+        ]);
+    }
+
+    /**
+     * Update API Keys Settings
+     */
+    public function updateApiKeys(Request $request)
+    {
+        $user = Auth::user();
+
+        $validated = $request->validate([
+            'openai_api_key' => 'nullable|string',
+            'ai_model' => 'required|in:gpt-4o,gpt-4-turbo,gpt-3.5-turbo',
+            'ai_default_tone' => 'required|in:conversational,professional,casual,friendly,formal',
+        ]);
+
+        $updateData = [
+            'ai_model' => $validated['ai_model'],
+            'ai_default_tone' => $validated['ai_default_tone'],
+        ];
+
+        if (!empty($validated['openai_api_key'])) {
+            $updateData['openai_api_key'] = $validated['openai_api_key'];
+        }
+
+        $user->update($updateData);
+
+        return redirect()->back()->with('success', 'API Keys settings updated successfully!');
+    }
+
+    /**
+     * Agent Rewrite Page
+     */
+    public function agentRewrite()
+    {
+        $user = Auth::user();
+        $websites = Website::where('user_id', $user->id)
+            ->withCount(['articles', 'categories'])
+            ->get();
+
+        return Inertia::render('Organization/AgentRewrite', [
+            'settings' => [
+                'article_generation_mode' => $user->article_generation_mode ?? 'full_ai',
+                'max_variations' => $user->max_variations ?? 5,
+            ],
+            'websites' => $websites,
+        ]);
+    }
+
+    /**
+     * Update Agent Rewrite Settings
+     */
+    public function updateAgentRewrite(Request $request)
+    {
+        $user = Auth::user();
+
+        $validated = $request->validate([
+            'article_generation_mode' => 'required|in:full_ai,hybrid_rewrite',
+            'max_variations' => 'required|integer|min:1|max:20',
+        ]);
+
+        $user->update($validated);
+
+        return redirect()->back()->with('success', 'Agent Rewrite settings updated successfully!');
+    }
+
+    /**
      * Update Global Settings
      */
     public function updateSettings(Request $request)
