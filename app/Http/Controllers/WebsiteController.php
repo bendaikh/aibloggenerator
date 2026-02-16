@@ -734,4 +734,175 @@ HTML;
         return redirect()->back()
             ->with('success', 'Settings updated successfully!');
     }
+
+    /**
+     * Show the SEO settings page.
+     */
+    public function seo(Website $website): Response
+    {
+        $this->authorize('view', $website);
+
+        $websites = auth()->user()->websites()
+            ->withCount(['articles', 'categories'])
+            ->get();
+
+        // Get default SEO settings structure
+        $defaultSeoSettings = [
+            'meta_title' => $website->name,
+            'meta_description' => $website->description ?? '',
+            'meta_keywords' => '',
+            'og_title' => $website->name,
+            'og_description' => $website->description ?? '',
+            'og_image' => $website->logo_url ?? '',
+            'twitter_card' => 'summary_large_image',
+            'twitter_title' => $website->name,
+            'twitter_description' => $website->description ?? '',
+            'twitter_image' => $website->logo_url ?? '',
+            'canonical_url' => $website->url,
+            'schema_type' => 'Organization',
+            'schema_name' => $website->name,
+            'schema_description' => $website->description ?? '',
+            'schema_logo' => $website->logo_url ?? '',
+            'enable_indexing' => true,
+            'enable_follow_links' => true,
+            'sitemap_enabled' => true,
+            'sitemap_frequency' => 'daily',
+            'sitemap_priority' => '0.8',
+        ];
+
+        // Merge with existing settings
+        $seoSettings = array_merge($defaultSeoSettings, $website->seo_settings ?? []);
+
+        return Inertia::render('SuperAdmin/SEO', [
+            'currentWebsite' => $website,
+            'websites' => $websites,
+            'seoSettings' => $seoSettings,
+        ]);
+    }
+
+    /**
+     * Update SEO settings.
+     */
+    public function updateSeo(Request $request, Website $website)
+    {
+        $this->authorize('update', $website);
+
+        $validated = $request->validate([
+            // Search Engine Verification
+            'google_verification' => 'nullable|string|max:100',
+            'bing_verification' => 'nullable|string|max:100',
+            'yandex_verification' => 'nullable|string|max:100',
+            
+            // Analytics
+            'google_analytics_id' => 'nullable|string|max:50|regex:/^(G-|UA-|GT-)?[A-Z0-9-]+$/i',
+            'gtm_id' => 'nullable|string|max:50|regex:/^GTM-[A-Z0-9]+$/i',
+            
+            // Robots.txt
+            'robots_txt' => 'nullable|string|max:10000',
+            
+            // SEO Settings (JSON)
+            'seo_settings' => 'nullable|array',
+            'seo_settings.meta_title' => 'nullable|string|max:70',
+            'seo_settings.meta_description' => 'nullable|string|max:160',
+            'seo_settings.meta_keywords' => 'nullable|string|max:500',
+            'seo_settings.og_title' => 'nullable|string|max:95',
+            'seo_settings.og_description' => 'nullable|string|max:200',
+            'seo_settings.og_image' => 'nullable|string|max:500',
+            'seo_settings.twitter_card' => 'nullable|string|in:summary,summary_large_image,app,player',
+            'seo_settings.twitter_title' => 'nullable|string|max:70',
+            'seo_settings.twitter_description' => 'nullable|string|max:200',
+            'seo_settings.twitter_image' => 'nullable|string|max:500',
+            'seo_settings.canonical_url' => 'nullable|url|max:500',
+            'seo_settings.schema_type' => 'nullable|string|in:Organization,LocalBusiness,Person,WebSite',
+            'seo_settings.schema_name' => 'nullable|string|max:255',
+            'seo_settings.schema_description' => 'nullable|string|max:500',
+            'seo_settings.schema_logo' => 'nullable|string|max:500',
+            'seo_settings.enable_indexing' => 'nullable|boolean',
+            'seo_settings.enable_follow_links' => 'nullable|boolean',
+            'seo_settings.sitemap_enabled' => 'nullable|boolean',
+            'seo_settings.sitemap_frequency' => 'nullable|string|in:always,hourly,daily,weekly,monthly,yearly,never',
+            'seo_settings.sitemap_priority' => 'nullable|string|regex:/^(0(\.[0-9])?|1(\.0)?)$/',
+        ]);
+
+        // Merge with existing SEO settings
+        $existingSeoSettings = $website->seo_settings ?? [];
+        $newSeoSettings = $validated['seo_settings'] ?? [];
+        $mergedSeoSettings = array_merge($existingSeoSettings, $newSeoSettings);
+
+        $website->update([
+            'google_verification' => $validated['google_verification'] ?? null,
+            'bing_verification' => $validated['bing_verification'] ?? null,
+            'yandex_verification' => $validated['yandex_verification'] ?? null,
+            'google_analytics_id' => $validated['google_analytics_id'] ?? null,
+            'gtm_id' => $validated['gtm_id'] ?? null,
+            'robots_txt' => $validated['robots_txt'] ?? null,
+            'seo_settings' => $mergedSeoSettings,
+        ]);
+
+        return redirect()->back()
+            ->with('success', 'SEO settings updated successfully!');
+    }
+
+    /**
+     * Generate and download sitemap.
+     */
+    public function generateSitemap(Website $website)
+    {
+        $this->authorize('view', $website);
+
+        $articles = $website->publishedArticles()->get();
+        $categories = $website->categories()->get();
+        $pages = $website->pages()->where('is_active', true)->get();
+
+        $seoSettings = $website->seo_settings ?? [];
+        $frequency = $seoSettings['sitemap_frequency'] ?? 'daily';
+        $priority = $seoSettings['sitemap_priority'] ?? '0.8';
+
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+
+        // Homepage
+        $xml .= '  <url>' . "\n";
+        $xml .= '    <loc>' . htmlspecialchars($website->url) . '</loc>' . "\n";
+        $xml .= '    <lastmod>' . now()->format('Y-m-d') . '</lastmod>' . "\n";
+        $xml .= '    <changefreq>' . $frequency . '</changefreq>' . "\n";
+        $xml .= '    <priority>1.0</priority>' . "\n";
+        $xml .= '  </url>' . "\n";
+
+        // Articles
+        foreach ($articles as $article) {
+            $xml .= '  <url>' . "\n";
+            $xml .= '    <loc>' . htmlspecialchars($website->getUrlForPath(($article->article_type === 'recipe' ? 'recipes/' : '') . $article->slug)) . '</loc>' . "\n";
+            $xml .= '    <lastmod>' . ($article->updated_at ?? $article->published_at)->format('Y-m-d') . '</lastmod>' . "\n";
+            $xml .= '    <changefreq>' . $frequency . '</changefreq>' . "\n";
+            $xml .= '    <priority>' . $priority . '</priority>' . "\n";
+            $xml .= '  </url>' . "\n";
+        }
+
+        // Categories
+        foreach ($categories as $category) {
+            $xml .= '  <url>' . "\n";
+            $xml .= '    <loc>' . htmlspecialchars($website->getUrlForPath('category/' . $category->slug)) . '</loc>' . "\n";
+            $xml .= '    <lastmod>' . ($category->updated_at ?? now())->format('Y-m-d') . '</lastmod>' . "\n";
+            $xml .= '    <changefreq>weekly</changefreq>' . "\n";
+            $xml .= '    <priority>0.6</priority>' . "\n";
+            $xml .= '  </url>' . "\n";
+        }
+
+        // Pages
+        foreach ($pages as $page) {
+            $xml .= '  <url>' . "\n";
+            $xml .= '    <loc>' . htmlspecialchars($website->getUrlForPath('page/' . $page->slug)) . '</loc>' . "\n";
+            $xml .= '    <lastmod>' . ($page->updated_at ?? now())->format('Y-m-d') . '</lastmod>' . "\n";
+            $xml .= '    <changefreq>monthly</changefreq>' . "\n";
+            $xml .= '    <priority>0.5</priority>' . "\n";
+            $xml .= '  </url>' . "\n";
+        }
+
+        $xml .= '</urlset>';
+
+        return response($xml)
+            ->header('Content-Type', 'application/xml')
+            ->header('Content-Disposition', 'attachment; filename="sitemap.xml"');
+    }
 }

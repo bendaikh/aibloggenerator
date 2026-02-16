@@ -609,5 +609,167 @@ class PublicWebsiteController extends Controller
         return response($website->ads_txt ?? '', 200)
             ->header('Content-Type', 'text/plain');
     }
+
+    /**
+     * Generate and serve the sitemap.xml (subdomain/custom domain).
+     */
+    public function sitemapByDomain(Request $request)
+    {
+        $website = $request->get('website');
+        
+        if (!$website) {
+            abort(404, 'Website not found');
+        }
+
+        return $this->generateSitemapResponse($website);
+    }
+
+    /**
+     * Generate and serve the sitemap.xml (legacy route).
+     */
+    public function sitemap(string $websiteSlug)
+    {
+        $website = Website::where('slug', $websiteSlug)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        return $this->generateSitemapResponse($website);
+    }
+
+    /**
+     * Generate sitemap XML response.
+     */
+    private function generateSitemapResponse(Website $website)
+    {
+        $seoSettings = $website->seo_settings ?? [];
+        
+        // Check if sitemap is enabled
+        if (isset($seoSettings['sitemap_enabled']) && !$seoSettings['sitemap_enabled']) {
+            abort(404);
+        }
+
+        $articles = $website->publishedArticles()->get();
+        $categories = $website->categories()->where('is_active', true)->get();
+        $pages = $website->pages()->where('is_active', true)->get();
+
+        $frequency = $seoSettings['sitemap_frequency'] ?? 'daily';
+        $priority = $seoSettings['sitemap_priority'] ?? '0.8';
+
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+
+        // Homepage
+        $xml .= '  <url>' . "\n";
+        $xml .= '    <loc>' . htmlspecialchars($website->url) . '</loc>' . "\n";
+        $xml .= '    <lastmod>' . now()->format('Y-m-d') . '</lastmod>' . "\n";
+        $xml .= '    <changefreq>' . $frequency . '</changefreq>' . "\n";
+        $xml .= '    <priority>1.0</priority>' . "\n";
+        $xml .= '  </url>' . "\n";
+
+        // Articles
+        foreach ($articles as $article) {
+            $articlePath = $article->article_type === 'recipe' ? 'recipes/' . $article->slug : $article->slug;
+            $xml .= '  <url>' . "\n";
+            $xml .= '    <loc>' . htmlspecialchars($website->getUrlForPath($articlePath)) . '</loc>' . "\n";
+            $xml .= '    <lastmod>' . ($article->updated_at ?? $article->published_at)->format('Y-m-d') . '</lastmod>' . "\n";
+            $xml .= '    <changefreq>' . $frequency . '</changefreq>' . "\n";
+            $xml .= '    <priority>' . $priority . '</priority>' . "\n";
+            $xml .= '  </url>' . "\n";
+        }
+
+        // Categories
+        foreach ($categories as $category) {
+            $xml .= '  <url>' . "\n";
+            $xml .= '    <loc>' . htmlspecialchars($website->getUrlForPath('category/' . $category->slug)) . '</loc>' . "\n";
+            $xml .= '    <lastmod>' . ($category->updated_at ?? now())->format('Y-m-d') . '</lastmod>' . "\n";
+            $xml .= '    <changefreq>weekly</changefreq>' . "\n";
+            $xml .= '    <priority>0.6</priority>' . "\n";
+            $xml .= '  </url>' . "\n";
+        }
+
+        // Pages
+        foreach ($pages as $page) {
+            $xml .= '  <url>' . "\n";
+            $xml .= '    <loc>' . htmlspecialchars($website->getUrlForPath('page/' . $page->slug)) . '</loc>' . "\n";
+            $xml .= '    <lastmod>' . ($page->updated_at ?? now())->format('Y-m-d') . '</lastmod>' . "\n";
+            $xml .= '    <changefreq>monthly</changefreq>' . "\n";
+            $xml .= '    <priority>0.5</priority>' . "\n";
+            $xml .= '  </url>' . "\n";
+        }
+
+        $xml .= '</urlset>';
+
+        return response($xml)
+            ->header('Content-Type', 'application/xml');
+    }
+
+    /**
+     * Generate and serve the robots.txt (subdomain/custom domain).
+     */
+    public function robotsTxtByDomain(Request $request)
+    {
+        $website = $request->get('website');
+        
+        if (!$website) {
+            abort(404, 'Website not found');
+        }
+
+        return $this->generateRobotsTxtResponse($website);
+    }
+
+    /**
+     * Generate and serve the robots.txt (legacy route).
+     */
+    public function robotsTxt(string $websiteSlug)
+    {
+        $website = Website::where('slug', $websiteSlug)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        return $this->generateRobotsTxtResponse($website);
+    }
+
+    /**
+     * Generate robots.txt response.
+     */
+    private function generateRobotsTxtResponse(Website $website)
+    {
+        // If custom robots.txt is set, use it
+        if (!empty($website->robots_txt)) {
+            return response($website->robots_txt)
+                ->header('Content-Type', 'text/plain');
+        }
+
+        // Generate default robots.txt based on SEO settings
+        $seoSettings = $website->seo_settings ?? [];
+        $enableIndexing = $seoSettings['enable_indexing'] ?? true;
+        $sitemapEnabled = $seoSettings['sitemap_enabled'] ?? true;
+
+        $robots = "# Robots.txt for {$website->name}\n";
+        $robots .= "# Generated automatically\n\n";
+        $robots .= "User-agent: *\n";
+
+        if ($enableIndexing) {
+            $robots .= "Allow: /\n";
+        } else {
+            $robots .= "Disallow: /\n";
+        }
+
+        // Add sitemap reference if enabled
+        if ($sitemapEnabled) {
+            $robots .= "\n# Sitemap\n";
+            $robots .= "Sitemap: {$website->url}/sitemap.xml\n";
+        }
+
+        // Add common disallows
+        $robots .= "\n# Disallow common paths\n";
+        $robots .= "Disallow: /admin\n";
+        $robots .= "Disallow: /api\n";
+        $robots .= "Disallow: /login\n";
+        $robots .= "Disallow: /register\n";
+
+        return response($robots)
+            ->header('Content-Type', 'text/plain');
+    }
 }
 

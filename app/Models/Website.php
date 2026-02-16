@@ -30,6 +30,14 @@ class Website extends Model
         'hbagency_placements',
         'is_active',
         'published_at',
+        // SEO Settings
+        'seo_settings',
+        'google_verification',
+        'bing_verification',
+        'yandex_verification',
+        'robots_txt',
+        'google_analytics_id',
+        'gtm_id',
     ];
 
     protected $appends = ['url', 'logo_url', 'favicon_url'];
@@ -38,6 +46,7 @@ class Website extends Model
         'theme_settings' => 'array',
         'social_media' => 'array',
         'hbagency_placements' => 'array',
+        'seo_settings' => 'array',
         'is_active' => 'boolean',
         'published_at' => 'datetime',
     ];

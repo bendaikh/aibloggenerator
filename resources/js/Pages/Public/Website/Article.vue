@@ -1,8 +1,41 @@
 <template>
     <PublicWebsiteLayout :website="website">
-        <Head :title="article.title + ' - ' + website.name">
+        <Head :title="article.meta_title || (article.title + ' - ' + website.name)">
+            <!-- Favicon -->
             <link v-if="website.favicon_url" :rel="'icon'" :href="website.favicon_url" />
+            
+            <!-- Basic Meta Tags -->
+            <meta name="description" :content="article.meta_description || article.excerpt || ''" />
+            <meta v-if="article.meta_keywords" name="keywords" :content="article.meta_keywords" />
+            <link rel="canonical" :href="currentPageUrl" />
+            
+            <!-- Robots -->
+            <meta name="robots" :content="robotsContent" />
+            
+            <!-- Pinterest Verification -->
             <meta v-if="website.pinterest_verification" name="p:domain_verify" :content="website.pinterest_verification" />
+            
+            <!-- Google Verification -->
+            <meta v-if="website.google_verification" name="google-site-verification" :content="website.google_verification" />
+            
+            <!-- Open Graph -->
+            <meta property="og:type" content="article" />
+            <meta property="og:title" :content="article.title" />
+            <meta property="og:description" :content="article.excerpt || article.meta_description || ''" />
+            <meta property="og:url" :content="currentPageUrl" />
+            <meta v-if="articleImageUrl" property="og:image" :content="articleImageUrl" />
+            <meta property="og:site_name" :content="website.name" />
+            <meta v-if="article.published_at" property="article:published_time" :content="article.published_at" />
+            <meta v-if="article.author?.name || article.user?.name" property="article:author" :content="article.author?.name || article.user?.name" />
+            
+            <!-- Twitter Card -->
+            <meta name="twitter:card" content="summary_large_image" />
+            <meta name="twitter:title" :content="article.title" />
+            <meta name="twitter:description" :content="article.excerpt || article.meta_description || ''" />
+            <meta v-if="articleImageUrl" name="twitter:image" :content="articleImageUrl" />
+            
+            <!-- Article Schema.org JSON-LD -->
+            <component :is="'script'" type="application/ld+json" v-html="articleSchemaJson" />
         </Head>
 
         <article class="py-12 bg-gradient-to-b from-white via-gray-50/50 to-white min-h-screen">
@@ -737,6 +770,71 @@ const pinterestShareUrl = computed(() => {
     const media = encodeURIComponent(articleImageUrl.value);
     const description = encodeURIComponent(props.article?.title || '');
     return `https://pinterest.com/pin/create/button/?url=${url}&media=${media}&description=${description}`;
+});
+
+// SEO Settings
+const seoSettings = computed(() => props.website?.seo_settings || {});
+
+// Robots meta
+const robotsContent = computed(() => {
+    const index = seoSettings.value.enable_indexing !== false ? 'index' : 'noindex';
+    const follow = seoSettings.value.enable_follow_links !== false ? 'follow' : 'nofollow';
+    return `${index}, ${follow}`;
+});
+
+// Article Schema.org JSON-LD
+const articleSchemaJson = computed(() => {
+    const schema = {
+        '@context': 'https://schema.org',
+        '@type': props.article?.article_type === 'recipe' ? 'Recipe' : 'Article',
+        'headline': props.article?.title || '',
+        'description': props.article?.excerpt || props.article?.meta_description || '',
+        'url': currentPageUrl.value,
+        'datePublished': props.article?.published_at || '',
+        'dateModified': props.article?.updated_at || props.article?.published_at || '',
+        'author': {
+            '@type': 'Person',
+            'name': props.article?.author?.name || props.article?.user?.name || 'Admin'
+        },
+        'publisher': {
+            '@type': 'Organization',
+            'name': props.website?.name || '',
+            'logo': props.website?.logo_url ? {
+                '@type': 'ImageObject',
+                'url': props.website.logo_url
+            } : undefined
+        }
+    };
+    
+    // Add image if available
+    if (articleImageUrl.value) {
+        schema.image = articleImageUrl.value;
+    }
+    
+    // Add recipe-specific fields
+    if (props.article?.article_type === 'recipe') {
+        if (props.article?.prep_time) {
+            schema.prepTime = 'PT' + props.article.prep_time.replace(/[^0-9]/g, '') + 'M';
+        }
+        if (props.article?.cook_time) {
+            schema.cookTime = 'PT' + props.article.cook_time.replace(/[^0-9]/g, '') + 'M';
+        }
+        if (props.article?.total_time) {
+            schema.totalTime = 'PT' + props.article.total_time.replace(/[^0-9]/g, '') + 'M';
+        }
+        if (props.article?.meta_tags?.length) {
+            schema.keywords = props.article.meta_tags.join(', ');
+        }
+    }
+    
+    // Clean undefined values
+    Object.keys(schema).forEach(key => {
+        if (schema[key] === undefined) {
+            delete schema[key];
+        }
+    });
+    
+    return JSON.stringify(schema);
 });
 </script>
 

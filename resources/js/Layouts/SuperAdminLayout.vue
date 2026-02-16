@@ -287,6 +287,23 @@ onUnmounted(() => {
                         Settings
                     </Link>
 
+                    <!-- SEO -->
+                    <Link 
+                        :href="currentWebsite ? route('superadmin.seo', { website: currentWebsite.id }) : '#'" 
+                        @click="handleNavClick"
+                        :class="[
+                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                            isActive('superadmin.seo') 
+                                ? 'bg-[#1f1f1f] text-white' 
+                                : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
+                        ]"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        SEO
+                    </Link>
+
                     <!-- Appearance -->
                     <Link 
                         :href="currentWebsite ? route('superadmin.appearance', { website: currentWebsite.id }) : '#'" 

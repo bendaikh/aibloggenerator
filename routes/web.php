@@ -41,6 +41,9 @@ if (!$isLocalDev) {
         Route::get('/search', [PublicWebsiteController::class, 'search'])->name('website.search.subdomain');
         Route::post('/subscribe', [\App\Http\Controllers\SubscriberController::class, 'subscribeByDomain'])->name('website.subscribe.subdomain');
         Route::get('/ads.txt', [PublicWebsiteController::class, 'adsTxt'])->name('website.ads_txt');
+        // Sitemap and robots.txt
+        Route::get('/sitemap.xml', [PublicWebsiteController::class, 'sitemapByDomain'])->name('website.sitemap.subdomain');
+        Route::get('/robots.txt', [PublicWebsiteController::class, 'robotsTxtByDomain'])->name('website.robots.subdomain');
         // Regular articles at root path (must be last to avoid conflicts)
         Route::get('/{article}', [PublicWebsiteController::class, 'showRegularArticleByDomain'])->name('article.show.regular.subdomain');
     });
@@ -207,6 +210,11 @@ $registerMainAppRoutes = function () {
 
         Route::get('/{website}/settings', [WebsiteController::class, 'settings'])->name('superadmin.settings');
         Route::put('/{website}/settings', [WebsiteController::class, 'updateSettings'])->name('superadmin.settings.update');
+
+        // SEO Routes
+        Route::get('/{website}/seo', [WebsiteController::class, 'seo'])->name('superadmin.seo');
+        Route::put('/{website}/seo', [WebsiteController::class, 'updateSeo'])->name('superadmin.seo.update');
+        Route::get('/{website}/seo/sitemap', [WebsiteController::class, 'generateSitemap'])->name('superadmin.seo.sitemap');
     });
 
     // Legacy routes
@@ -225,6 +233,9 @@ $registerMainAppRoutes = function () {
     Route::get('/site/{website}/search', [PublicWebsiteController::class, 'searchLegacy'])->name('website.search');
     Route::post('/site/{website}/subscribe', [\App\Http\Controllers\SubscriberController::class, 'subscribe'])->name('website.subscribe');
     Route::get('/site/{website}/ads.txt', [PublicWebsiteController::class, 'adsTxtLegacy'])->name('website.ads_txt.legacy');
+    // Sitemap and robots.txt routes
+    Route::get('/site/{website}/sitemap.xml', [PublicWebsiteController::class, 'sitemap'])->name('website.sitemap');
+    Route::get('/site/{website}/robots.txt', [PublicWebsiteController::class, 'robotsTxt'])->name('website.robots');
     // Regular articles at root path (for /site/{website}/{article})
     Route::get('/site/{website}/{article}', [PublicWebsiteController::class, 'showRegularArticle'])->name('article.show.regular');
     
@@ -259,6 +270,9 @@ if (!$isLocalDev) {
         Route::get('/search', [PublicWebsiteController::class, 'search'])->name('website.search.custom');
         Route::post('/subscribe', [\App\Http\Controllers\SubscriberController::class, 'subscribeByDomain'])->name('website.subscribe.custom');
         Route::get('/ads.txt', [PublicWebsiteController::class, 'adsTxt'])->name('website.ads_txt.custom');
+        // Sitemap and robots.txt
+        Route::get('/sitemap.xml', [PublicWebsiteController::class, 'sitemapByDomain'])->name('website.sitemap.custom');
+        Route::get('/robots.txt', [PublicWebsiteController::class, 'robotsTxtByDomain'])->name('website.robots.custom');
         // Regular articles at root path (must be last to avoid conflicts)
         Route::get('/{article}', [PublicWebsiteController::class, 'showRegularArticleByDomain'])->name('article.show.regular.custom');
     });

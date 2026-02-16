@@ -1,8 +1,45 @@
 <template>
     <PublicWebsiteLayout :website="website">
-        <Head :title="website.name">
+        <Head :title="seoTitle">
+            <!-- Favicon -->
             <link v-if="website.favicon_url" :rel="'icon'" :href="website.favicon_url" />
+            
+            <!-- Basic Meta Tags -->
+            <meta name="description" :content="seoDescription" />
+            <meta v-if="seoKeywords" name="keywords" :content="seoKeywords" />
+            <link rel="canonical" :href="canonicalUrl" />
+            
+            <!-- Robots -->
+            <meta name="robots" :content="robotsContent" />
+            
+            <!-- Pinterest Verification -->
             <meta v-if="website.pinterest_verification" name="p:domain_verify" :content="website.pinterest_verification" />
+            
+            <!-- Google Verification -->
+            <meta v-if="website.google_verification" name="google-site-verification" :content="website.google_verification" />
+            
+            <!-- Bing Verification -->
+            <meta v-if="website.bing_verification" name="msvalidate.01" :content="website.bing_verification" />
+            
+            <!-- Yandex Verification -->
+            <meta v-if="website.yandex_verification" name="yandex-verification" :content="website.yandex_verification" />
+            
+            <!-- Open Graph -->
+            <meta property="og:type" content="website" />
+            <meta property="og:title" :content="ogTitle" />
+            <meta property="og:description" :content="ogDescription" />
+            <meta property="og:url" :content="website.url" />
+            <meta v-if="ogImage" property="og:image" :content="ogImage" />
+            <meta property="og:site_name" :content="website.name" />
+            
+            <!-- Twitter Card -->
+            <meta name="twitter:card" :content="twitterCard" />
+            <meta name="twitter:title" :content="twitterTitle" />
+            <meta name="twitter:description" :content="twitterDescription" />
+            <meta v-if="twitterImage" name="twitter:image" :content="twitterImage" />
+            
+            <!-- Schema.org JSON-LD -->
+            <component :is="'script'" type="application/ld+json" v-html="schemaJson" />
         </Head>
 
         <!-- Browse by Category Section -->
@@ -195,6 +232,49 @@ const props = defineProps({
 
 // Get theme settings with defaults
 const themeSettings = computed(() => props.website.theme_settings || {});
+
+// SEO Settings
+const seoSettings = computed(() => props.website.seo_settings || {});
+const seoTitle = computed(() => seoSettings.value.meta_title || props.website.name);
+const seoDescription = computed(() => seoSettings.value.meta_description || props.website.description || '');
+const seoKeywords = computed(() => seoSettings.value.meta_keywords || '');
+const canonicalUrl = computed(() => seoSettings.value.canonical_url || props.website.url);
+
+// Robots meta
+const robotsContent = computed(() => {
+    const index = seoSettings.value.enable_indexing !== false ? 'index' : 'noindex';
+    const follow = seoSettings.value.enable_follow_links !== false ? 'follow' : 'nofollow';
+    return `${index}, ${follow}`;
+});
+
+// Open Graph
+const ogTitle = computed(() => seoSettings.value.og_title || props.website.name);
+const ogDescription = computed(() => seoSettings.value.og_description || seoDescription.value);
+const ogImage = computed(() => seoSettings.value.og_image || props.website.logo_url || '');
+
+// Twitter Card
+const twitterCard = computed(() => seoSettings.value.twitter_card || 'summary_large_image');
+const twitterTitle = computed(() => seoSettings.value.twitter_title || ogTitle.value);
+const twitterDescription = computed(() => seoSettings.value.twitter_description || ogDescription.value);
+const twitterImage = computed(() => seoSettings.value.twitter_image || ogImage.value);
+
+// Schema.org JSON-LD
+const schemaJson = computed(() => {
+    const schema = {
+        '@context': 'https://schema.org',
+        '@type': seoSettings.value.schema_type || 'Organization',
+        'name': seoSettings.value.schema_name || props.website.name,
+        'description': seoSettings.value.schema_description || seoDescription.value,
+        'url': props.website.url,
+    };
+    
+    const logo = seoSettings.value.schema_logo || props.website.logo_url;
+    if (logo) {
+        schema.logo = logo;
+    }
+    
+    return JSON.stringify(schema);
+});
 const showNewsletterCta = computed(() => themeSettings.value.show_newsletter_cta !== false);
 const showShopCta = computed(() => themeSettings.value.show_shop_cta !== false);
 const shouldShowCtaSection = computed(() => showNewsletterCta.value || showShopCta.value);

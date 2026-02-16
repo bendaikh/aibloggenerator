@@ -470,8 +470,56 @@ onMounted(() => {
             scriptLength: props.website?.hbagency_script?.length || 0,
             placements: props.website?.hbagency_placements,
         });
+        
+        // Initialize Google Tag Manager
+        if (props.website?.gtm_id) {
+            initGTM(props.website.gtm_id);
+        }
+        
+        // Initialize Google Analytics
+        if (props.website?.google_analytics_id && hasConsentFor(CONSENT_CATEGORIES.ANALYTICS)) {
+            initGoogleAnalytics(props.website.google_analytics_id);
+        }
     });
 });
+
+// Initialize Google Tag Manager
+const initGTM = (gtmId) => {
+    if (typeof window === 'undefined' || !gtmId) return;
+    
+    // Add GTM script
+    (function(w,d,s,l,i){
+        w[l]=w[l]||[];
+        w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});
+        var f=d.getElementsByTagName(s)[0],
+        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
+        j.async=true;
+        j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+        f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer',gtmId);
+    
+    console.log('[Analytics] GTM initialized:', gtmId);
+};
+
+// Initialize Google Analytics
+const initGoogleAnalytics = (gaId) => {
+    if (typeof window === 'undefined' || !gaId) return;
+    
+    // Load gtag.js
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+    document.head.appendChild(script);
+    
+    // Initialize gtag
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){window.dataLayer.push(arguments);}
+    window.gtag = gtag;
+    gtag('js', new Date());
+    gtag('config', gaId);
+    
+    console.log('[Analytics] GA4 initialized:', gaId);
+};
 
 // Get subscription popup settings
 const themeSettings = computed(() => props.website?.theme_settings || {});
