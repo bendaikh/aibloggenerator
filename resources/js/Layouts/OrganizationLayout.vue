@@ -9,6 +9,7 @@ const websites = computed(() => page.props.websites || []);
 
 const sidebarOpen = ref(false);
 const userManagementOpen = ref(false);
+const connectDomainsOpen = ref(false);
 const userDropdownOpen = ref(false);
 
 const isActive = (routeName) => {
@@ -23,6 +24,11 @@ const isUserManagementActive = () => {
     return isActivePrefix('organization.users') || 
            isActivePrefix('organization.roles') || 
            isActivePrefix('organization.permissions');
+};
+
+const isConnectDomainsActive = () => {
+    return isActivePrefix('organization.domains') || 
+           isActivePrefix('organization.pending-domains');
 };
 
 const toggleSidebar = () => {
@@ -135,40 +141,6 @@ onUnmounted(() => {
                         Websites
                     </Link>
 
-                    <!-- API Keys -->
-                    <Link 
-                        :href="route('organization.api-keys')" 
-                        @click="handleNavClick"
-                        :class="[
-                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                            isActive('organization.api-keys') 
-                                ? 'bg-[#1f1f1f] text-white' 
-                                : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
-                        ]"
-                    >
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                        </svg>
-                        API Keys
-                    </Link>
-
-                    <!-- Agent Rewrite -->
-                    <Link 
-                        :href="route('organization.agent-rewrite')" 
-                        @click="handleNavClick"
-                        :class="[
-                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                            isActive('organization.agent-rewrite') 
-                                ? 'bg-[#1f1f1f] text-white' 
-                                : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
-                        ]"
-                    >
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Agent Rewrite
-                    </Link>
-
                     <!-- Global Settings -->
                     <Link 
                         :href="route('organization.settings')" 
@@ -221,39 +193,88 @@ onUnmounted(() => {
                         Global Subscribers
                     </Link>
 
-                    <!-- Onboard Domain (for all users) -->
+                    <!-- Connect Domains -->
+                    <div>
+                        <button 
+                            @click="connectDomainsOpen = !connectDomainsOpen"
+                            :class="[
+                                'flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm transition-colors',
+                                isConnectDomainsActive()
+                                    ? 'bg-[#1f1f1f] text-white' 
+                                    : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
+                            ]"
+                        >
+                            <div class="flex items-center gap-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                </svg>
+                                Connect Domains
+                            </div>
+                            <svg 
+                                :class="['w-4 h-4 transition-transform', connectDomainsOpen ? 'rotate-180' : '']" 
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        
+                        <div v-show="connectDomainsOpen" class="mt-1 ml-8 space-y-1">
+                            <Link 
+                                :href="route('organization.domains.index')" 
+                                @click="handleNavClick"
+                                :class="[
+                                    'block px-3 py-2 rounded-lg text-sm transition-colors',
+                                    isActivePrefix('organization.domains') ? 'text-white bg-[#252525]' : 'text-gray-400 hover:text-white hover:bg-[#1a1a1a]'
+                                ]"
+                            >
+                                Onboard Domain
+                            </Link>
+                            <Link 
+                                v-if="user?.role === 'superadmin'"
+                                :href="route('organization.pending-domains.index')" 
+                                @click="handleNavClick"
+                                :class="[
+                                    'block px-3 py-2 rounded-lg text-sm transition-colors',
+                                    isActivePrefix('organization.pending-domains') ? 'text-white bg-[#252525]' : 'text-gray-400 hover:text-white hover:bg-[#1a1a1a]'
+                                ]"
+                            >
+                                Pending Domains
+                            </Link>
+                        </div>
+                    </div>
+
+                    <!-- API Keys -->
                     <Link 
-                        :href="route('organization.domains.index')" 
+                        :href="route('organization.api-keys')" 
                         @click="handleNavClick"
                         :class="[
                             'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                            isActivePrefix('organization.domains') 
+                            isActive('organization.api-keys') 
                                 ? 'bg-[#1f1f1f] text-white' 
                                 : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
                         ]"
                     >
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                         </svg>
-                        Onboard Domain
+                        API Keys
                     </Link>
 
-                    <!-- Pending Domains (Superadmin only) -->
+                    <!-- Agent Rewrite -->
                     <Link 
-                        v-if="user?.role === 'superadmin'"
-                        :href="route('organization.pending-domains.index')" 
+                        :href="route('organization.agent-rewrite')" 
                         @click="handleNavClick"
                         :class="[
                             'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                            isActivePrefix('organization.pending-domains') 
+                            isActive('organization.agent-rewrite') 
                                 ? 'bg-[#1f1f1f] text-white' 
                                 : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
                         ]"
                     >
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
-                        Pending Domains
+                        Agent Rewrite
                     </Link>
 
                     <!-- User Management -->
