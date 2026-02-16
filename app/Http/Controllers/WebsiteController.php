@@ -821,7 +821,7 @@ HTML;
             'seo_settings.enable_follow_links' => 'nullable|boolean',
             'seo_settings.sitemap_enabled' => 'nullable|boolean',
             'seo_settings.sitemap_frequency' => 'nullable|string|in:always,hourly,daily,weekly,monthly,yearly,never',
-            'seo_settings.sitemap_priority' => 'nullable|string|regex:/^(0(\.[0-9])?|1(\.0)?)$/',
+            'seo_settings.sitemap_priority' => ['nullable', 'string', 'regex:/^(0(\.[0-9])?|1(\.0)?)$/'],
         ]);
 
         // Merge with existing SEO settings
