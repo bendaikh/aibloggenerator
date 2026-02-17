@@ -730,6 +730,81 @@ class PublicWebsiteController extends Controller
     }
 
     /**
+     * Generate and serve the AI.txt file (for AI crawler configuration).
+     */
+    public function aiTxtByDomain(Request $request)
+    {
+        $website = $request->get('website');
+        
+        if (!$website) {
+            abort(404, 'Website not found');
+        }
+
+        return $this->generateAiTxtResponse($website);
+    }
+
+    /**
+     * Generate and serve the AI.txt (legacy route).
+     */
+    public function aiTxt(string $websiteSlug)
+    {
+        $website = Website::where('slug', $websiteSlug)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        return $this->generateAiTxtResponse($website);
+    }
+
+    /**
+     * Generate AI.txt response with GEO configuration.
+     */
+    private function generateAiTxtResponse(Website $website)
+    {
+        $geoSettings = $website->geo_settings ?? [];
+        
+        $aiTxt = "# AI.txt for {$website->name}\n";
+        $aiTxt .= "# Generative Engine Optimization (GEO) Configuration\n";
+        $aiTxt .= "# Updated: " . now()->toDateString() . "\n\n";
+        
+        $aiTxt .= "[General]\n";
+        $aiTxt .= "website_name = \"{$website->name}\"\n";
+        $aiTxt .= "website_url = \"{$website->url}\"\n";
+        $aiTxt .= "content_type = \"blog\"\n\n";
+        
+        $aiTxt .= "[Attribution]\n";
+        $aiTxt .= "citation_format = \"" . ($geoSettings['citation_format'] ?? 'apa') . "\"\n";
+        $aiTxt .= "attribution = \"" . ($geoSettings['content_attribution'] ?? $website->name) . "\"\n";
+        $aiTxt .= "author_credentials = \"" . ($geoSettings['author_credentials'] ?? '') . "\"\n\n";
+        
+        $aiTxt .= "[Content]\n";
+        $aiTxt .= "technical_depth = \"" . ($geoSettings['technical_depth'] ?? 'intermediate') . "\"\n";
+        $aiTxt .= "fact_checking = \"" . ($geoSettings['fact_checking_enabled'] ? 'enabled' : 'disabled') . "\"\n";
+        $aiTxt .= "structured_data = \"" . ($geoSettings['structured_data_enhanced'] ? 'enhanced' : 'standard') . "\"\n\n";
+        
+        $aiTxt .= "[AI Access]\n";
+        $aiTxt .= "llm_training_opt_out = \"" . ($geoSettings['llm_training_opt_out'] ? 'true' : 'false') . "\"\n";
+        $aiTxt .= "api_access = \"" . ($geoSettings['api_access_enabled'] ? 'enabled' : 'disabled') . "\"\n";
+        
+        if (!empty($geoSettings['preferred_llms'])) {
+            $aiTxt .= "preferred_models = \"" . implode(', ', $geoSettings['preferred_llms']) . "\"\n";
+        }
+        
+        if ($geoSettings['api_access_enabled'] ?? true) {
+            $aiTxt .= "api_endpoint = \"{$website->url}/api/ai/articles\"\n";
+        }
+        
+        $aiTxt .= "\n[Expertise]\n";
+        if (!empty($geoSettings['expertise_areas'])) {
+            foreach ($geoSettings['expertise_areas'] as $area) {
+                $aiTxt .= "area = \"{$area}\"\n";
+            }
+        }
+        
+        return response($aiTxt)
+            ->header('Content-Type', 'text/plain');
+    }
+
+    /**
      * Generate robots.txt response.
      */
     private function generateRobotsTxtResponse(Website $website)
@@ -742,6 +817,7 @@ class PublicWebsiteController extends Controller
 
         // Generate default robots.txt based on SEO settings
         $seoSettings = $website->seo_settings ?? [];
+        $geoSettings = $website->geo_settings ?? [];
         $enableIndexing = $seoSettings['enable_indexing'] ?? true;
         $sitemapEnabled = $seoSettings['sitemap_enabled'] ?? true;
 
@@ -767,6 +843,80 @@ class PublicWebsiteController extends Controller
         $robots .= "Disallow: /api\n";
         $robots .= "Disallow: /login\n";
         $robots .= "Disallow: /register\n";
+
+        // ========== GEO: AI CRAWLER RULES ==========
+        $llmTrainingOptOut = $geoSettings['llm_training_opt_out'] ?? false;
+        $apiAccessEnabled = $geoSettings['api_access_enabled'] ?? true;
+        $preferredLLMs = $geoSettings['preferred_llms'] ?? ['chatgpt', 'perplexity', 'gemini', 'claude'];
+
+        $robots .= "\n# ========================================\n";
+        $robots .= "# GEO: AI Crawler Configuration\n";
+        $robots .= "# ========================================\n\n";
+
+        // Map of AI crawlers and their user agents
+        $aiCrawlers = [
+            'chatgpt' => ['GPTBot', 'ChatGPT-User'],
+            'perplexity' => ['PerplexityBot'],
+            'gemini' => ['Google-Extended', 'GoogleOther'],
+            'claude' => ['ClaudeBot', 'anthropic-ai'],
+            'cohere' => ['cohere-ai'],
+            'meta' => ['FacebookBot', 'Meta-ExternalAgent'],
+            'apple' => ['Applebot-Extended'],
+            'common_crawl' => ['CCBot']
+        ];
+
+        if ($llmTrainingOptOut) {
+            // Opt-out of LLM training - block all AI crawlers
+            $robots .= "# LLM Training Opt-Out: Enabled\n";
+            $robots .= "# Blocking AI crawlers from using content for training\n\n";
+            
+            foreach ($aiCrawlers as $crawlerName => $userAgents) {
+                foreach ($userAgents as $userAgent) {
+                    $robots .= "User-agent: {$userAgent}\n";
+                    $robots .= "Disallow: /\n\n";
+                }
+            }
+            
+            // Add TDM (Text and Data Mining) reservation
+            $robots .= "# TDM Reservation (EU Copyright Directive)\n";
+            $robots .= "# This site reserves all rights under TDM exception\n";
+        } else {
+            // Allow preferred AI crawlers
+            $robots .= "# AI Crawlers: Selective Access\n";
+            $robots .= "# Allowing preferred AI models for GEO optimization\n\n";
+            
+            // Allow preferred crawlers
+            foreach ($preferredLLMs as $preferred) {
+                if (isset($aiCrawlers[$preferred])) {
+                    foreach ($aiCrawlers[$preferred] as $userAgent) {
+                        $robots .= "User-agent: {$userAgent}\n";
+                        $robots .= "Allow: /\n";
+                        if ($apiAccessEnabled) {
+                            $robots .= "Allow: /api/ai/articles\n";
+                        }
+                        $robots .= "\n";
+                    }
+                }
+            }
+            
+            // Block non-preferred AI crawlers
+            $blockedCrawlers = array_diff(array_keys($aiCrawlers), $preferredLLMs);
+            if (!empty($blockedCrawlers)) {
+                $robots .= "# Blocking non-preferred AI crawlers\n";
+                foreach ($blockedCrawlers as $blocked) {
+                    if (isset($aiCrawlers[$blocked])) {
+                        foreach ($aiCrawlers[$blocked] as $userAgent) {
+                            $robots .= "User-agent: {$userAgent}\n";
+                            $robots .= "Disallow: /\n\n";
+                        }
+                    }
+                }
+            }
+        }
+
+        // Add AI.txt reference
+        $robots .= "\n# AI.txt for structured AI crawler information\n";
+        $robots .= "# See: {$website->url}/ai.txt\n";
 
         return response($robots)
             ->header('Content-Type', 'text/plain');

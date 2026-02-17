@@ -236,6 +236,10 @@ $registerMainAppRoutes = function () {
         Route::get('/{website}/seo', [WebsiteController::class, 'seo'])->name('superadmin.seo');
         Route::put('/{website}/seo', [WebsiteController::class, 'updateSeo'])->name('superadmin.seo.update');
         Route::get('/{website}/seo/sitemap', [WebsiteController::class, 'generateSitemap'])->name('superadmin.seo.sitemap');
+        
+        // GEO (Generative Engine Optimization) Routes
+        Route::get('/{website}/geo', [\App\Http\Controllers\GeoController::class, 'index'])->name('superadmin.geo');
+        Route::post('/{website}/geo', [\App\Http\Controllers\GeoController::class, 'update'])->name('superadmin.geo.update');
     });
 
     // Legacy routes
@@ -257,6 +261,10 @@ $registerMainAppRoutes = function () {
     // Sitemap and robots.txt routes
     Route::get('/site/{website}/sitemap.xml', [PublicWebsiteController::class, 'sitemap'])->name('website.sitemap');
     Route::get('/site/{website}/robots.txt', [PublicWebsiteController::class, 'robotsTxt'])->name('website.robots');
+    Route::get('/site/{website}/ai.txt', [PublicWebsiteController::class, 'aiTxt'])->name('website.ai_txt');
+    // AI API for crawler access
+    Route::get('/site/{website}/api/ai/articles', [\App\Http\Controllers\Api\AiArticleController::class, 'index'])->name('website.ai.articles');
+    Route::get('/site/{website}/api/ai/articles/{article}', [\App\Http\Controllers\Api\AiArticleController::class, 'show'])->name('website.ai.article');
     // Regular articles at root path (for /site/{website}/{article})
     Route::get('/site/{website}/{article}', [PublicWebsiteController::class, 'showRegularArticle'])->name('article.show.regular');
     
@@ -294,6 +302,10 @@ if (!$isLocalDev) {
         // Sitemap and robots.txt
         Route::get('/sitemap.xml', [PublicWebsiteController::class, 'sitemapByDomain'])->name('website.sitemap.custom');
         Route::get('/robots.txt', [PublicWebsiteController::class, 'robotsTxtByDomain'])->name('website.robots.custom');
+        Route::get('/ai.txt', [PublicWebsiteController::class, 'aiTxtByDomain'])->name('website.ai_txt.custom');
+        // AI API for crawler access
+        Route::get('/api/ai/articles', [\App\Http\Controllers\Api\AiArticleController::class, 'index'])->name('website.ai.articles.custom');
+        Route::get('/api/ai/articles/{article}', [\App\Http\Controllers\Api\AiArticleController::class, 'show'])->name('website.ai.article.custom');
         // Regular articles at root path (must be last to avoid conflicts)
         Route::get('/{article}', [PublicWebsiteController::class, 'showRegularArticleByDomain'])->name('article.show.regular.custom');
     });

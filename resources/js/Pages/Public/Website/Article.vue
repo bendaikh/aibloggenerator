@@ -34,11 +34,33 @@
             <meta name="twitter:description" :content="article.excerpt || article.meta_description || ''" />
             <meta v-if="articleImageUrl" name="twitter:image" :content="articleImageUrl" />
             
+            <!-- GEO: AI-Optimized Meta Tags for LLMs -->
+            <meta v-if="website.geo_settings?.ai_summary" name="ai:description" :content="website.geo_settings.ai_summary" />
+            <meta v-if="website.geo_settings?.content_attribution" name="citation" :content="website.geo_settings.content_attribution" />
+            <meta v-if="website.geo_settings?.citation_format" name="citation:format" :content="website.geo_settings.citation_format" />
+            <meta v-if="website.geo_settings?.author_credentials" name="author:credentials" :content="website.geo_settings.author_credentials" />
+            <meta v-if="website.geo_settings?.technical_depth" name="content:level" :content="website.geo_settings.technical_depth" />
+            <meta v-if="website.geo_settings?.expertise_areas?.length" name="expertise:areas" :content="website.geo_settings.expertise_areas.join(', ')" />
+            
+            <!-- GEO: LLM Training Opt-Out (TDM Reservation) -->
+            <meta v-if="website.geo_settings?.llm_training_opt_out" name="robots" content="noai, noimageai" />
+            <meta v-if="website.geo_settings?.llm_training_opt_out" name="tdm-reservation" content="1" />
+            
+            <!-- GEO: Preferred AI Models -->
+            <meta v-if="website.geo_settings?.preferred_llms?.length" name="ai:models" :content="website.geo_settings.preferred_llms.join(', ')" />
+            
+            <!-- GEO: Fact-Checking Signal -->
+            <meta v-if="website.geo_settings?.fact_checking_enabled" name="content:fact-checked" content="true" />
+            
             <!-- Article Schema.org JSON-LD -->
             <component :is="'script'" type="application/ld+json" v-html="articleSchemaJson" />
         </Head>
 
-        <article class="py-12 bg-gradient-to-b from-white via-gray-50/50 to-white min-h-screen">
+        <article class="py-12 bg-gradient-to-b from-white via-gray-50/50 to-white min-h-screen" 
+                 :data-geo-enabled="website.geo_settings?.structured_data_enhanced ? 'true' : 'false'"
+                 :data-content-level="website.geo_settings?.technical_depth"
+                 :data-fact-checked="website.geo_settings?.fact_checking_enabled ? 'true' : 'false'"
+        >
             <div class="container mx-auto px-4">
                 <div class="max-w-7xl mx-auto">
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -59,6 +81,8 @@
                                 <h1 
                                     class="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight"
                                     :style="{ fontFamily: articleTitleFontFamily }"
+                                    itemprop="headline"
+                                    :data-geo-title="website.geo_settings?.structured_data_enhanced ? 'true' : 'false'"
                                 >
                                     {{ article.title }}
                                 </h1>
@@ -869,6 +893,8 @@ const robotsContent = computed(() => {
 
 // Article Schema.org JSON-LD
 const articleSchemaJson = computed(() => {
+    const geoSettings = props.website?.geo_settings || {};
+    
     const schema = {
         '@context': 'https://schema.org',
         '@type': props.article?.article_type === 'recipe' ? 'Recipe' : 'Article',
@@ -895,6 +921,96 @@ const articleSchemaJson = computed(() => {
     if (articleImageUrl.value) {
         schema.image = articleImageUrl.value;
     }
+    
+    // ========== GEO ENHANCEMENTS ==========
+    
+    // Enhanced Author Credentials (GEO)
+    if (geoSettings.author_credentials) {
+        schema.author.description = geoSettings.author_credentials;
+        schema.author.knowsAbout = geoSettings.expertise_areas || [];
+    }
+    
+    // Content Attribution (GEO)
+    if (geoSettings.content_attribution) {
+        schema.copyrightNotice = geoSettings.content_attribution;
+    }
+    
+    // Citation Format (GEO) - Add as CreativeWork property
+    if (geoSettings.citation_format) {
+        schema.citation = {
+            '@type': 'CreativeWork',
+            'encodingFormat': geoSettings.citation_format.toUpperCase()
+        };
+    }
+    
+    // AI Summary (GEO) - Enhanced abstract for AI
+    if (geoSettings.ai_summary) {
+        schema.abstract = geoSettings.ai_summary;
+    }
+    
+    // Technical Depth / Audience Level (GEO)
+    if (geoSettings.technical_depth) {
+        schema.educationalLevel = geoSettings.technical_depth;
+    }
+    
+    // Key Facts as Claims (GEO) - Structured facts for AI extraction
+    if (geoSettings.key_facts && geoSettings.key_facts.length > 0) {
+        schema.mainEntity = {
+            '@type': 'ItemList',
+            'name': 'Key Facts',
+            'itemListElement': geoSettings.key_facts.map((fact, index) => ({
+                '@type': 'ListItem',
+                'position': index + 1,
+                'item': {
+                    '@type': 'Claim',
+                    'claimInterpreter': props.website?.name,
+                    'text': fact
+                }
+            }))
+        };
+    }
+    
+    // Conversational Queries as FAQPage (GEO)
+    if (geoSettings.conversational_queries && geoSettings.conversational_queries.length > 0) {
+        // Add FAQ schema separately if there are queries
+        schema.mainEntityOfPage = {
+            '@type': 'FAQPage',
+            'mainEntity': geoSettings.conversational_queries.map(query => ({
+                '@type': 'Question',
+                'name': query,
+                'acceptedAnswer': {
+                    '@type': 'Answer',
+                    'text': `This content answers: ${query}`,
+                    'url': currentPageUrl.value
+                }
+            }))
+        };
+    }
+    
+    // Entity Definitions (GEO) - Define key entities
+    if (geoSettings.entity_definitions && geoSettings.entity_definitions.length > 0) {
+        schema.mentions = geoSettings.entity_definitions.map(entity => ({
+            '@type': entity.type || 'Thing',
+            'name': entity.name,
+            'description': entity.description
+        }));
+    }
+    
+    // Content Freshness / Fact Checking (GEO)
+    if (geoSettings.fact_checking_enabled) {
+        schema.reviewedBy = {
+            '@type': 'Organization',
+            'name': props.website?.name,
+            'description': 'Content reviewed for accuracy'
+        };
+    }
+    
+    // LLM Training Opt-Out (GEO) - Using TDM Reservation
+    if (geoSettings.llm_training_opt_out) {
+        schema.acquireLicensePage = currentPageUrl.value + '#tdm-reservation';
+    }
+    
+    // ========== END GEO ENHANCEMENTS ==========
     
     // Add recipe-specific fields
     if (props.article?.article_type === 'recipe') {

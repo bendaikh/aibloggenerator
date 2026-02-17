@@ -42,6 +42,8 @@ class Website extends Model
         'robots_txt',
         'google_analytics_id',
         'gtm_id',
+        // GEO Settings (Generative Engine Optimization)
+        'geo_settings',
     ];
 
     protected $appends = ['url', 'logo_url', 'favicon_url'];
@@ -52,6 +54,7 @@ class Website extends Model
         'hbagency_placements' => 'array',
         'google_ads_placements' => 'array',
         'seo_settings' => 'array',
+        'geo_settings' => 'array',
         'is_active' => 'boolean',
         'hbagency_active' => 'boolean',
         'google_ads_active' => 'boolean',
