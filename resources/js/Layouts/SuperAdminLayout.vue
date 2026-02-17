@@ -16,6 +16,7 @@ const currentWebsite = computed(() => page.props.currentWebsite || props.current
 const websites = computed(() => page.props.websites || []);
 
 const contentManagementOpen = ref(true);
+const adsManagementOpen = ref(false);
 const websiteDropdownOpen = ref(false);
 const sidebarOpen = ref(false);
 const userDropdownOpen = ref(false);
@@ -26,6 +27,11 @@ const isActive = (routeName) => {
 
 const isActivePrefix = (prefix) => {
     return route().current()?.startsWith(prefix);
+};
+
+const isAdsManagementActive = () => {
+    return isActive('superadmin.ads.hbagency') || 
+           isActive('superadmin.ads.google');
 };
 
 const switchWebsite = (website) => {
@@ -372,57 +378,55 @@ onUnmounted(() => {
                         Email Subscribers
                     </Link>
 
-                    <!-- Assets -->
-                    <Link 
-                        :href="currentWebsite ? route('superadmin.assets', { website: currentWebsite.id }) : '#'" 
-                        @click="handleNavClick"
-                        :class="[
-                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                            isActive('superadmin.assets') 
-                                ? 'bg-[#1f1f1f] text-white' 
-                                : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
-                        ]"
-                    >
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Assets
-                    </Link>
-
-                    <!-- Deployment -->
-                    <Link 
-                        :href="currentWebsite ? route('superadmin.deployment', { website: currentWebsite.id }) : '#'" 
-                        @click="handleNavClick"
-                        :class="[
-                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                            isActive('superadmin.deployment') 
-                                ? 'bg-[#1f1f1f] text-white' 
-                                : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
-                        ]"
-                    >
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                        </svg>
-                        Deployment
-                    </Link>
-
                     <!-- Ads Management -->
-                    <Link 
-                        :href="currentWebsite ? route('superadmin.ads', { website: currentWebsite.id }) : '#'" 
-                        @click="handleNavClick"
-                        :class="[
-                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                            isActive('superadmin.ads') 
-                                ? 'bg-[#1f1f1f] text-white' 
-                                : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
-                        ]"
-                    >
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                        </svg>
-                        Ads Management
-                    </Link>
+                    <div>
+                        <button 
+                            @click="adsManagementOpen = !adsManagementOpen"
+                            :class="[
+                                'flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm transition-colors',
+                                isAdsManagementActive()
+                                    ? 'bg-[#1f1f1f] text-white' 
+                                    : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
+                            ]"
+                        >
+                            <div class="flex items-center gap-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                                </svg>
+                                Ads Management
+                            </div>
+                            <svg 
+                                :class="['w-4 h-4 transition-transform', adsManagementOpen ? 'rotate-180' : '']" 
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        
+                        <div v-show="adsManagementOpen" class="mt-1 ml-8 space-y-1">
+                            <Link 
+                                :href="currentWebsite ? route('superadmin.ads.hbagency', { website: currentWebsite.id }) : '#'" 
+                                @click="handleNavClick"
+                                :class="[
+                                    'block px-3 py-2 rounded-lg text-sm transition-colors',
+                                    isActive('superadmin.ads.hbagency') ? 'text-white bg-[#252525]' : 'text-gray-400 hover:text-white hover:bg-[#1a1a1a]'
+                                ]"
+                            >
+                                HBAgency
+                            </Link>
+                            <Link 
+                                :href="currentWebsite ? route('superadmin.ads.google', { website: currentWebsite.id }) : '#'" 
+                                @click="handleNavClick"
+                                :class="[
+                                    'block px-3 py-2 rounded-lg text-sm transition-colors',
+                                    isActive('superadmin.ads.google') ? 'text-white bg-[#252525]' : 'text-gray-400 hover:text-white hover:bg-[#1a1a1a]'
+                                ]"
+                            >
+                                Google Ads
+                            </Link>
+                        </div>
+                    </div>
                 </nav>
             </div>
 

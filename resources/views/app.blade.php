@@ -16,8 +16,14 @@
 
         <!-- HBAgency Script - inserted directly in head as required by HBAgency -->
         <!-- HBAgency's script will automatically inject their CMP (Consent Management Platform) -->
-        @if(isset($website) && $website->hbagency_script)
+        @if(isset($website) && $website->hbagency_script && $website->hbagency_active)
         {!! $website->hbagency_script !!}
+        @endif
+
+        <!-- Google AdSense Script - loaded when Google Ads are active -->
+        @if(isset($website) && $website->google_adsense_id && $website->google_ads_active)
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ $website->google_adsense_id }}"
+                crossorigin="anonymous"></script>
         @endif
 
         <!-- Scripts -->

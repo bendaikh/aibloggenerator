@@ -157,8 +157,16 @@
                             </div>
 
                             <!-- ========== AD PLACEMENT 1: After Share Buttons (Top of Article) ========== -->
-                            <div v-if="website.hbagency_placements?.top_banner" class="ad-placement mb-8 flex justify-center">
+                            <!-- HBAgency Top Banner -->
+                            <div v-if="website.hbagency_active && website.hbagency_placements?.top_banner" class="ad-placement mb-8 flex justify-center">
                                 <div :id="'hbagency_space_' + website.hbagency_placements.top_banner" class="min-h-[90px] w-full max-w-[728px]"></div>
+                            </div>
+                            <!-- Google Ads Top Banner -->
+                            <div v-if="website.google_ads_active && website.google_ads_placements?.top_banner" class="ad-placement mb-8 flex justify-center">
+                                <ins class="adsbygoogle"
+                                     style="display:inline-block;width:728px;height:90px"
+                                     :data-ad-client="website.google_adsense_id"
+                                     :data-ad-slot="website.google_ads_placements.top_banner"></ins>
                             </div>
 
                             <!-- Article Excerpt -->
@@ -170,16 +178,32 @@
                             </div>
 
                             <!-- ========== AD PLACEMENT 2: Before Article Content ========== -->
-                            <div v-if="website.hbagency_placements?.in_article_1" class="ad-placement mb-8 flex justify-center">
+                            <!-- HBAgency In Article 1 -->
+                            <div v-if="website.hbagency_active && website.hbagency_placements?.in_article_1" class="ad-placement mb-8 flex justify-center">
                                 <div :id="'hbagency_space_' + website.hbagency_placements.in_article_1" class="min-h-[250px] w-full max-w-[336px]"></div>
+                            </div>
+                            <!-- Google Ads In Article 1 -->
+                            <div v-if="website.google_ads_active && website.google_ads_placements?.in_article_1" class="ad-placement mb-8 flex justify-center">
+                                <ins class="adsbygoogle"
+                                     style="display:inline-block;width:336px;height:280px"
+                                     :data-ad-client="website.google_adsense_id"
+                                     :data-ad-slot="website.google_ads_placements.in_article_1"></ins>
                             </div>
 
                             <!-- Article Content (with recipe sections removed) -->
                             <div class="prose prose-emerald prose-lg max-w-none article-body mb-12" :style="{ fontFamily: articleFontFamily, '--article-title-font': articleTitleFontFamily }" v-html="contentWithoutRecipeSections"></div>
 
                             <!-- ========== AD PLACEMENT 3: After Article Content ========== -->
-                            <div v-if="website.hbagency_placements?.in_article_2" class="ad-placement mb-8 flex justify-center">
+                            <!-- HBAgency In Article 2 -->
+                            <div v-if="website.hbagency_active && website.hbagency_placements?.in_article_2" class="ad-placement mb-8 flex justify-center">
                                 <div :id="'hbagency_space_' + website.hbagency_placements.in_article_2" class="min-h-[250px] w-full max-w-[336px]"></div>
+                            </div>
+                            <!-- Google Ads In Article 2 -->
+                            <div v-if="website.google_ads_active && website.google_ads_placements?.in_article_2" class="ad-placement mb-8 flex justify-center">
+                                <ins class="adsbygoogle"
+                                     style="display:inline-block;width:336px;height:280px"
+                                     :data-ad-client="website.google_adsense_id"
+                                     :data-ad-slot="website.google_ads_placements.in_article_2"></ins>
                             </div>
 
             <!-- Tags Card -->
@@ -236,8 +260,16 @@
                             />
 
                             <!-- ========== AD PLACEMENT 5: After Recipe Card (Bottom) ========== -->
-                            <div v-if="website.hbagency_placements?.bottom_banner" class="ad-placement mt-12 flex justify-center">
+                            <!-- HBAgency Bottom Banner -->
+                            <div v-if="website.hbagency_active && website.hbagency_placements?.bottom_banner" class="ad-placement mt-12 flex justify-center">
                                 <div :id="'hbagency_space_' + website.hbagency_placements.bottom_banner" class="min-h-[90px] w-full max-w-[728px]"></div>
+                            </div>
+                            <!-- Google Ads Bottom Banner -->
+                            <div v-if="website.google_ads_active && website.google_ads_placements?.bottom_banner" class="ad-placement mt-12 flex justify-center">
+                                <ins class="adsbygoogle"
+                                     style="display:inline-block;width:728px;height:90px"
+                                     :data-ad-client="website.google_adsense_id"
+                                     :data-ad-slot="website.google_ads_placements.bottom_banner"></ins>
                             </div>
 
                         </div>
@@ -274,10 +306,18 @@
                                 </div>
 
                                 <!-- ========== AD PLACEMENT 4: Sidebar Ad (300x600) ========== -->
-                                <div v-if="website.hbagency_placements?.sidebar" class="ad-placement">
+                                <!-- HBAgency Sidebar -->
+                                <div v-if="website.hbagency_active && website.hbagency_placements?.sidebar" class="ad-placement">
                                     <div :id="'hbagency_space_' + website.hbagency_placements.sidebar" class="min-h-[600px] w-full max-w-[300px] mx-auto">
                                         <!-- HBAgency will inject ad here -->
                                     </div>
+                                </div>
+                                <!-- Google Ads Sidebar -->
+                                <div v-if="website.google_ads_active && website.google_ads_placements?.sidebar" class="ad-placement">
+                                    <ins class="adsbygoogle"
+                                         style="display:inline-block;width:300px;height:600px"
+                                         :data-ad-client="website.google_adsense_id"
+                                         :data-ad-slot="website.google_ads_placements.sidebar"></ins>
                                 </div>
 
                                 <!-- Popular Posts Section -->
@@ -362,6 +402,10 @@ const { hasConsentFor, consentGiven, initializeHBAgencyAds } = useConsentManagem
 // Function to initialize HBAgency ads (only if consent is given)
 const initHBAgencyAds = () => {
     if (typeof window === 'undefined') return;
+    if (!props.website?.hbagency_active) {
+        console.log('[HBAgency] HBAgency is not active');
+        return;
+    }
     
     // Check if advertising consent is given
     const hasAdvertisingConsent = hasConsentFor(CONSENT_CATEGORIES.ADVERTISING);
@@ -434,11 +478,42 @@ const initHBAgencyAds = () => {
     window.dispatchEvent(new CustomEvent('hbagency:ready'));
 };
 
+// Function to initialize Google Ads
+const initGoogleAds = () => {
+    if (typeof window === 'undefined') return;
+    if (!props.website?.google_ads_active || !props.website?.google_adsense_id) {
+        console.log('[Google Ads] Google Ads is not active or no AdSense ID');
+        return;
+    }
+    
+    console.log('[Google Ads] Initializing Google AdSense ads');
+    
+    // Push all ads to be loaded
+    const adElements = document.querySelectorAll('.adsbygoogle');
+    console.log('[Google Ads] Found ad elements:', adElements.length);
+    
+    adElements.forEach((ad, index) => {
+        try {
+            if (!ad.getAttribute('data-adsbygoogle-status')) {
+                (window.adsbygoogle = window.adsbygoogle || []).push({});
+                console.log('[Google Ads] Initialized ad', index + 1);
+            }
+        } catch (e) {
+            console.error('[Google Ads] Error initializing ad:', e);
+        }
+    });
+};
+
 // Listen for consent events to initialize ads when consent is given
 const handleConsentGranted = () => {
-    console.log('[HBAgency] Consent granted event received');
+    console.log('[Ads] Consent granted event received');
     setTimeout(() => {
-        initHBAgencyAds();
+        if (props.website?.hbagency_active) {
+            initHBAgencyAds();
+        }
+        if (props.website?.google_ads_active) {
+            initGoogleAds();
+        }
     }, 1000);
 };
 
@@ -454,17 +529,27 @@ onMounted(() => {
         // Only initialize ads if consent is already given
         const hasAdvertisingConsent = hasConsentFor(CONSENT_CATEGORIES.ADVERTISING);
         if (hasAdvertisingConsent) {
-            // Wait a bit for all ad divs to be in the DOM and HBAgency script to load
-            setTimeout(() => {
-                initHBAgencyAds();
-            }, 1500); // Wait 1.5 seconds for HBAgency script to be ready
+            // Initialize HBAgency if active
+            if (props.website?.hbagency_active) {
+                // Wait a bit for all ad divs to be in the DOM and HBAgency script to load
+                setTimeout(() => {
+                    initHBAgencyAds();
+                }, 1500); // Wait 1.5 seconds for HBAgency script to be ready
+                
+                // Try again after 3 seconds in case initial load was slow
+                setTimeout(() => {
+                    initHBAgencyAds();
+                }, 3000);
+            }
             
-            // Try again after 3 seconds in case initial load was slow
-            setTimeout(() => {
-                initHBAgencyAds();
-            }, 3000);
+            // Initialize Google Ads if active
+            if (props.website?.google_ads_active) {
+                setTimeout(() => {
+                    initGoogleAds();
+                }, 500);
+            }
         } else {
-            console.log('[HBAgency] Waiting for consent before initializing ads...');
+            console.log('[Ads] Waiting for consent before initializing ads...');
         }
         
         // Check device type

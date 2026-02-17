@@ -210,12 +210,24 @@ $registerMainAppRoutes = function () {
             ]);
         })->name('superadmin.deployment');
 
-        Route::get('/{website}/ads', function ($website) {
-            return Inertia::render('SuperAdmin/Ads', [
+        // Ads Management Routes
+        Route::get('/{website}/ads/hbagency', function ($website) {
+            return Inertia::render('SuperAdmin/HBAgency', [
                 'currentWebsite' => \App\Models\Website::findOrFail($website),
                 'websites' => \App\Models\Website::where('user_id', auth()->id())->withCount(['articles', 'categories'])->get(),
             ]);
-        })->name('superadmin.ads');
+        })->name('superadmin.ads.hbagency');
+
+        Route::post('/{website}/ads/hbagency', [\App\Http\Controllers\AdsController::class, 'updateHBAgency'])->name('superadmin.ads.hbagency.update');
+
+        Route::get('/{website}/ads/google', function ($website) {
+            return Inertia::render('SuperAdmin/GoogleAds', [
+                'currentWebsite' => \App\Models\Website::findOrFail($website),
+                'websites' => \App\Models\Website::where('user_id', auth()->id())->withCount(['articles', 'categories'])->get(),
+            ]);
+        })->name('superadmin.ads.google');
+
+        Route::post('/{website}/ads/google', [\App\Http\Controllers\AdsController::class, 'updateGoogleAds'])->name('superadmin.ads.google.update');
 
         Route::get('/{website}/settings', [WebsiteController::class, 'settings'])->name('superadmin.settings');
         Route::put('/{website}/settings', [WebsiteController::class, 'updateSettings'])->name('superadmin.settings.update');

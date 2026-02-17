@@ -318,7 +318,8 @@
         </footer>
 
         <!-- ========== AD PLACEMENT: Sticky Footer Ad (728x90) ========== -->
-        <div v-if="website.hbagency_placements?.sticky_footer" class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-lg py-2">
+        <!-- HBAgency Sticky Footer -->
+        <div v-if="website.hbagency_active && website.hbagency_placements?.sticky_footer" class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-lg py-2">
             <div class="container mx-auto px-4 flex justify-center">
                 <div :id="'hbagency_space_' + website.hbagency_placements.sticky_footer" class="min-h-[90px] w-full max-w-[728px]">
                     <!-- HBAgency will inject sticky footer ad here -->
@@ -326,8 +327,18 @@
             </div>
         </div>
 
+        <!-- Google Ads Sticky Footer -->
+        <div v-if="website.google_ads_active && website.google_ads_placements?.sticky_footer" class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-lg py-2">
+            <div class="container mx-auto px-4 flex justify-center">
+                <ins class="adsbygoogle"
+                     style="display:inline-block;width:728px;height:90px"
+                     :data-ad-client="website.google_adsense_id"
+                     :data-ad-slot="website.google_ads_placements.sticky_footer"></ins>
+            </div>
+        </div>
+
         <!-- Spacer for sticky footer ad -->
-        <div v-if="website.hbagency_placements?.sticky_footer" class="h-[100px]"></div>
+        <div v-if="(website.hbagency_active && website.hbagency_placements?.sticky_footer) || (website.google_ads_active && website.google_ads_placements?.sticky_footer)" class="h-[100px]"></div>
 
         <!-- Subscribe Popup Modal -->
         <div v-if="showSubscribePopup" class="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -445,10 +456,12 @@ const props = defineProps({
 // Consent Management
 const { hasConsentFor, consentGiven, initializeHBAgencyAds } = useConsentManagement();
 
-// Only show custom CMP when HBAgency is NOT configured
-// When HBAgency script is present, their script handles CMP automatically
+// Only show custom CMP when neither HBAgency nor Google Ads are configured and active
+// When HBAgency script is present and active, their script handles CMP automatically
 const showCustomCMP = computed(() => {
-    return !props.website?.hbagency_script;
+    const hasActiveHBAgency = props.website?.hbagency_script && props.website?.hbagency_active;
+    const hasActiveGoogleAds = props.website?.google_adsense_id && props.website?.google_ads_active;
+    return !hasActiveHBAgency && !hasActiveGoogleAds;
 });
 
 // Handle consent given
@@ -469,6 +482,13 @@ onMounted(() => {
             hasScript: !!props.website?.hbagency_script,
             scriptLength: props.website?.hbagency_script?.length || 0,
             placements: props.website?.hbagency_placements,
+            active: props.website?.hbagency_active,
+        });
+        
+        console.log('[Layout] Website Google Ads config:', {
+            hasAdsenseId: !!props.website?.google_adsense_id,
+            placements: props.website?.google_ads_placements,
+            active: props.website?.google_ads_active,
         });
         
         // Initialize Google Tag Manager
@@ -479,6 +499,18 @@ onMounted(() => {
         // Initialize Google Analytics
         if (props.website?.google_analytics_id && hasConsentFor(CONSENT_CATEGORIES.ANALYTICS)) {
             initGoogleAnalytics(props.website.google_analytics_id);
+        }
+        
+        // Initialize Google AdSense ads
+        if (props.website?.google_ads_active && props.website?.google_adsense_id) {
+            setTimeout(() => {
+                try {
+                    (window.adsbygoogle = window.adsbygoogle || []).push({});
+                    console.log('[Google Ads] AdSense initialized');
+                } catch (e) {
+                    console.error('[Google Ads] Error initializing:', e);
+                }
+            }, 100);
         }
     });
 });

@@ -28,6 +28,10 @@ class Website extends Model
         'ads_txt',
         'pinterest_verification',
         'hbagency_placements',
+        'hbagency_active',
+        'google_adsense_id',
+        'google_ads_placements',
+        'google_ads_active',
         'is_active',
         'published_at',
         // SEO Settings
@@ -46,8 +50,11 @@ class Website extends Model
         'theme_settings' => 'array',
         'social_media' => 'array',
         'hbagency_placements' => 'array',
+        'google_ads_placements' => 'array',
         'seo_settings' => 'array',
         'is_active' => 'boolean',
+        'hbagency_active' => 'boolean',
+        'google_ads_active' => 'boolean',
         'published_at' => 'datetime',
     ];
 
