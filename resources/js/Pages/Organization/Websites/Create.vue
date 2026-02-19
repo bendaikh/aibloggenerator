@@ -4,6 +4,11 @@ import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
+defineProps({
+    themes: Array,
+    currentTheme: Number,
+});
+
 const showDomainInstructions = ref(false);
 const logoPreview = ref('');
 const faviconPreview = ref('');
@@ -18,6 +23,7 @@ const form = useForm({
     is_active: true,
     logo: null,
     favicon: null,
+    theme_id: null,
 });
 
 const handleLogoChange = (event) => {
@@ -86,6 +92,34 @@ const submit = () => {
 
             <form @submit.prevent="submit" class="max-w-2xl">
                 <div class="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6 space-y-6">
+                    <!-- Theme Selection -->
+                    <div>
+                        <label for="theme_id" class="block text-sm font-medium text-gray-300 mb-2">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                                </svg>
+                                Select Theme *
+                            </div>
+                        </label>
+                        <select
+                            id="theme_id"
+                            v-model="form.theme_id"
+                            class="w-full bg-[#252525] border border-[#3a3a3a] text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            required
+                        >
+                            <option :value="null" disabled>Choose a theme...</option>
+                            <option v-for="theme in themes" :key="theme.id" :value="theme.id">
+                                {{ theme.name }} - {{ theme.description }}
+                            </option>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">
+                            <strong>Recipe Theme:</strong> Shows ingredient and instruction cards (for food blogs).<br>
+                            <strong>Home Decor Theme:</strong> Hides recipe sections (for home decor and lifestyle blogs).
+                        </p>
+                        <p v-if="form.errors.theme_id" class="mt-1 text-sm text-red-500">{{ form.errors.theme_id }}</p>
+                    </div>
+
                     <!-- Website Name -->
                     <div>
                         <label for="name" class="block text-sm font-medium text-gray-300 mb-2">

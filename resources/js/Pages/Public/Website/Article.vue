@@ -129,7 +129,7 @@
                                     
                                     <!-- Action Buttons Bar -->
                                     <div class="ml-auto flex flex-wrap items-center gap-2">
-                                        <button @click="scrollToRecipe" class="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-full font-bold text-xs uppercase tracking-widest hover:bg-emerald-600 transition shadow-md shadow-emerald-100">
+                                        <button v-if="showRecipeSections" @click="scrollToRecipe" class="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-full font-bold text-xs uppercase tracking-widest hover:bg-emerald-600 transition shadow-md shadow-emerald-100">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
                                             Jump to Recipe
                                         </button>
@@ -270,8 +270,9 @@
                 </div>
             </div>
 
-            <!-- Recipe Card Component -->
+            <!-- Recipe Card Component (conditionally shown based on theme) -->
                             <RecipeCard 
+                                v-if="showRecipeSections"
                                 :gradients="article.gradients"
                                 :content="article.processed_content || article.content || ''" 
                                 :title="article.title"
@@ -399,7 +400,11 @@ import { useConsentManagement, CONSENT_CATEGORIES } from '@/composables/useConse
 const props = defineProps({
     website: Object,
     article: Object,
-    relatedArticles: Array
+    relatedArticles: Array,
+    showRecipeSections: {
+        type: Boolean,
+        default: true
+    }
 });
 
 // Get subscription popup settings

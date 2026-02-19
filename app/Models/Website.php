@@ -22,6 +22,7 @@ class Website extends Model
         'logo',
         'favicon',
         'theme',
+        'theme_id',
         'theme_settings',
         'social_media',
         'hbagency_script',
@@ -83,6 +84,14 @@ class Website extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the theme that belongs to the website.
+     */
+    public function theme()
+    {
+        return $this->belongsTo(\App\Models\Theme::class);
     }
 
     /**

@@ -88,6 +88,9 @@ $registerMainAppRoutes = function () {
         Route::get('/agent-rewrite', [OrganizationController::class, 'agentRewrite'])->name('organization.agent-rewrite');
         Route::post('/agent-rewrite', [OrganizationController::class, 'updateAgentRewrite'])->name('organization.agent-rewrite.update');
         
+        // Themes Routes (Read-Only - just view available themes)
+        Route::get('/themes', [OrganizationController::class, 'themes'])->name('organization.themes');
+        
         Route::get('/websites', [OrganizationController::class, 'websitesIndex'])->name('organization.websites.index');
         Route::get('/websites/create', [OrganizationController::class, 'websitesCreate'])->name('organization.websites.create');
         Route::post('/websites', [OrganizationController::class, 'websitesStore'])->name('organization.websites.store');

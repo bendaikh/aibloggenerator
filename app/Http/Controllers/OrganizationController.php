@@ -217,6 +217,25 @@ class OrganizationController extends Controller
     }
 
     /**
+     * Themes Page (Read-Only)
+     */
+    public function themes()
+    {
+        $user = Auth::user();
+        $websites = Website::where('user_id', $user->id)
+            ->withCount(['articles', 'categories'])
+            ->get();
+
+        // Get all available themes
+        $themes = \App\Models\Theme::where('is_active', true)->get();
+
+        return Inertia::render('Organization/Themes', [
+            'themes' => $themes,
+            'websites' => $websites,
+        ]);
+    }
+
+    /**
      * Update Global Settings
      */
     public function updateSettings(Request $request)
@@ -302,8 +321,12 @@ class OrganizationController extends Controller
             ->withCount(['articles', 'categories'])
             ->get();
 
+        // Get all available themes
+        $themes = \App\Models\Theme::where('is_active', true)->get();
+
         return Inertia::render('Organization/Websites/Create', [
             'websites' => $websites,
+            'themes' => $themes,
         ]);
     }
 
@@ -322,6 +345,7 @@ class OrganizationController extends Controller
             'is_active' => 'boolean',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:5120',
             'favicon' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,ico|max:2048',
+            'theme_id' => 'required|exists:themes,id',
         ]);
 
         $user = Auth::user();
@@ -382,6 +406,7 @@ class OrganizationController extends Controller
             'is_active' => $validated['is_active'] ?? true,
             'logo' => $validated['logo'],
             'favicon' => $validated['favicon'],
+            'theme_id' => $validated['theme_id'],
         ]);
 
         // Create default pages for the website

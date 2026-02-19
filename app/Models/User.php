@@ -23,6 +23,7 @@ class User extends Authenticatable
         'password',
         'role',
         'status',
+        'theme_id',
         'openai_api_key',
         'ai_model',
         'ai_default_tone',
@@ -36,6 +37,14 @@ class User extends Authenticatable
     public function roleRelation()
     {
         return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    /**
+     * Get the theme that belongs to the user.
+     */
+    public function theme()
+    {
+        return $this->belongsTo(Theme::class);
     }
 
     /**

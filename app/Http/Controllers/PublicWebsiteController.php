@@ -72,10 +72,14 @@ class PublicWebsiteController extends Controller
             ->take(3)
             ->get();
 
+        // Load the website's theme to determine if recipe sections should be shown
+        $websiteTheme = $website->theme()->first();
+
         return Inertia::render('Public/Website/Article', [
             'website' => $website,
             'article' => $article,
             'relatedArticles' => $relatedArticles,
+            'showRecipeSections' => $websiteTheme ? $websiteTheme->show_recipe_sections : true,
         ]);
     }
 
@@ -123,10 +127,14 @@ class PublicWebsiteController extends Controller
             ->take(3)
             ->get();
 
+        // Load the website's theme to determine if recipe sections should be shown
+        $websiteTheme = $website->theme()->first();
+
         return Inertia::render('Public/Website/Article', [
             'website' => $website,
             'article' => $article,
             'relatedArticles' => $relatedArticles,
+            'showRecipeSections' => $websiteTheme ? $websiteTheme->show_recipe_sections : true,
         ]);
     }
 
@@ -270,10 +278,14 @@ class PublicWebsiteController extends Controller
             ->take(3)
             ->get();
 
+        // Load the website's theme to determine if recipe sections should be shown
+        $websiteTheme = $website->theme()->first();
+
         return Inertia::render('Public/Website/Article', [
             'website' => $website,
             'article' => $article,
             'relatedArticles' => $relatedArticles,
+            'showRecipeSections' => $websiteTheme ? $websiteTheme->show_recipe_sections : true,
         ]);
     }
 
@@ -319,10 +331,14 @@ class PublicWebsiteController extends Controller
             ->take(3)
             ->get();
 
+        // Load the website's theme to determine if recipe sections should be shown
+        $websiteTheme = $website->theme()->first();
+
         return Inertia::render('Public/Website/Article', [
             'website' => $website,
             'article' => $article,
             'relatedArticles' => $relatedArticles,
+            'showRecipeSections' => $websiteTheme ? $websiteTheme->show_recipe_sections : true,
         ]);
     }
 
