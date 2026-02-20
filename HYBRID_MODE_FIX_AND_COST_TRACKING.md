@@ -1,6 +1,8 @@
 # Hybrid Mode Fix & Cost Tracking Implementation
 
-## Issue Discovered
+## Issues Discovered and Fixed
+
+### Issue #1: Hybrid Mode Activation Condition (Fixed Previously)
 
 The hybrid rewrite mode was **not working correctly** due to a condition in the code that only activated hybrid mode when there were **more than 1 website** selected:
 
@@ -11,22 +13,55 @@ if ($generationMode === 'hybrid_rewrite' && $websiteCount > 1) {
 }
 ```
 
-This meant that if you selected hybrid mode but only generated articles for 1 website, it would still use Full AI mode and charge the full API cost.
+**Fix applied**: Changed to `$websiteCount >= 1`
 
-## What Was Fixed
+### Issue #2: Job Dispatch Logic (Fixed Feb 20, 2026)
 
-### 1. **Fixed Hybrid Mode Activation** ✅
-
-Changed the condition to activate hybrid mode with **1 or more websites**:
+**ROOT CAUSE**: The controller was dispatching **individual jobs for each website**, even in hybrid mode!
 
 ```php
-// NEW CODE (FIXED)
-if ($generationMode === 'hybrid_rewrite' && $websiteCount >= 1) {
-    // Use hybrid mode (works with 1+ websites)
+// OLD CODE (BROKEN) - in OrganizationController.php
+foreach ($generationJobIds as $websiteId => $trackingJobId) {
+    GenerateGlobalAIArticleJob::dispatch(
+        [$websiteId => $trackingJobId],  // Only 1 website per job!
+        [$websiteId],                     // Only 1 website per job!
+        // ...
+    );
 }
 ```
 
-Now hybrid mode will work correctly even when generating for a single website.
+This meant each job only had 1 website, so hybrid mode generated a "master article" for that single website - effectively making **1 API call per website** (same as Full AI mode).
+
+**Fix applied**: The dispatch logic now checks the user's generation mode:
+
+```php
+// NEW CODE (FIXED)
+$generationMode = $user->article_generation_mode ?? 'full_ai';
+
+if ($generationMode === 'hybrid_rewrite') {
+    // HYBRID MODE: Dispatch ONE job with ALL websites
+    GenerateGlobalAIArticleJob::dispatch(
+        $generationJobIds,              // All website job IDs
+        array_keys($generationJobIds),  // All website IDs
+        // ...
+    );
+} else {
+    // FULL AI MODE: Dispatch individual jobs for each website
+    foreach ($generationJobIds as $websiteId => $trackingJobId) {
+        GenerateGlobalAIArticleJob::dispatch(
+            [$websiteId => $trackingJobId],
+            [$websiteId],
+            // ...
+        );
+    }
+}
+```
+
+Now hybrid mode correctly:
+1. Sends ALL websites to a single job
+2. Generates 1 master article via AI
+3. Creates local variations for other websites
+4. Results in **only 1 API call** regardless of website count!
 
 ### 2. **Added Complete Cost Tracking System** ✅
 

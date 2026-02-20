@@ -1008,12 +1008,16 @@ HTML;
         // Filter out empty images
         $featuredImages = array_filter($validated['featured_images'] ?? [], fn($img) => !empty($img));
 
-        // Dispatch individual jobs for each website to avoid timeouts and duplicates
-        $index = 0;
-        foreach ($generationJobIds as $websiteId => $trackingJobId) {
+        // Check the user's generation mode
+        $generationMode = $user->article_generation_mode ?? 'full_ai';
+
+        if ($generationMode === 'hybrid_rewrite') {
+            // HYBRID MODE: Dispatch ONE job with ALL websites
+            // This generates 1 master article via AI + local variations for other websites
+            // Cost: 1 API call total (regardless of website count)
             GenerateGlobalAIArticleJob::dispatch(
-                [$websiteId => $trackingJobId],
-                [$websiteId],
+                $generationJobIds,
+                array_keys($generationJobIds),
                 $user->id,
                 $validated['topic'],
                 $validated['tone'] ?? $user->ai_default_tone ?? 'conversational',
@@ -1023,11 +1027,34 @@ HTML;
                 $validated['auto_publish'] ?? false,
                 $featuredImages,
                 $validated['article_type'] ?? 'recipe',
-                $index++
+                null
             );
-        }
 
-        return redirect()->back()->with('success', 'Global article generation started! We are pushing unique versions to ' . count($generationJobIds) . ' websites in the background.');
+            return redirect()->back()->with('success', 'Hybrid mode: Generating 1 master article + ' . (count($generationJobIds) - 1) . ' local variations for ' . count($generationJobIds) . ' websites. Only 1 API call will be made!');
+        } else {
+            // FULL AI MODE: Dispatch individual jobs for each website
+            // Each website gets a unique AI-generated article
+            // Cost: 1 API call per website
+            $index = 0;
+            foreach ($generationJobIds as $websiteId => $trackingJobId) {
+                GenerateGlobalAIArticleJob::dispatch(
+                    [$websiteId => $trackingJobId],
+                    [$websiteId],
+                    $user->id,
+                    $validated['topic'],
+                    $validated['tone'] ?? $user->ai_default_tone ?? 'conversational',
+                    $validated['length'] ?? 'medium',
+                    $validated['keywords'] ?? '',
+                    $validated['ingredients'] ?? '',
+                    $validated['auto_publish'] ?? false,
+                    $featuredImages,
+                    $validated['article_type'] ?? 'recipe',
+                    $index++
+                );
+            }
+
+            return redirect()->back()->with('success', 'Full AI mode: Generating ' . count($generationJobIds) . ' unique articles. Each website will get a unique AI-generated article.');
+        }
     }
 
     /**
