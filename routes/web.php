@@ -88,6 +88,9 @@ $registerMainAppRoutes = function () {
         Route::get('/agent-rewrite', [OrganizationController::class, 'agentRewrite'])->name('organization.agent-rewrite');
         Route::post('/agent-rewrite', [OrganizationController::class, 'updateAgentRewrite'])->name('organization.agent-rewrite.update');
         
+        // API Usage & Cost Tracking
+        Route::get('/api-usage', [OrganizationController::class, 'apiUsage'])->name('organization.api-usage');
+        
         // Themes Routes (Read-Only - just view available themes)
         Route::get('/themes', [OrganizationController::class, 'themes'])->name('organization.themes');
         

@@ -267,6 +267,75 @@ class OrganizationController extends Controller
     }
 
     /**
+     * API Usage Page - Show API usage statistics and cost tracking
+     */
+    public function apiUsage()
+    {
+        $user = Auth::user();
+        $websites = Website::where('user_id', $user->id)
+            ->withCount(['articles', 'categories'])
+            ->get();
+
+        // Get usage statistics
+        $totalCost = \App\Models\ApiUsageLog::where('user_id', $user->id)->sum('estimated_cost');
+        $totalTokens = \App\Models\ApiUsageLog::where('user_id', $user->id)->sum('total_tokens');
+        $totalRequests = \App\Models\ApiUsageLog::where('user_id', $user->id)->count();
+
+        // Full AI mode stats
+        $fullAICost = \App\Models\ApiUsageLog::where('user_id', $user->id)
+            ->where('generation_mode', 'full_ai')
+            ->sum('estimated_cost');
+        $fullAIRequests = \App\Models\ApiUsageLog::where('user_id', $user->id)
+            ->where('generation_mode', 'full_ai')
+            ->count();
+
+        // Hybrid mode stats
+        $hybridCost = \App\Models\ApiUsageLog::where('user_id', $user->id)
+            ->where('generation_mode', 'hybrid_rewrite')
+            ->sum('estimated_cost');
+        $hybridRequests = \App\Models\ApiUsageLog::where('user_id', $user->id)
+            ->where('generation_mode', 'hybrid_rewrite')
+            ->count();
+
+        // Get articles count with metadata
+        $hybridArticles = Article::where('user_id', $user->id)
+            ->where('generation_mode', 'hybrid_rewrite')
+            ->count();
+
+        // Calculate estimated savings (what Full AI would have cost for hybrid articles)
+        $estimatedFullAICostForHybrid = $hybridArticles * ($fullAIRequests > 0 ? $fullAICost / $fullAIRequests : 0);
+        $estimatedSavings = max(0, $estimatedFullAICostForHybrid - $hybridCost);
+
+        $totalArticles = Article::where('user_id', $user->id)
+            ->where('ai_generated', true)
+            ->count();
+
+        $usage = [
+            'total_cost' => $totalCost,
+            'total_tokens' => $totalTokens,
+            'total_requests' => $totalRequests,
+            'full_ai_cost' => $fullAICost,
+            'full_ai_requests' => $fullAIRequests,
+            'hybrid_cost' => $hybridCost,
+            'hybrid_requests' => $hybridRequests,
+            'hybrid_articles' => $hybridArticles,
+            'estimated_savings' => $estimatedSavings,
+            'total_articles' => $totalArticles,
+        ];
+
+        // Get recent logs
+        $logs = \App\Models\ApiUsageLog::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        return Inertia::render('Organization/ApiUsage', [
+            'usage' => $usage,
+            'logs' => $logs,
+            'websites' => $websites,
+        ]);
+    }
+
+    /**
      * Test AI Connection
      */
     public function testAiConnection()

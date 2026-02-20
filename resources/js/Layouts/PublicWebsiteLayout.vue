@@ -1,5 +1,20 @@
 <template>
     <div class="min-h-screen bg-white">
+        <!-- Global Meta Tags for Website Verification -->
+        <Head>
+            <!-- Pinterest Domain Verification -->
+            <meta v-if="website.pinterest_verification" name="p:domain_verify" :content="website.pinterest_verification" />
+            
+            <!-- Google Site Verification -->
+            <meta v-if="website.google_verification" name="google-site-verification" :content="website.google_verification" />
+            
+            <!-- Bing Verification -->
+            <meta v-if="website.bing_verification" name="msvalidate.01" :content="website.bing_verification" />
+            
+            <!-- Yandex Verification -->
+            <meta v-if="website.yandex_verification" name="yandex-verification" :content="website.yandex_verification" />
+        </Head>
+        
         <!-- Cookie Consent Banner (Custom CMP - only shown when HBAgency is NOT configured) -->
         <!-- When HBAgency script is present, their script automatically injects their own CMP -->
         <CookieConsent 
@@ -437,6 +452,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
+import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useSubscribePopup } from '@/composables/useSubscribePopup';
 import { useConsentManagement, CONSENT_CATEGORIES } from '@/composables/useConsentManagement';

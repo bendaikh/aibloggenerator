@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\User;
 use App\Models\Author;
 use App\Models\ArticleGenerationJob;
+use App\Models\ApiUsageLog;
 use App\Services\PinterestDesignService;
 use App\Services\RewritingService;
 use App\Services\VariationEngine;
@@ -108,8 +109,9 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
         };
 
         try {
-            if ($generationMode === 'hybrid_rewrite' && $websiteCount > 1) {
+            if ($generationMode === 'hybrid_rewrite' && $websiteCount >= 1) {
                 // HYBRID MODE: Generate 1 master article + rewrite for variations
+                // Note: Even with 1 website, we use hybrid mode to demonstrate the feature
                 $this->handleHybridMode($user, $wordCount, $maxVariations);
             } else {
                 // FULL AI MODE: Generate unique AI article for each website
@@ -172,6 +174,31 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
                 ]);
 
                 $generatedContent = $result->choices[0]->message->content ?? '';
+                
+                // Log API usage and cost
+                $usage = $result->usage ?? null;
+                if ($usage) {
+                    ApiUsageLog::logUsage(
+                        userId: $this->userId,
+                        provider: 'openai',
+                        model: $model,
+                        operation: 'article_generation',
+                        promptTokens: $usage->promptTokens ?? 0,
+                        completionTokens: $usage->completionTokens ?? 0,
+                        generationMode: 'full_ai',
+                        articleId: null, // Article not created yet
+                        metadata: [
+                            'topic' => $this->topic,
+                            'website_id' => $websiteId,
+                            'variation_index' => $vIndex,
+                        ]
+                    );
+                    
+                    Log::info("API Usage logged for website {$websiteId}", [
+                        'tokens' => $usage->totalTokens ?? 0,
+                        'estimated_cost' => ApiUsageLog::calculateCost($model, $usage->promptTokens ?? 0, $usage->completionTokens ?? 0)
+                    ]);
+                }
 
                 // Check if job still exists before continuing (user might have cancelled)
                 $generationJob = ArticleGenerationJob::find($jobId);
@@ -308,6 +335,34 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
             ]);
 
             $masterContent = $result->choices[0]->message->content ?? '';
+            
+            // Log API usage and cost for master article (HYBRID MODE - only 1 API call!)
+            $usage = $result->usage ?? null;
+            if ($usage) {
+                ApiUsageLog::logUsage(
+                    userId: $this->userId,
+                    provider: 'openai',
+                    model: $model,
+                    operation: 'article_generation',
+                    promptTokens: $usage->promptTokens ?? 0,
+                    completionTokens: $usage->completionTokens ?? 0,
+                    generationMode: 'hybrid_rewrite',
+                    articleId: null,
+                    metadata: [
+                        'topic' => $this->topic,
+                        'is_master_article' => true,
+                        'target_websites' => count($this->websiteIds),
+                        'note' => 'Master article - variations created locally without additional API costs'
+                    ]
+                );
+                
+                Log::info("API Usage logged for HYBRID MODE master article", [
+                    'tokens' => $usage->totalTokens ?? 0,
+                    'estimated_cost' => ApiUsageLog::calculateCost($model, $usage->promptTokens ?? 0, $usage->completionTokens ?? 0),
+                    'websites_count' => count($this->websiteIds),
+                    'savings' => 'Only 1 API call for ' . count($this->websiteIds) . ' articles!'
+                ]);
+            }
             
             if (empty($masterContent)) {
                 $this->failAllJobs('Empty master content received from OpenAI');
