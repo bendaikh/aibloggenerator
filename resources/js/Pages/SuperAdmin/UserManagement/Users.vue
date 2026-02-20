@@ -126,6 +126,12 @@ const declineUser = (user) => {
         router.post(route('organization.users.decline', { user: user.id }));
     }
 };
+
+const loginAsUser = (user) => {
+    if (confirm(`Are you sure you want to login as ${user.name}? You will be able to see everything from their perspective.`)) {
+        router.post(route('organization.users.login-as', { user: user.id }));
+    }
+};
 </script>
 
 <template>
@@ -259,6 +265,18 @@ const declineUser = (user) => {
                                                 Decline
                                             </button>
                                         </template>
+                                        
+                                        <!-- Login As button -->
+                                        <button
+                                            @click="loginAsUser(user)"
+                                            class="p-2 bg-blue-600/10 hover:bg-blue-600 text-blue-500 hover:text-white rounded-lg transition-colors group"
+                                            title="Login as this user"
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                            </svg>
+                                        </button>
+                                        
                                         <button
                                             @click="openEditModal(user)"
                                             class="px-3 py-1.5 bg-[#252525] hover:bg-[#303030] text-white rounded-lg text-sm transition-colors"

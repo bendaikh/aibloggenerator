@@ -1,11 +1,12 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link, usePage, router } from '@inertiajs/vue3';
 import AIJobsNotification from '@/Components/AIJobsNotification.vue';
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user);
 const websites = computed(() => page.props.websites || []);
+const isImpersonating = computed(() => page.props.isImpersonating || false);
 
 const sidebarOpen = ref(false);
 const userManagementOpen = ref(false);
@@ -60,6 +61,12 @@ onMounted(() => {
 onUnmounted(() => {
     document.removeEventListener('keydown', handleKeydown);
 });
+
+const stopImpersonation = () => {
+    if (confirm('Are you sure you want to stop impersonating and return to your account?')) {
+        router.post(route('organization.users.stop-impersonation'));
+    }
+};
 </script>
 
 <template>
@@ -454,6 +461,28 @@ onUnmounted(() => {
 
         <!-- Main Content -->
         <main class="flex-1 lg:ml-64">
+            <!-- Impersonation Banner -->
+            <div v-if="isImpersonating" class="bg-gradient-to-r from-orange-600 to-red-600 text-white px-4 lg:px-8 py-3 flex items-center justify-between shadow-lg">
+                <div class="flex items-center gap-3">
+                    <svg class="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div>
+                        <p class="font-semibold">You are currently logged in as {{ user?.name }}</p>
+                        <p class="text-xs opacity-90">You are viewing this account as an administrator</p>
+                    </div>
+                </div>
+                <button 
+                    @click="stopImpersonation"
+                    class="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Stop Impersonation
+                </button>
+            </div>
+            
             <!-- Top Header Bar -->
             <header class="sticky top-0 z-30 bg-[#0f0f0f]/95 backdrop-blur border-b border-[#2a2a2a]">
                 <div class="flex items-center justify-between px-4 lg:px-8 py-3">

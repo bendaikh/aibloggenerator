@@ -7,6 +7,8 @@ use App\Models\Role;
 use App\Models\Website;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 
@@ -178,5 +180,61 @@ class UserManagementController extends Controller
         return redirect()
             ->route('organization.users.index', ['status' => 'pending'])
             ->with('success', 'User declined successfully.');
+    }
+
+    /**
+     * Login as another user (impersonation).
+     */
+    public function loginAs(User $user)
+    {
+        // Prevent impersonating yourself
+        if ($user->id === auth()->id()) {
+            return redirect()
+                ->route('organization.users.index')
+                ->with('error', 'You cannot impersonate yourself.');
+        }
+
+        // Store the original user ID in session
+        Session::put('impersonator_id', auth()->id());
+
+        // Login as the target user
+        Auth::login($user);
+
+        return redirect()
+            ->route('organization.dashboard')
+            ->with('success', "You are now logged in as {$user->name}. Click 'Stop Impersonation' to return to your account.");
+    }
+
+    /**
+     * Stop impersonating and return to original account.
+     */
+    public function stopImpersonation()
+    {
+        $impersonatorId = Session::get('impersonator_id');
+
+        if (!$impersonatorId) {
+            return redirect()
+                ->route('organization.dashboard')
+                ->with('error', 'You are not currently impersonating anyone.');
+        }
+
+        $originalUser = User::find($impersonatorId);
+
+        if (!$originalUser) {
+            Session::forget('impersonator_id');
+            return redirect()
+                ->route('login')
+                ->with('error', 'Original user not found.');
+        }
+
+        // Remove impersonation session
+        Session::forget('impersonator_id');
+
+        // Login back as original user
+        Auth::login($originalUser);
+
+        return redirect()
+            ->route('organization.users.index')
+            ->with('success', 'You have stopped impersonating and returned to your account.');
     }
 }

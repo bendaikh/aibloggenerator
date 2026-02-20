@@ -39,6 +39,7 @@ class HandleInertiaRequests extends Middleware
                 'url' => config('app.url'),
                 'base_domain' => config('app.base_domain'),
             ],
+            'isImpersonating' => $request->session()->has('impersonator_id'),
         ];
     }
 }
