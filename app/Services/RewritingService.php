@@ -15,24 +15,86 @@ use Illuminate\Support\Str;
 class RewritingService
 {
     /**
-     * Synonym dictionary for semantic variation
+     * Synonym dictionary for semantic variation - expanded for more variety
      */
     private array $synonyms = [
-        'delicious' => ['tasty', 'flavorful', 'scrumptious', 'mouthwatering', 'appetizing'],
-        'easy' => ['simple', 'straightforward', 'effortless', 'uncomplicated', 'quick'],
-        'perfect' => ['ideal', 'excellent', 'outstanding', 'superb', 'wonderful'],
-        'amazing' => ['incredible', 'fantastic', 'remarkable', 'extraordinary', 'wonderful'],
-        'best' => ['finest', 'top', 'premier', 'superior', 'ultimate'],
-        'great' => ['excellent', 'wonderful', 'fantastic', 'terrific', 'superb'],
-        'beautiful' => ['gorgeous', 'stunning', 'lovely', 'attractive', 'elegant'],
-        'important' => ['crucial', 'essential', 'vital', 'significant', 'key'],
-        'big' => ['large', 'substantial', 'considerable', 'significant', 'major'],
-        'small' => ['little', 'tiny', 'compact', 'minor', 'modest'],
-        'quick' => ['fast', 'rapid', 'swift', 'speedy', 'prompt'],
-        'healthy' => ['nutritious', 'wholesome', 'nourishing', 'beneficial', 'good'],
-        'fresh' => ['new', 'recent', 'crisp', 'vibrant', 'just-picked'],
-        'traditional' => ['classic', 'conventional', 'time-honored', 'authentic', 'original'],
-        'modern' => ['contemporary', 'current', 'up-to-date', 'trendy', 'recent'],
+        // Food & Cooking
+        'delicious' => ['tasty', 'flavorful', 'scrumptious', 'mouthwatering', 'appetizing', 'savory', 'delectable'],
+        'cook' => ['prepare', 'make', 'create', 'whip up', 'put together'],
+        'recipe' => ['dish', 'meal', 'creation', 'preparation'],
+        'ingredients' => ['components', 'items', 'elements', 'contents'],
+        'flavor' => ['taste', 'essence', 'character', 'zest'],
+        'meal' => ['dish', 'feast', 'spread', 'fare'],
+        'serve' => ['present', 'offer', 'dish up', 'plate'],
+        
+        // Descriptive - Quality
+        'easy' => ['simple', 'straightforward', 'effortless', 'uncomplicated', 'hassle-free'],
+        'perfect' => ['ideal', 'excellent', 'outstanding', 'superb', 'flawless'],
+        'amazing' => ['incredible', 'fantastic', 'remarkable', 'extraordinary', 'stunning'],
+        'best' => ['finest', 'top', 'premier', 'superior', 'ultimate', 'greatest'],
+        'great' => ['excellent', 'wonderful', 'fantastic', 'terrific', 'superb', 'magnificent'],
+        'good' => ['excellent', 'fine', 'quality', 'solid', 'decent'],
+        'beautiful' => ['gorgeous', 'stunning', 'lovely', 'attractive', 'elegant', 'exquisite'],
+        'wonderful' => ['marvelous', 'splendid', 'fantastic', 'magnificent', 'superb'],
+        
+        // Descriptive - Importance
+        'important' => ['crucial', 'essential', 'vital', 'significant', 'key', 'critical'],
+        'essential' => ['crucial', 'vital', 'necessary', 'fundamental', 'key'],
+        'necessary' => ['required', 'needed', 'essential', 'vital', 'important'],
+        
+        // Size & Amount
+        'big' => ['large', 'substantial', 'considerable', 'significant', 'sizeable'],
+        'small' => ['little', 'tiny', 'compact', 'modest', 'petite'],
+        'many' => ['numerous', 'several', 'various', 'multiple', 'plenty of'],
+        'few' => ['several', 'a handful of', 'some', 'a couple of'],
+        
+        // Speed & Time
+        'quick' => ['fast', 'rapid', 'swift', 'speedy', 'prompt', 'brief'],
+        'slow' => ['gradual', 'leisurely', 'unhurried', 'steady'],
+        'fast' => ['quick', 'rapid', 'swift', 'speedy', 'prompt'],
+        
+        // Health & Wellness
+        'healthy' => ['nutritious', 'wholesome', 'nourishing', 'beneficial', 'healthful'],
+        'fresh' => ['crisp', 'vibrant', 'just-picked', 'newly-made', 'garden-fresh'],
+        
+        // Style
+        'traditional' => ['classic', 'conventional', 'time-honored', 'authentic', 'heritage'],
+        'modern' => ['contemporary', 'current', 'up-to-date', 'trendy', 'cutting-edge'],
+        'simple' => ['basic', 'straightforward', 'uncomplicated', 'easy', 'plain'],
+        'unique' => ['distinctive', 'special', 'one-of-a-kind', 'original', 'singular'],
+        
+        // Actions
+        'make' => ['create', 'prepare', 'craft', 'produce', 'whip up'],
+        'use' => ['utilize', 'employ', 'apply', 'incorporate'],
+        'add' => ['include', 'incorporate', 'mix in', 'introduce'],
+        'try' => ['attempt', 'give a go', 'experiment with', 'test out'],
+        'enjoy' => ['savor', 'relish', 'appreciate', 'delight in'],
+        'want' => ['desire', 'wish for', 'crave', 'seek'],
+        'need' => ['require', 'must have', 'call for'],
+        'get' => ['obtain', 'acquire', 'receive', 'gain'],
+        'start' => ['begin', 'commence', 'kick off', 'initiate'],
+        'help' => ['assist', 'aid', 'support', 'contribute to'],
+        'show' => ['demonstrate', 'reveal', 'display', 'present'],
+        'give' => ['provide', 'offer', 'supply', 'deliver'],
+        
+        // Common adjectives
+        'different' => ['various', 'diverse', 'distinct', 'alternative'],
+        'special' => ['unique', 'distinctive', 'particular', 'exceptional'],
+        'popular' => ['well-liked', 'favored', 'beloved', 'sought-after'],
+        'common' => ['typical', 'usual', 'frequent', 'standard'],
+        'new' => ['fresh', 'recent', 'novel', 'latest'],
+        'old' => ['classic', 'traditional', 'time-tested', 'vintage'],
+        
+        // Conjunctions & Transitions
+        'also' => ['additionally', 'as well', 'too', 'moreover'],
+        'however' => ['nevertheless', 'nonetheless', 'yet', 'still'],
+        'because' => ['since', 'as', 'given that', 'due to the fact that'],
+        'although' => ['though', 'even though', 'while', 'despite the fact that'],
+        
+        // Intensifiers
+        'very' => ['extremely', 'highly', 'incredibly', 'remarkably', 'exceptionally'],
+        'really' => ['truly', 'genuinely', 'absolutely', 'certainly'],
+        'completely' => ['entirely', 'fully', 'totally', 'wholly'],
     ];
 
     /**
@@ -104,12 +166,28 @@ class RewritingService
             return;
         }
         
-        // Preserve strong tags
+        // Get innerHTML
         $innerHTML = '';
         foreach ($paragraph->childNodes as $child) {
             $innerHTML .= $paragraph->ownerDocument->saveHTML($child);
         }
         
+        // If content has HTML tags (like <strong>), do NOT rewrite to avoid corruption
+        // Just apply safe synonym replacement without sentence manipulation
+        if (preg_match('/<[^>]+>/', $innerHTML)) {
+            $rewritten = $this->safeHtmlSynonymReplace($innerHTML);
+            
+            // Only update if something changed
+            if ($rewritten !== $innerHTML) {
+                $success = $this->setNodeInnerHTML($paragraph, $rewritten);
+                if (!$success) {
+                    return;
+                }
+            }
+            return;
+        }
+        
+        // For plain text paragraphs, do full rewriting
         // Split into sentences
         $sentences = $this->extractSentences($innerHTML);
         
@@ -132,15 +210,13 @@ class RewritingService
         // Rebuild paragraph
         $newInnerHTML = implode(' ', $rewrittenSentences);
         
-        // Clear old content
-        while ($paragraph->firstChild) {
-            $paragraph->removeChild($paragraph->firstChild);
-        }
+        // Try to set new content using loadHTML approach (more robust than appendXML)
+        $success = $this->setNodeInnerHTML($paragraph, $newInnerHTML);
         
-        // Create new fragment
-        $fragment = $paragraph->ownerDocument->createDocumentFragment();
-        @$fragment->appendXML($newInnerHTML);
-        $paragraph->appendChild($fragment);
+        // If setting failed, leave the original content intact
+        if (!$success) {
+            return;
+        }
     }
 
     /**
@@ -153,17 +229,85 @@ class RewritingService
             $innerHTML .= $listItem->ownerDocument->saveHTML($child);
         }
         
-        $rewritten = $this->rewriteSentence($innerHTML);
-        
-        // Clear old content
-        while ($listItem->firstChild) {
-            $listItem->removeChild($listItem->firstChild);
+        // If content has HTML tags (like <strong>), do NOT rewrite to avoid corruption
+        // Just apply safe synonym replacement without sentence manipulation
+        if (preg_match('/<[^>]+>/', $innerHTML)) {
+            $rewritten = $this->safeHtmlSynonymReplace($innerHTML);
+            
+            // Only update if something changed
+            if ($rewritten !== $innerHTML) {
+                $success = $this->setNodeInnerHTML($listItem, $rewritten);
+                if (!$success) {
+                    return;
+                }
+            }
+            return;
         }
         
-        // Create new fragment
-        $fragment = $listItem->ownerDocument->createDocumentFragment();
-        @$fragment->appendXML($rewritten);
-        $listItem->appendChild($fragment);
+        // For plain text list items, do full rewriting
+        $rewritten = $this->rewriteSentence($innerHTML);
+        
+        // Try to set new content using loadHTML approach (more robust than appendXML)
+        $success = $this->setNodeInnerHTML($listItem, $rewritten);
+        
+        // If setting failed, leave the original content intact
+        if (!$success) {
+            return;
+        }
+    }
+
+    /**
+     * Safely set inner HTML of a node using loadHTML (more robust than appendXML for HTML content)
+     * 
+     * @param \DOMNode $node The node to modify
+     * @param string $html The HTML content to set
+     * @return bool True on success, false on failure
+     */
+    private function setNodeInnerHTML(\DOMNode $node, string $html): bool
+    {
+        // Skip if empty
+        if (empty(trim($html))) {
+            return false;
+        }
+        
+        try {
+            // Create a temporary DOM document to parse the HTML
+            $tempDoc = new DOMDocument();
+            $tempDoc->encoding = 'UTF-8';
+            
+            // Wrap in a container div to ensure proper parsing
+            $wrappedHtml = '<?xml encoding="utf-8" ?><div>' . $html . '</div>';
+            
+            // Suppress warnings for HTML parsing
+            $result = @$tempDoc->loadHTML($wrappedHtml, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+            
+            if (!$result) {
+                return false;
+            }
+            
+            // Get the wrapper div
+            $wrapper = $tempDoc->getElementsByTagName('div')->item(0);
+            
+            if (!$wrapper || !$wrapper->hasChildNodes()) {
+                return false;
+            }
+            
+            // Clear the original node's content
+            while ($node->firstChild) {
+                $node->removeChild($node->firstChild);
+            }
+            
+            // Import and append each child from the temporary document
+            foreach ($wrapper->childNodes as $child) {
+                $imported = $node->ownerDocument->importNode($child, true);
+                $node->appendChild($imported);
+            }
+            
+            return true;
+        } catch (\Exception $e) {
+            // If anything fails, return false to preserve original content
+            return false;
+        }
     }
 
     /**
@@ -213,22 +357,38 @@ class RewritingService
      */
     private function rewriteSentence(string $sentence): string
     {
-        // Preserve HTML tags
-        $hasStrongTag = preg_match('/<strong>(.*?)<\/strong>/', $sentence, $strongMatch);
+        // Check if sentence contains HTML tags - if so, only do safe replacements
+        $hasHtmlTags = preg_match('/<[^>]+>/', $sentence);
         
-        // Apply synonym replacement (30% chance per word)
+        if ($hasHtmlTags) {
+            // For content with HTML, only do synonym replacement on text OUTSIDE of tags
+            // This prevents corrupting HTML structure
+            $sentence = $this->safeHtmlSynonymReplace($sentence);
+            // Do NOT add sentence starters or vary punctuation for HTML content
+            return $sentence;
+        }
+        
+        // For plain text content, apply full rewriting
+        // Apply synonym replacement (70% chance per word - increased for more variation)
+        $replacementCount = 0;
         foreach ($this->synonyms as $word => $synonymList) {
             $pattern = '/\b' . preg_quote($word, '/') . '\b/i';
-            if (preg_match($pattern, $sentence) && mt_rand(1, 100) <= 30) {
+            if (preg_match($pattern, $sentence) && mt_rand(1, 100) <= 70) {
                 $replacement = $synonymList[array_rand($synonymList)];
                 $sentence = preg_replace_callback($pattern, function($matches) use ($replacement) {
                     return $this->matchCase($replacement, $matches[0]);
                 }, $sentence, 1);
+                $replacementCount++;
+                
+                // Limit to 3 replacements per sentence to keep it readable
+                if ($replacementCount >= 3) {
+                    break;
+                }
             }
         }
         
-        // Add sentence starter (15% chance)
-        if (mt_rand(1, 100) <= 15 && !$hasStrongTag) {
+        // Add sentence starter (15% chance) - only for plain text
+        if (mt_rand(1, 100) <= 15) {
             $starter = $this->sentenceStarters[array_rand($this->sentenceStarters)];
             $sentence = $starter . ' ' . lcfirst($sentence);
         }
@@ -237,6 +397,46 @@ class RewritingService
         $sentence = $this->varyPunctuation($sentence);
         
         return $sentence;
+    }
+    
+    /**
+     * Safely replace synonyms in HTML content without corrupting tags
+     */
+    private function safeHtmlSynonymReplace(string $html): string
+    {
+        // Split content into HTML tags and text segments
+        $parts = preg_split('/(<[^>]+>)/', $html, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+        
+        $result = '';
+        $totalReplacements = 0;
+        
+        foreach ($parts as $part) {
+            // If it's an HTML tag, keep it as-is
+            if (preg_match('/^<[^>]+>$/', $part)) {
+                $result .= $part;
+            } else {
+                // It's text content - apply synonym replacement (70% chance - increased)
+                $text = $part;
+                foreach ($this->synonyms as $word => $synonymList) {
+                    $pattern = '/\b' . preg_quote($word, '/') . '\b/i';
+                    if (preg_match($pattern, $text) && mt_rand(1, 100) <= 70) {
+                        $replacement = $synonymList[array_rand($synonymList)];
+                        $text = preg_replace_callback($pattern, function($matches) use ($replacement) {
+                            return $this->matchCase($replacement, $matches[0]);
+                        }, $text, 1);
+                        $totalReplacements++;
+                        
+                        // Limit total replacements per HTML block
+                        if ($totalReplacements >= 5) {
+                            break;
+                        }
+                    }
+                }
+                $result .= $text;
+            }
+        }
+        
+        return $result;
     }
 
     /**
@@ -265,57 +465,105 @@ class RewritingService
 
     /**
      * Shuffle minor sections for structural variation
+     * 
+     * Note: This method is wrapped in try-catch because DOM manipulation
+     * can fail in edge cases when nodes have been moved or parent references are invalid.
      */
     private function shuffleMinorSections(DOMDocument $dom, DOMXPath $xpath, int $variationIndex): void
     {
-        // Find sections that can be reordered (e.g., tips, FAQs)
-        $h2Headers = $xpath->query('//h2');
-        
-        $shufflableSections = [];
-        $sectionNames = ['tips', 'variations', 'serving', 'storage', 'faq'];
-        
-        foreach ($h2Headers as $header) {
-            $headerText = strtolower($header->textContent);
-            foreach ($sectionNames as $sectionName) {
-                if (strpos($headerText, $sectionName) !== false) {
-                    // Collect this section and its content
-                    $section = ['header' => $header, 'content' => []];
-                    $sibling = $header->nextSibling;
-                    
-                    while ($sibling && $sibling->nodeName !== 'h2') {
-                        if ($sibling->nodeType === XML_ELEMENT_NODE) {
-                            $section['content'][] = $sibling;
+        try {
+            // Find sections that can be reordered (e.g., tips, FAQs)
+            $h2Headers = $xpath->query('//h2');
+            
+            if (!$h2Headers || $h2Headers->length === 0) {
+                return;
+            }
+            
+            $shufflableSections = [];
+            $sectionNames = ['tips', 'variations', 'serving', 'storage', 'faq'];
+            
+            foreach ($h2Headers as $header) {
+                // Verify header has a parent node
+                if (!$header->parentNode) {
+                    continue;
+                }
+                
+                $headerText = strtolower($header->textContent);
+                foreach ($sectionNames as $sectionName) {
+                    if (strpos($headerText, $sectionName) !== false) {
+                        // Collect this section and its content
+                        $section = ['header' => $header, 'content' => [], 'parent' => $header->parentNode];
+                        $sibling = $header->nextSibling;
+                        
+                        while ($sibling && $sibling->nodeName !== 'h2') {
+                            if ($sibling->nodeType === XML_ELEMENT_NODE) {
+                                $section['content'][] = $sibling;
+                            }
+                            $sibling = $sibling->nextSibling;
                         }
-                        $sibling = $sibling->nextSibling;
+                        
+                        if (count($section['content']) > 0) {
+                            $shufflableSections[] = $section;
+                        }
+                        break;
                     }
-                    
-                    if (count($section['content']) > 0) {
-                        $shufflableSections[] = $section;
-                    }
-                    break;
                 }
             }
-        }
-        
-        // Shuffle sections if we have at least 2 (based on variation index)
-        if (count($shufflableSections) >= 2) {
+            
+            // Only shuffle if we have exactly 2 or more sections with the same parent
+            if (count($shufflableSections) < 2) {
+                return;
+            }
+            
+            // Verify all sections share the same parent
+            $commonParent = $shufflableSections[0]['parent'];
+            foreach ($shufflableSections as $section) {
+                if ($section['parent'] !== $commonParent) {
+                    // Different parents - skip shuffling to avoid DOM errors
+                    return;
+                }
+            }
+            
             // Use variation index to determine shuffle (consistent per variation)
             mt_srand($variationIndex * 54321);
             shuffle($shufflableSections);
             mt_srand($variationIndex * 12345);
             
-            // Reorder in DOM
-            $parent = $shufflableSections[0]['header']->parentNode;
-            $insertBefore = $shufflableSections[0]['header'];
+            // Find a stable reference point - the node AFTER all shufflable sections
+            // This ensures we have a valid insertion point
+            $lastSection = end($shufflableSections);
+            $lastContent = end($lastSection['content']);
+            $insertionPoint = $lastContent ? $lastContent->nextSibling : null;
             
+            // Re-append sections in shuffled order (append to parent, before insertion point)
             foreach ($shufflableSections as $section) {
+                if (!$section['header']->parentNode) {
+                    continue; // Skip if header was already removed
+                }
+                
                 // Move header
-                $parent->insertBefore($section['header'], $insertBefore);
+                if ($insertionPoint && $insertionPoint->parentNode === $commonParent) {
+                    $commonParent->insertBefore($section['header'], $insertionPoint);
+                } else {
+                    $commonParent->appendChild($section['header']);
+                }
+                
                 // Move content
                 foreach ($section['content'] as $contentNode) {
-                    $parent->insertBefore($contentNode, $insertBefore);
+                    if (!$contentNode->parentNode) {
+                        continue; // Skip if already removed
+                    }
+                    if ($insertionPoint && $insertionPoint->parentNode === $commonParent) {
+                        $commonParent->insertBefore($contentNode, $insertionPoint);
+                    } else {
+                        $commonParent->appendChild($contentNode);
+                    }
                 }
             }
+        } catch (\Exception $e) {
+            // If DOM manipulation fails, silently continue without shuffling
+            // The content will still be rewritten, just not shuffled
+            return;
         }
     }
 
@@ -450,20 +698,41 @@ class RewritingService
     {
         mt_srand($variationIndex * 12345);
         
+        // Heading variation prefixes based on variation index
+        $headingPrefixes = [
+            'Understanding', 'Exploring', 'Discovering', 'Mastering', 'Learning About',
+            'A Guide to', 'All About', 'The Essentials of', 'Insights on', 'Tips for'
+        ];
+        
         // Replace words in headings
-        $content = preg_replace_callback('/<h([23])>(.*?)<\/h\1>/i', function($matches) {
+        $content = preg_replace_callback('/<h([23])>(.*?)<\/h\1>/i', function($matches) use ($headingPrefixes) {
             $level = $matches[1];
             $heading = $matches[2];
             
-            // Apply synonym replacement
+            // Apply synonym replacement (80% chance - increased for more variation)
+            $replacementsMade = 0;
             foreach ($this->synonyms as $word => $synonymList) {
                 $pattern = '/\b' . preg_quote($word, '/') . '\b/i';
-                if (preg_match($pattern, $heading) && mt_rand(1, 100) <= 50) {
+                if (preg_match($pattern, $heading) && mt_rand(1, 100) <= 80) {
                     $replacement = $synonymList[array_rand($synonymList)];
                     $heading = preg_replace_callback($pattern, function($m) use ($replacement) {
                         return $this->matchCase($replacement, $m[0]);
                     }, $heading, 1);
-                    break;
+                    $replacementsMade++;
+                    
+                    // Allow up to 2 replacements per heading
+                    if ($replacementsMade >= 2) {
+                        break;
+                    }
+                }
+            }
+            
+            // 25% chance to add prefix for more variation (only for short headings)
+            if (mt_rand(1, 100) <= 25 && strlen($heading) < 35) {
+                // Don't add if heading already starts with similar words
+                if (!preg_match('/^(The|A|An|How|What|Why|When|Where|Understanding|Exploring|Discovering|Mastering|Learning|Guide|All|Insights|Tips|Essential|Key|Top|Best)/i', $heading)) {
+                    $prefix = $headingPrefixes[array_rand($headingPrefixes)];
+                    $heading = $prefix . ' ' . lcfirst($heading);
                 }
             }
             

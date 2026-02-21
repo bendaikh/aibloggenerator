@@ -31,23 +31,11 @@ class VariationEngine
         // Deep clone to avoid reference issues
         $variation = $masterArticleData;
         
-        // Rewrite title
-        if (!empty($variation['title'])) {
-            $variation['title'] = $this->rewritingService->rewriteTitle(
-                $variation['title'], 
-                $variationIndex
-            );
-        }
+        // Keep title exactly as-is (no rewriting)
+        // Title remains unchanged across all variations
         
-        // Rewrite meta title
-        if (!empty($variation['meta_title'])) {
-            $variation['meta_title'] = $this->rewritingService->rewriteTitle(
-                $variation['meta_title'], 
-                $variationIndex
-            );
-            // Ensure it stays within meta title length
-            $variation['meta_title'] = Str::limit($variation['meta_title'], 60);
-        }
+        // Keep meta title exactly as-is (no rewriting)
+        // Meta title remains unchanged across all variations
         
         // Rewrite meta description
         if (!empty($variation['meta_description'])) {
