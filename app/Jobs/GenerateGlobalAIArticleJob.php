@@ -315,6 +315,8 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                     'cook_time' => $parsed['cook_time'] ?? null,
                     'rest_time' => $parsed['rest_time'] ?? null,
                     'total_time' => $parsed['total_time'] ?? null,
+                    'ingredients' => $parsed['ingredients'] ?? [],
+                    'instructions' => $parsed['instructions'] ?? [],
                     'status' => $this->autoPublish ? 'published' : 'draft',
                     'published_at' => $this->autoPublish ? now() : null,
                     'ai_generated' => true,
@@ -529,6 +531,8 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                         'cook_time' => $articleData['cook_time'] ?? null,
                         'rest_time' => $articleData['rest_time'] ?? null,
                         'total_time' => $articleData['total_time'] ?? null,
+                        'ingredients' => $articleData['ingredients'] ?? [],
+                        'instructions' => $articleData['instructions'] ?? [],
                         'status' => $this->autoPublish ? 'published' : 'draft',
                         'published_at' => $this->autoPublish ? now() : null,
                         'ai_generated' => true,
@@ -991,6 +995,8 @@ PROMPT;
             'cook_time' => $cookTime,
             'rest_time' => $restTime,
             'total_time' => $totalTime,
+            'ingredients' => $ingredients,
+            'instructions' => $instructions,
             'content' => $articleContent,
         ];
     }

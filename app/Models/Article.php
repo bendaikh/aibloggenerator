@@ -42,6 +42,8 @@ class Article extends Model
         'cook_time',
         'rest_time',
         'total_time',
+        'ingredients',
+        'instructions',
     ];
 
     protected $appends = ['url', 'processed_content', 'processed_featured_image', 'processed_secondary_image'];
@@ -51,6 +53,8 @@ class Article extends Model
         'notes' => 'array',
         'gradients' => 'array',
         'variation_metadata' => 'array',
+        'ingredients' => 'array',
+        'instructions' => 'array',
         'views' => 'integer',
         'ai_generated' => 'boolean',
         'published_at' => 'datetime',
