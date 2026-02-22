@@ -156,6 +156,28 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
                 continue;
             }
 
+            // CRITICAL: Check if an article with similar title already exists on this website
+            // This prevents duplicate articles when the job is retried or runs multiple times
+            $existingArticle = Article::where('website_id', $websiteId)
+                ->where('title', 'LIKE', '%' . substr($this->topic, 0, 30) . '%')
+                ->where('generation_mode', 'full_ai')
+                ->where('created_at', '>=', now()->subMinutes(5)) // Only check recent articles (last 5 minutes)
+                ->first();
+
+            if ($existingArticle) {
+                Log::info("Skipping website {$websiteId} - duplicate article detected", [
+                    'existing_article_id' => $existingArticle->id,
+                    'existing_title' => $existingArticle->title
+                ]);
+                
+                // Mark the job as completed with the existing article
+                if ($generationJob) {
+                    $generationJob->markAsCompleted($existingArticle->id);
+                }
+                
+                continue;
+            }
+
             try {
                 // Build unique prompt for this website
                 $prompt = $this->buildPrompt($wordCount, $website, $vIndex);
@@ -388,6 +410,28 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
 
                 if ($generationJob && $generationJob->status === 'completed') {
                     Log::info("Skipping website {$websiteId} - already completed");
+                    continue;
+                }
+
+                // CRITICAL: Check if an article with similar title already exists on this website
+                // This prevents duplicate articles when the job is retried or runs multiple times
+                $existingArticle = Article::where('website_id', $websiteId)
+                    ->where('title', 'LIKE', '%' . substr($this->topic, 0, 30) . '%')
+                    ->where('generation_mode', 'hybrid_rewrite')
+                    ->where('created_at', '>=', now()->subMinutes(5)) // Only check recent articles (last 5 minutes)
+                    ->first();
+
+                if ($existingArticle) {
+                    Log::info("Skipping website {$websiteId} - duplicate article detected", [
+                        'existing_article_id' => $existingArticle->id,
+                        'existing_title' => $existingArticle->title
+                    ]);
+                    
+                    // Mark the job as completed with the existing article
+                    if ($generationJob) {
+                        $generationJob->markAsCompleted($existingArticle->id);
+                    }
+                    
                     continue;
                 }
 

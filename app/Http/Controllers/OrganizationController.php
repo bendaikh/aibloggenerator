@@ -984,6 +984,20 @@ HTML;
         $websiteIds = $validated['website_ids'];
         $generationJobIds = [];
 
+        // CRITICAL: Check for duplicate pending/processing jobs with the same topic
+        // This prevents creating duplicate articles if the user submits the form multiple times
+        $recentJob = ArticleGenerationJob::where('user_id', $user->id)
+            ->where('topic', $validated['topic'])
+            ->whereIn('status', ['pending', 'processing'])
+            ->where('created_at', '>=', now()->subMinutes(2)) // Check last 2 minutes
+            ->first();
+
+        if ($recentJob) {
+            return back()->withErrors([
+                'error' => 'A job for this topic is already being processed. Please wait for it to complete or try again in a few minutes.'
+            ]);
+        }
+
         // Verify websites belong to user and create tracking jobs
         foreach ($websiteIds as $websiteId) {
             $website = Website::where('id', $websiteId)->where('user_id', $user->id)->first();
