@@ -13,6 +13,7 @@ use App\Services\PinterestDesignService;
 use App\Services\RewritingService;
 use App\Services\VariationEngine;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -20,12 +21,13 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 
-class GenerateGlobalAIArticleJob implements ShouldQueue
+class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3;
     public $timeout = 600; // 10 minutes
+    public $uniqueFor = 3600; // Job is unique for 1 hour
 
     protected array $generationJobIds = []; // website_id => generation_job_id
     protected array $websiteIds = [];
@@ -72,6 +74,17 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
     }
 
     /**
+     * Get the unique ID for this job to prevent duplicate processing.
+     * This ensures the same job (same topic + same websites) doesn't run multiple times.
+     */
+    public function uniqueId(): string
+    {
+        // Create a unique identifier based on userId, topic, and website IDs
+        $websiteIdsString = implode(',', $this->websiteIds);
+        return "generate-article-{$this->userId}-{$this->topic}-{$websiteIdsString}";
+    }
+
+    /**
      * Execute the job.
      */
     public function handle(): void
@@ -82,10 +95,33 @@ class GenerateGlobalAIArticleJob implements ShouldQueue
             return;
         }
 
-        // Mark all jobs as processing
+        // CRITICAL: Check if all jobs are already completed before starting
+        // This prevents re-processing if the queue worker picks up the same job again
+        $allCompleted = true;
         foreach ($this->generationJobIds as $jobId) {
             $job = ArticleGenerationJob::find($jobId);
-            if ($job) $job->markAsProcessing();
+            if ($job && $job->status !== 'completed') {
+                $allCompleted = false;
+                break;
+            }
+        }
+
+        if ($allCompleted) {
+            Log::warning('All jobs are already completed, aborting to prevent duplicate processing', [
+                'job_ids' => $this->generationJobIds,
+                'topic' => $this->topic
+            ]);
+            return; // Exit early - nothing to do
+        }
+
+        // Mark all jobs as processing (only if they're still pending)
+        foreach ($this->generationJobIds as $jobId) {
+            $job = ArticleGenerationJob::find($jobId);
+            if ($job && $job->status === 'pending') {
+                $job->markAsProcessing();
+            } elseif ($job && $job->status === 'completed') {
+                Log::warning("Job {$jobId} is already completed, skipping processing");
+            }
         }
 
         // Determine generation mode

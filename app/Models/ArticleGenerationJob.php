@@ -71,10 +71,21 @@ class ArticleGenerationJob extends Model
      */
     public function markAsProcessing(): void
     {
-        $this->update([
-            'status' => 'processing',
-            'started_at' => now(),
-        ]);
+        // Use fresh() to get the latest state from database
+        // and lock the row to prevent race conditions
+        $freshJob = static::lockForUpdate()->find($this->id);
+        
+        if (!$freshJob) {
+            return; // Job was deleted
+        }
+        
+        // Only update if not already completed or processing
+        if ($freshJob->status === 'pending') {
+            $freshJob->update([
+                'status' => 'processing',
+                'started_at' => now(),
+            ]);
+        }
     }
 
     /**
@@ -82,11 +93,22 @@ class ArticleGenerationJob extends Model
      */
     public function markAsCompleted(?int $articleId = null): void
     {
-        $this->update([
-            'status' => 'completed',
-            'article_id' => $articleId,
-            'completed_at' => now(),
-        ]);
+        // Use fresh() to get the latest state from database
+        // and lock the row to prevent race conditions
+        $freshJob = static::lockForUpdate()->find($this->id);
+        
+        if (!$freshJob) {
+            return; // Job was deleted
+        }
+        
+        // Only update if not already completed (prevents re-marking)
+        if ($freshJob->status !== 'completed') {
+            $freshJob->update([
+                'status' => 'completed',
+                'article_id' => $articleId,
+                'completed_at' => now(),
+            ]);
+        }
     }
 
     /**
@@ -94,11 +116,22 @@ class ArticleGenerationJob extends Model
      */
     public function markAsFailed(string $errorMessage): void
     {
-        $this->update([
-            'status' => 'failed',
-            'error_message' => $errorMessage,
-            'completed_at' => now(),
-        ]);
+        // Use fresh() to get the latest state from database
+        // and lock the row to prevent race conditions
+        $freshJob = static::lockForUpdate()->find($this->id);
+        
+        if (!$freshJob) {
+            return; // Job was deleted
+        }
+        
+        // Only update if not already completed (completed takes precedence over failed)
+        if ($freshJob->status !== 'completed') {
+            $freshJob->update([
+                'status' => 'failed',
+                'error_message' => $errorMessage,
+                'completed_at' => now(),
+            ]);
+        }
     }
 }
 
