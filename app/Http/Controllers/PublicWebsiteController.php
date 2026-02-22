@@ -22,6 +22,9 @@ class PublicWebsiteController extends Controller
             abort(404, 'Website not found');
         }
 
+        // Share website with Blade views for meta tags (Pinterest, etc.)
+        view()->share('website', $website);
+
         return $this->renderHome($website);
     }
 
@@ -35,6 +38,9 @@ class PublicWebsiteController extends Controller
         if (!$website) {
             abort(404, 'Website not found');
         }
+
+        // Share website with Blade views for meta tags (Pinterest, etc.)
+        view()->share('website', $website);
 
         // Load categories and pages for navigation
         $website->load([
@@ -94,6 +100,9 @@ class PublicWebsiteController extends Controller
             abort(404, 'Website not found');
         }
 
+        // Share website with Blade views for meta tags (Pinterest, etc.)
+        view()->share('website', $website);
+
         // Load categories and pages for navigation
         $website->load([
             'categories' => function ($query) {
@@ -149,6 +158,9 @@ class PublicWebsiteController extends Controller
             abort(404, 'Website not found');
         }
 
+        // Share website with Blade views for meta tags (Pinterest, etc.)
+        view()->share('website', $website);
+
         // Load categories and pages for navigation
         $website->load([
             'categories' => function ($query) {
@@ -186,6 +198,9 @@ class PublicWebsiteController extends Controller
             abort(404, 'Website not found');
         }
 
+        // Share website with Blade views for meta tags (Pinterest, etc.)
+        view()->share('website', $website);
+
         return $this->renderAllArticles($website);
     }
 
@@ -199,6 +214,9 @@ class PublicWebsiteController extends Controller
         if (!$website) {
             abort(404, 'Website not found');
         }
+
+        // Share website with Blade views for meta tags (Pinterest, etc.)
+        view()->share('website', $website);
 
         // Load categories and pages for navigation
         $website->load([
@@ -230,6 +248,9 @@ class PublicWebsiteController extends Controller
             ->where('is_active', true)
             ->firstOrFail();
 
+        // Share website with Blade views for meta tags (Pinterest, etc.)
+        view()->share('website', $website);
+
         return $this->renderHome($website);
     }
 
@@ -241,6 +262,9 @@ class PublicWebsiteController extends Controller
         $website = Website::where('slug', $websiteSlug)
             ->where('is_active', true)
             ->firstOrFail();
+
+        // Share website with Blade views for meta tags (Pinterest, etc.)
+        view()->share('website', $website);
 
         // Load categories and pages for navigation
         $website->load([
@@ -298,6 +322,9 @@ class PublicWebsiteController extends Controller
             ->where('is_active', true)
             ->firstOrFail();
 
+        // Share website with Blade views for meta tags (Pinterest, etc.)
+        view()->share('website', $website);
+
         // Load categories and pages for navigation
         $website->load([
             'categories' => function ($query) {
@@ -351,6 +378,9 @@ class PublicWebsiteController extends Controller
             ->where('is_active', true)
             ->firstOrFail();
 
+        // Share website with Blade views for meta tags (Pinterest, etc.)
+        view()->share('website', $website);
+
         // Load categories and pages for navigation
         $website->load([
             'categories' => function ($query) {
@@ -386,6 +416,9 @@ class PublicWebsiteController extends Controller
             ->where('is_active', true)
             ->firstOrFail();
 
+        // Share website with Blade views for meta tags (Pinterest, etc.)
+        view()->share('website', $website);
+
         return $this->renderAllArticles($website);
     }
 
@@ -397,6 +430,9 @@ class PublicWebsiteController extends Controller
         $website = Website::where('slug', $websiteSlug)
             ->where('is_active', true)
             ->firstOrFail();
+
+        // Share website with Blade views for meta tags (Pinterest, etc.)
+        view()->share('website', $website);
 
         $query = $request->input('q');
 
@@ -439,6 +475,9 @@ class PublicWebsiteController extends Controller
             ->where('is_active', true)
             ->firstOrFail();
 
+        // Share website with Blade views for meta tags (Pinterest, etc.)
+        view()->share('website', $website);
+
         // Load categories and pages for navigation
         $website->load([
             'categories' => function ($query) {
@@ -470,6 +509,9 @@ class PublicWebsiteController extends Controller
         if (!$website) {
             abort(404, 'Website not found');
         }
+
+        // Share website with Blade views for meta tags (Pinterest, etc.)
+        view()->share('website', $website);
 
         $query = $request->input('q');
 

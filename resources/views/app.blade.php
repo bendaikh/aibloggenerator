@@ -26,6 +26,11 @@
                 crossorigin="anonymous"></script>
         @endif
 
+        <!-- Pinterest Domain Verification -->
+        @if(isset($website) && $website->pinterest_verification)
+        <meta name="p:domain_verify" content="{{ $website->pinterest_verification }}" />
+        @endif
+
         <!-- Scripts -->
         @routes
         @vite(['resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"])
