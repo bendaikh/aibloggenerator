@@ -26,7 +26,7 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3;
-    public $timeout = 600; // 10 minutes
+    public $timeout = 1800; // 30 minutes - enough for 50+ websites
     public $uniqueFor = 3600; // Job is unique for 1 hour
 
     protected array $generationJobIds = []; // website_id => generation_job_id
@@ -514,12 +514,21 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                         Log::info("Creating master article for website {$websiteId}");
                     } else {
                         // Subsequent websites get locally rewritten variations
-                        Log::info("Creating variation {$index} for website {$websiteId}");
-                        $articleData = $variationEngine->createVariation($masterParsed, $index);
+                        Log::info("Creating variation {$index} for website {$websiteId} - START");
                         
-                        // Calculate uniqueness score
-                        $uniquenessScore = $variationEngine->calculateUniquenessScore($articleData, $masterParsed);
-                        Log::info("Variation uniqueness score: {$uniquenessScore}%");
+                        try {
+                            $articleData = $variationEngine->createVariation($masterParsed, $index);
+                            Log::info("Variation {$index} created successfully for website {$websiteId}");
+                        } catch (\Exception $variationError) {
+                            // If variation fails, use master content as fallback
+                            Log::error("Variation creation failed for website {$websiteId}, using master content as fallback", [
+                                'error' => $variationError->getMessage(),
+                                'index' => $index
+                            ]);
+                            $articleData = $masterParsed;
+                        }
+                        
+                        // Skip uniqueness calculation to save time - it's just for logging anyway
                     }
 
                     // Determine category

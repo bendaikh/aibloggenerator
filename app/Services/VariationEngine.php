@@ -29,65 +29,93 @@ class VariationEngine
     public function createVariation(array $masterArticleData, int $variationIndex): array
     {
         // Deep clone to avoid reference issues
-        $variation = $masterArticleData;
+        $variation = json_decode(json_encode($masterArticleData), true);
         
-        // Keep title exactly as-is (no rewriting)
-        // Title remains unchanged across all variations
-        
-        // Keep meta title exactly as-is (no rewriting)
-        // Meta title remains unchanged across all variations
-        
-        // Rewrite meta description
-        if (!empty($variation['meta_description'])) {
-            $variation['meta_description'] = $this->rewritingService->rewriteMetaDescription(
-                $variation['meta_description'], 
-                $variationIndex
-            );
-        }
-        
-        // Rewrite excerpt
-        if (!empty($variation['excerpt'])) {
-            $variation['excerpt'] = $this->rewritingService->rewriteMetaDescription(
-                $variation['excerpt'], 
-                $variationIndex
-            );
-            $variation['excerpt'] = Str::limit($variation['excerpt'], 200);
-        }
-        
-        // Rewrite tags (shuffle and replace some)
-        if (!empty($variation['meta_tags']) && is_array($variation['meta_tags'])) {
-            $variation['meta_tags'] = $this->varyTags($variation['meta_tags'], $variationIndex);
-        }
-        
-        // Rewrite notes (shuffle order)
-        if (!empty($variation['notes']) && is_array($variation['notes'])) {
-            $variation['notes'] = $this->varyNotes($variation['notes'], $variationIndex);
-        }
-        
-        // Rewrite main content
-        if (!empty($variation['content'])) {
-            // First rewrite headings
-            $variation['content'] = $this->rewritingService->rewriteHeadings(
-                $variation['content'], 
-                $variationIndex
-            );
+        try {
+            // Keep title exactly as-is (no rewriting)
+            // Title remains unchanged across all variations
             
-            // Then rewrite content
-            $variation['content'] = $this->rewritingService->rewriteContent(
-                $variation['content'], 
-                $variationIndex
-            );
-        }
-        
-        // Vary ingredients order slightly (if they exist)
-        if (!empty($variation['ingredients']) && is_array($variation['ingredients'])) {
-            $variation['ingredients'] = $this->varyIngredientsOrder($variation['ingredients'], $variationIndex);
-        }
-        
-        // Instructions stay mostly the same (cooking steps should be in order)
-        // but we can vary the wording slightly
-        if (!empty($variation['instructions']) && is_array($variation['instructions'])) {
-            $variation['instructions'] = $this->varyInstructions($variation['instructions'], $variationIndex);
+            // Keep meta title exactly as-is (no rewriting)
+            // Meta title remains unchanged across all variations
+            
+            // Rewrite meta description (fast operation)
+            if (!empty($variation['meta_description'])) {
+                try {
+                    $variation['meta_description'] = $this->rewritingService->rewriteMetaDescription(
+                        $variation['meta_description'], 
+                        $variationIndex
+                    );
+                } catch (\Exception $e) {
+                    // Keep original on error
+                }
+            }
+            
+            // Rewrite excerpt (fast operation)
+            if (!empty($variation['excerpt'])) {
+                try {
+                    $variation['excerpt'] = $this->rewritingService->rewriteMetaDescription(
+                        $variation['excerpt'], 
+                        $variationIndex
+                    );
+                    $variation['excerpt'] = Str::limit($variation['excerpt'], 200);
+                } catch (\Exception $e) {
+                    // Keep original on error
+                }
+            }
+            
+            // Rewrite tags (shuffle and replace some) - fast operation
+            if (!empty($variation['meta_tags']) && is_array($variation['meta_tags'])) {
+                $variation['meta_tags'] = $this->varyTags($variation['meta_tags'], $variationIndex);
+            }
+            
+            // Rewrite notes (shuffle order) - fast operation
+            if (!empty($variation['notes']) && is_array($variation['notes'])) {
+                $variation['notes'] = $this->varyNotes($variation['notes'], $variationIndex);
+            }
+            
+            // Rewrite main content - this is the slowest part, wrap in try-catch
+            if (!empty($variation['content'])) {
+                try {
+                    // First rewrite headings
+                    $variation['content'] = $this->rewritingService->rewriteHeadings(
+                        $variation['content'], 
+                        $variationIndex
+                    );
+                    
+                    // Then rewrite content - ONLY if content is not too large (< 100KB)
+                    // Large content can cause DOM parsing to hang
+                    if (strlen($variation['content']) < 100000) {
+                        $variation['content'] = $this->rewritingService->rewriteContent(
+                            $variation['content'], 
+                            $variationIndex
+                        );
+                    }
+                } catch (\Exception $e) {
+                    // Keep original content on error - variation will still work
+                    \Log::warning("Content rewriting failed for variation {$variationIndex}", [
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            
+            // Vary ingredients order slightly (if they exist) - fast operation
+            if (!empty($variation['ingredients']) && is_array($variation['ingredients'])) {
+                $variation['ingredients'] = $this->varyIngredientsOrder($variation['ingredients'], $variationIndex);
+            }
+            
+            // Instructions stay mostly the same (cooking steps should be in order)
+            // but we can vary the wording slightly - fast operation
+            if (!empty($variation['instructions']) && is_array($variation['instructions'])) {
+                $variation['instructions'] = $this->varyInstructions($variation['instructions'], $variationIndex);
+            }
+            
+        } catch (\Exception $e) {
+            // If any error occurs, return master data as fallback
+            \Log::error("Variation creation failed completely", [
+                'index' => $variationIndex,
+                'error' => $e->getMessage()
+            ]);
+            return $masterArticleData;
         }
         
         return $variation;

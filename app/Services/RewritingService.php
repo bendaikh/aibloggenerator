@@ -115,44 +115,60 @@ class RewritingService
      */
     public function rewriteContent(string $originalContent, int $variationIndex): string
     {
-        // Seed randomness based on variation index for consistency
-        mt_srand($variationIndex * 12345);
-        
-        // Parse HTML safely
-        $dom = new DOMDocument();
-        @$dom->loadHTML('<?xml encoding="utf-8" ?><div>' . $originalContent . '</div>', 
-            LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-        
-        $xpath = new DOMXPath($dom);
-        
-        // Rewrite paragraphs
-        $paragraphs = $xpath->query('//p');
-        foreach ($paragraphs as $paragraph) {
-            $this->rewriteParagraph($paragraph);
+        // Skip if content is empty or too large (> 50KB to prevent timeouts)
+        if (empty($originalContent) || strlen($originalContent) > 50000) {
+            return $originalContent;
         }
         
-        // Rewrite list items
-        $listItems = $xpath->query('//li');
-        foreach ($listItems as $listItem) {
-            $this->rewriteListItem($listItem);
-        }
-        
-        // Shuffle some sections for structural variation
-        $this->shuffleMinorSections($dom, $xpath, $variationIndex);
-        
-        // Extract cleaned HTML
-        $wrapper = $dom->getElementsByTagName('div')->item(0);
-        $rewrittenContent = '';
-        if ($wrapper) {
-            foreach ($wrapper->childNodes as $child) {
-                $rewrittenContent .= $dom->saveHTML($child);
+        try {
+            // Seed randomness based on variation index for consistency
+            mt_srand($variationIndex * 12345);
+            
+            // Parse HTML safely
+            $dom = new DOMDocument();
+            @$dom->loadHTML('<?xml encoding="utf-8" ?><div>' . $originalContent . '</div>', 
+                LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+            
+            $xpath = new DOMXPath($dom);
+            
+            // Rewrite paragraphs - limit to first 30 to prevent timeouts
+            $paragraphs = $xpath->query('//p');
+            $count = 0;
+            foreach ($paragraphs as $paragraph) {
+                if ($count++ >= 30) break;
+                $this->rewriteParagraph($paragraph);
             }
+            
+            // Rewrite list items - limit to first 50 to prevent timeouts
+            $listItems = $xpath->query('//li');
+            $count = 0;
+            foreach ($listItems as $listItem) {
+                if ($count++ >= 50) break;
+                $this->rewriteListItem($listItem);
+            }
+            
+            // Skip section shuffling for speed - it's the slowest operation
+            // $this->shuffleMinorSections($dom, $xpath, $variationIndex);
+            
+            // Extract cleaned HTML
+            $wrapper = $dom->getElementsByTagName('div')->item(0);
+            $rewrittenContent = '';
+            if ($wrapper) {
+                foreach ($wrapper->childNodes as $child) {
+                    $rewrittenContent .= $dom->saveHTML($child);
+                }
+            }
+            
+            // Reset random seed
+            mt_srand();
+            
+            return trim($rewrittenContent);
+            
+        } catch (\Exception $e) {
+            // On any error, return original content
+            mt_srand();
+            return $originalContent;
         }
-        
-        // Reset random seed
-        mt_srand();
-        
-        return trim($rewrittenContent);
     }
 
     /**
