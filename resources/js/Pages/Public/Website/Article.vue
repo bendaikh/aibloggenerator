@@ -281,6 +281,9 @@
                                 :rest-time="article.rest_time"
                                 :total-time="article.total_time"
                                 :tags="article.meta_tags"
+                                :ingredients-data="article.ingredients || []"
+                                :instructions-data="article.instructions || []"
+                                :notes-data="article.notes || []"
                                 ref="recipeCard"
                             />
 

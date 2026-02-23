@@ -191,7 +191,20 @@ const props = defineProps({
     cookTime: String,
     restTime: String,
     totalTime: String,
-    tags: Array
+    tags: Array,
+    // Direct ingredients and instructions arrays from database
+    ingredientsData: {
+        type: Array,
+        default: () => []
+    },
+    instructionsData: {
+        type: Array,
+        default: () => []
+    },
+    notesData: {
+        type: Array,
+        default: () => []
+    }
 });
 
 const ingredients = ref([]);
@@ -305,7 +318,28 @@ const cleanTextContent = (text) => {
 };
 
 const parseRecipeContent = () => {
-    if (!props.content) return;
+    // PRIORITY 1: Use direct props data if provided (from database)
+    // This is the most reliable source as it comes directly from the Article model
+    if (props.ingredientsData && props.ingredientsData.length > 0) {
+        ingredients.value = props.ingredientsData.filter(i => i && i.trim());
+        console.log('RecipeCard: Using ingredientsData prop', ingredients.value.length, 'items');
+    }
+    
+    if (props.instructionsData && props.instructionsData.length > 0) {
+        instructions.value = props.instructionsData.filter(i => i && i.trim());
+        console.log('RecipeCard: Using instructionsData prop', instructions.value.length, 'items');
+    }
+    
+    if (props.notesData && props.notesData.length > 0) {
+        notes.value = props.notesData.filter(n => n && n.trim());
+        console.log('RecipeCard: Using notesData prop', notes.value.length, 'items');
+    }
+
+    // PRIORITY 2: If no props data, try to parse from HTML content
+    if (!props.content) {
+        recipeTitle.value = props.title || 'Recipe';
+        return;
+    }
 
     // Clean escaped HTML before parsing
     const cleanedContent = cleanEscapedHtml(props.content);
@@ -314,46 +348,54 @@ const parseRecipeContent = () => {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = cleanedContent;
 
-    // Find Ingredients section
-    const ingredientsSection = findSection(tempDiv, ['ingredients', 'ingredient']);
-    if (ingredientsSection) {
-        ingredients.value = extractListItems(ingredientsSection);
+    // Find Ingredients section (only if not already set from props)
+    if (ingredients.value.length === 0) {
+        const ingredientsSection = findSection(tempDiv, ['ingredients', 'ingredient']);
+        if (ingredientsSection) {
+            ingredients.value = extractListItems(ingredientsSection);
+            console.log('RecipeCard: Parsed ingredients from HTML', ingredients.value.length, 'items');
+        }
     }
 
-    // Find Instructions section
-    const instructionsSection = findSection(tempDiv, ['instructions', 'instruction', 'steps', 'step', 'directions', 'direction']);
-    if (instructionsSection) {
-        let rawInstructions = extractListItems(instructionsSection);
-        
-        // SAFEGUARD: Check if instructions are duplicates of ingredients
-        // This happens when AI mistakenly uses ingredient descriptions as instructions
-        if (ingredients.value.length > 0 && rawInstructions.length > 0) {
-            const isDuplicate = checkIfInstructionsAreDuplicates(ingredients.value, rawInstructions);
-            if (isDuplicate) {
-                // Instructions are duplicates - clear them so we don't show duplicate content
-                console.warn('RecipeCard: Instructions appear to be duplicates of ingredients, hiding instructions');
-                rawInstructions = [];
+    // Find Instructions section (only if not already set from props)
+    if (instructions.value.length === 0) {
+        const instructionsSection = findSection(tempDiv, ['instructions', 'instruction', 'steps', 'step', 'directions', 'direction']);
+        if (instructionsSection) {
+            let rawInstructions = extractListItems(instructionsSection);
+            
+            // SAFEGUARD: Check if instructions are duplicates of ingredients
+            // This happens when AI mistakenly uses ingredient descriptions as instructions
+            if (ingredients.value.length > 0 && rawInstructions.length > 0) {
+                const isDuplicate = checkIfInstructionsAreDuplicates(ingredients.value, rawInstructions);
+                if (isDuplicate) {
+                    // Instructions are duplicates - clear them so we don't show duplicate content
+                    console.warn('RecipeCard: Instructions appear to be duplicates of ingredients, hiding instructions');
+                    rawInstructions = [];
+                }
             }
+            
+            instructions.value = rawInstructions;
+            console.log('RecipeCard: Parsed instructions from HTML', instructions.value.length, 'items');
         }
-        
-        instructions.value = rawInstructions;
     }
 
-    // Find Notes section
-    const notesSection = findSection(tempDiv, ['notes', 'note', 'tips', 'tip', 'pro tips']);
-    if (notesSection) {
-        let rawNotes = extractListItems(notesSection);
-        
-        // SAFEGUARD: Check if notes are duplicates of ingredients
-        if (ingredients.value.length > 0 && rawNotes.length > 0) {
-            const isDuplicate = checkIfInstructionsAreDuplicates(ingredients.value, rawNotes);
-            if (isDuplicate) {
-                console.warn('RecipeCard: Notes appear to be duplicates of ingredients, hiding notes');
-                rawNotes = [];
+    // Find Notes section (only if not already set from props)
+    if (notes.value.length === 0) {
+        const notesSection = findSection(tempDiv, ['notes', 'note', 'tips', 'tip', 'pro tips']);
+        if (notesSection) {
+            let rawNotes = extractListItems(notesSection);
+            
+            // SAFEGUARD: Check if notes are duplicates of ingredients
+            if (ingredients.value.length > 0 && rawNotes.length > 0) {
+                const isDuplicate = checkIfInstructionsAreDuplicates(ingredients.value, rawNotes);
+                if (isDuplicate) {
+                    console.warn('RecipeCard: Notes appear to be duplicates of ingredients, hiding notes');
+                    rawNotes = [];
+                }
             }
+            
+            notes.value = rawNotes;
         }
-        
-        notes.value = rawNotes;
     }
 
     // Extract metadata from content

@@ -295,6 +295,27 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                 // Get default author for this website
                 $defaultAuthor = $this->getDefaultAuthor($website);
 
+                // Debug: Log ingredients/instructions data before article creation
+                $ingredientsToSave = $parsed['ingredients'] ?? [];
+                $instructionsToSave = $parsed['instructions'] ?? [];
+                $notesToSave = $parsed['notes'] ?? [];
+                
+                Log::info("FULL AI MODE - Creating article for website {$websiteId}", [
+                    'ingredients_count' => count($ingredientsToSave),
+                    'instructions_count' => count($instructionsToSave),
+                    'notes_count' => count($notesToSave),
+                    'ingredients_sample' => array_slice($ingredientsToSave, 0, 3),
+                ]);
+                
+                // CRITICAL: If no ingredients, log warning
+                if (empty($ingredientsToSave) && $this->articleType === 'recipe') {
+                    Log::warning("FULL AI MODE - No ingredients for recipe article!", [
+                        'website_id' => $websiteId,
+                        'title' => $parsed['title'],
+                        'parsed_keys' => array_keys($parsed),
+                    ]);
+                }
+
                 // Create the article
                 $article = Article::create([
                     'website_id' => $website->id,
@@ -310,13 +331,13 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                     'meta_title' => $parsed['meta_title'],
                     'meta_description' => $parsed['meta_description'],
                     'meta_tags' => $parsed['meta_tags'] ?? [],
-                    'notes' => $parsed['notes'] ?? [],
+                    'notes' => $notesToSave,
                     'prep_time' => $parsed['prep_time'] ?? null,
                     'cook_time' => $parsed['cook_time'] ?? null,
                     'rest_time' => $parsed['rest_time'] ?? null,
                     'total_time' => $parsed['total_time'] ?? null,
-                    'ingredients' => $parsed['ingredients'] ?? [],
-                    'instructions' => $parsed['instructions'] ?? [],
+                    'ingredients' => $ingredientsToSave,
+                    'instructions' => $instructionsToSave,
                     'status' => $this->autoPublish ? 'published' : 'draft',
                     'published_at' => $this->autoPublish ? now() : null,
                     'ai_generated' => true,
@@ -433,7 +454,12 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
             $masterParsed = $this->parseGeneratedContent($masterContent);
             
             Log::info('Hybrid Mode: Master article generated successfully', [
-                'title' => $masterParsed['title']
+                'title' => $masterParsed['title'],
+                'ingredients_count' => count($masterParsed['ingredients'] ?? []),
+                'instructions_count' => count($masterParsed['instructions'] ?? []),
+                'notes_count' => count($masterParsed['notes'] ?? []),
+                'ingredients_sample' => array_slice($masterParsed['ingredients'] ?? [], 0, 3),
+                'has_all_recipe_data' => !empty($masterParsed['ingredients']) && !empty($masterParsed['instructions']),
             ]);
 
             // Step 2: Create master article and variations
@@ -510,6 +536,30 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
 
                     $defaultAuthor = $this->getDefaultAuthor($website);
 
+                    // Debug: Log ingredients/instructions data before article creation
+                    $ingredientsToSave = $articleData['ingredients'] ?? [];
+                    $instructionsToSave = $articleData['instructions'] ?? [];
+                    $notesToSave = $articleData['notes'] ?? [];
+                    
+                    Log::info("HYBRID MODE - Creating article for website {$websiteId}", [
+                        'is_master' => $isMaster,
+                        'variation_index' => $index,
+                        'ingredients_count' => count($ingredientsToSave),
+                        'instructions_count' => count($instructionsToSave),
+                        'notes_count' => count($notesToSave),
+                        'ingredients_sample' => array_slice($ingredientsToSave, 0, 3),
+                        'has_ingredients_key' => isset($articleData['ingredients']),
+                    ]);
+                    
+                    // CRITICAL: If no ingredients, log warning
+                    if (empty($ingredientsToSave) && $this->articleType === 'recipe') {
+                        Log::warning("HYBRID MODE - No ingredients for recipe article!", [
+                            'website_id' => $websiteId,
+                            'title' => $articleData['title'],
+                            'article_data_keys' => array_keys($articleData),
+                        ]);
+                    }
+
                     // Create article
                     $article = Article::create([
                         'website_id' => $website->id,
@@ -526,13 +576,13 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                         'meta_title' => $articleData['meta_title'],
                         'meta_description' => $articleData['meta_description'],
                         'meta_tags' => $articleData['meta_tags'] ?? [],
-                        'notes' => $articleData['notes'] ?? [],
+                        'notes' => $notesToSave,
                         'prep_time' => $articleData['prep_time'] ?? null,
                         'cook_time' => $articleData['cook_time'] ?? null,
                         'rest_time' => $articleData['rest_time'] ?? null,
                         'total_time' => $articleData['total_time'] ?? null,
-                        'ingredients' => $articleData['ingredients'] ?? [],
-                        'instructions' => $articleData['instructions'] ?? [],
+                        'ingredients' => $ingredientsToSave,
+                        'instructions' => $instructionsToSave,
                         'status' => $this->autoPublish ? 'published' : 'draft',
                         'published_at' => $this->autoPublish ? now() : null,
                         'ai_generated' => true,
@@ -953,15 +1003,47 @@ PROMPT;
             
             // Get ingredients from JSON (strip HTML from each ingredient)
             if (isset($jsonData['ingredients']) && is_array($jsonData['ingredients'])) {
-                $ingredients = array_filter(array_map([$this, 'stripHtmlAndClean'], $jsonData['ingredients']));
+                $ingredients = array_values(array_filter(array_map([$this, 'stripHtmlAndClean'], $jsonData['ingredients'])));
+                Log::info('Parsed ingredients from JSON', ['count' => count($ingredients), 'sample' => array_slice($ingredients, 0, 3)]);
+            } else {
+                Log::warning('No ingredients array found in JSON response', [
+                    'has_ingredients_key' => isset($jsonData['ingredients']),
+                    'ingredients_type' => isset($jsonData['ingredients']) ? gettype($jsonData['ingredients']) : 'not set'
+                ]);
             }
             
             // Get instructions from JSON (strip HTML from each instruction)
             if (isset($jsonData['instructions']) && is_array($jsonData['instructions'])) {
-                $instructions = array_filter(array_map([$this, 'stripHtmlAndClean'], $jsonData['instructions']));
+                $instructions = array_values(array_filter(array_map([$this, 'stripHtmlAndClean'], $jsonData['instructions'])));
+                Log::info('Parsed instructions from JSON', ['count' => count($instructions)]);
+            } else {
+                Log::warning('No instructions array found in JSON response', [
+                    'has_instructions_key' => isset($jsonData['instructions']),
+                    'instructions_type' => isset($jsonData['instructions']) ? gettype($jsonData['instructions']) : 'not set'
+                ]);
             }
             
             $articleContent = $jsonData['content'] ?? '';
+            
+            // FALLBACK: If no ingredients in JSON, try to extract from HTML content
+            if (empty($ingredients) && !empty($articleContent)) {
+                Log::info('Attempting to extract ingredients from HTML content as fallback');
+                $extractedIngredients = $this->extractIngredientsFromHtml($articleContent);
+                if (!empty($extractedIngredients)) {
+                    $ingredients = $extractedIngredients;
+                    Log::info('Extracted ingredients from HTML', ['count' => count($ingredients)]);
+                }
+            }
+            
+            // FALLBACK: If no instructions in JSON, try to extract from HTML content
+            if (empty($instructions) && !empty($articleContent)) {
+                Log::info('Attempting to extract instructions from HTML content as fallback');
+                $extractedInstructions = $this->extractInstructionsFromHtml($articleContent);
+                if (!empty($extractedInstructions)) {
+                    $instructions = $extractedInstructions;
+                    Log::info('Extracted instructions from HTML', ['count' => count($instructions)]);
+                }
+            }
             
         } else {
             // Fallback: try to parse as the old text format if JSON parsing fails
@@ -1483,6 +1565,123 @@ PROMPT;
      * Strip HTML tags and clean up a plain text value.
      * Use this for fields that should NOT contain HTML (excerpt, meta fields, notes, etc.)
      */
+    /**
+     * Extract ingredients from HTML content as a fallback.
+     * Looks for <h2>Ingredients</h2> followed by a <ul> list.
+     */
+    private function extractIngredientsFromHtml(string $html): array
+    {
+        $ingredients = [];
+        
+        try {
+            $dom = new \DOMDocument();
+            @$dom->loadHTML('<?xml encoding="utf-8" ?><div>' . $html . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+            
+            $xpath = new \DOMXPath($dom);
+            
+            // Look for h2 or h3 headers containing "ingredient"
+            $headers = $xpath->query('//h2|//h3');
+            
+            foreach ($headers as $header) {
+                $headerText = strtolower(trim($header->textContent));
+                
+                if (strpos($headerText, 'ingredient') !== false) {
+                    // Find the next UL element
+                    $current = $header->nextSibling;
+                    while ($current) {
+                        if ($current->nodeType === XML_ELEMENT_NODE) {
+                            if (strtolower($current->nodeName) === 'ul' || strtolower($current->nodeName) === 'ol') {
+                                // Extract all li elements
+                                $listItems = $xpath->query('.//li', $current);
+                                foreach ($listItems as $li) {
+                                    $text = trim($li->textContent);
+                                    if (!empty($text)) {
+                                        $ingredients[] = $this->stripHtmlAndClean($text);
+                                    }
+                                }
+                                break;
+                            }
+                            // Stop if we hit another header
+                            if (in_array(strtolower($current->nodeName), ['h1', 'h2', 'h3', 'h4'])) {
+                                break;
+                            }
+                        }
+                        $current = $current->nextSibling;
+                    }
+                    
+                    if (!empty($ingredients)) {
+                        break;
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('Failed to extract ingredients from HTML', ['error' => $e->getMessage()]);
+        }
+        
+        return $ingredients;
+    }
+
+    /**
+     * Extract instructions from HTML content as a fallback.
+     * Looks for <h2>Instructions</h2> followed by an <ol> list.
+     */
+    private function extractInstructionsFromHtml(string $html): array
+    {
+        $instructions = [];
+        
+        try {
+            $dom = new \DOMDocument();
+            @$dom->loadHTML('<?xml encoding="utf-8" ?><div>' . $html . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+            
+            $xpath = new \DOMXPath($dom);
+            
+            // Look for h2 or h3 headers containing "instruction", "step", or "direction"
+            $headers = $xpath->query('//h2|//h3');
+            
+            foreach ($headers as $header) {
+                $headerText = strtolower(trim($header->textContent));
+                
+                if (strpos($headerText, 'instruction') !== false ||
+                    strpos($headerText, 'step') !== false ||
+                    strpos($headerText, 'direction') !== false) {
+                    
+                    // Find the next OL or UL element
+                    $current = $header->nextSibling;
+                    while ($current) {
+                        if ($current->nodeType === XML_ELEMENT_NODE) {
+                            if (strtolower($current->nodeName) === 'ol' || strtolower($current->nodeName) === 'ul') {
+                                // Extract all li elements
+                                $listItems = $xpath->query('.//li', $current);
+                                foreach ($listItems as $li) {
+                                    $text = trim($li->textContent);
+                                    if (!empty($text)) {
+                                        // Remove leading step numbers if present
+                                        $text = preg_replace('/^(?:Step\s*)?\d+[.:]\s*/i', '', $text);
+                                        $instructions[] = $this->stripHtmlAndClean($text);
+                                    }
+                                }
+                                break;
+                            }
+                            // Stop if we hit another header
+                            if (in_array(strtolower($current->nodeName), ['h1', 'h2', 'h3', 'h4'])) {
+                                break;
+                            }
+                        }
+                        $current = $current->nextSibling;
+                    }
+                    
+                    if (!empty($instructions)) {
+                        break;
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('Failed to extract instructions from HTML', ['error' => $e->getMessage()]);
+        }
+        
+        return $instructions;
+    }
+
     private function stripHtmlAndClean(string $value): string
     {
         // First decode any HTML entities
