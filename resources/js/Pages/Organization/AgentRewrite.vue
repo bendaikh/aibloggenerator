@@ -149,28 +149,17 @@ const submitForm = () => {
                                 <p v-if="form.errors.article_generation_mode" class="mt-1 text-sm text-red-500">{{ form.errors.article_generation_mode }}</p>
                             </div>
 
-                            <!-- Max Variations -->
-                            <div v-if="form.article_generation_mode === 'hybrid_rewrite'">
-                                <label class="text-gray-400 text-sm block mb-2">Maximum Variations</label>
-                                <div class="flex items-center gap-4">
-                                    <input 
-                                        v-model.number="form.max_variations"
-                                        type="range"
-                                        min="1"
-                                        max="50"
-                                        class="flex-1 h-2 bg-[#252525] rounded-lg appearance-none cursor-pointer accent-blue-500"
-                                    />
-                                    <div class="w-16 px-3 py-2 bg-[#252525] border border-[#3a3a3a] text-white rounded-lg text-center font-medium">
-                                        {{ form.max_variations }}
-                                    </div>
+                            <!-- Unlimited Variations Info -->
+                            <div v-if="form.article_generation_mode === 'hybrid_rewrite'" class="p-3 bg-emerald-900/20 border border-emerald-500/30 rounded-lg">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <span class="text-emerald-300 text-sm font-medium">Unlimited Websites</span>
                                 </div>
-                                <p class="text-gray-500 text-xs mt-2">
-                                    Generate up to {{ form.max_variations }} article variations from one master article when publishing to multiple websites
+                                <p class="text-emerald-200/70 text-xs mt-1">
+                                    All selected websites will receive unique article variations - no limits!
                                 </p>
-                                <p v-if="form.max_variations < 20" class="mt-1 text-xs text-yellow-400">
-                                    ⚠️ Set this to match your total number of websites to ensure all websites receive articles
-                                </p>
-                                <p v-if="form.errors.max_variations" class="mt-1 text-sm text-red-500">{{ form.errors.max_variations }}</p>
                             </div>
 
                             <!-- Info Box -->
@@ -183,13 +172,13 @@ const submitForm = () => {
                                         <p class="text-blue-300 font-medium">How Hybrid Mode Works:</p>
                                         <ul class="text-blue-200 space-y-1 list-disc list-inside">
                                             <li>Generates 1 high-quality master article via AI</li>
-                                            <li>Creates variations locally with advanced rewriting</li>
-                                            <li>Each variation has different title, structure, and wording</li>
+                                            <li>Creates unlimited variations locally with advanced rewriting</li>
+                                            <li>Each variation has different structure and wording</li>
                                             <li>No additional AI API calls for variations</li>
-                                            <li>Ideal for publishing same topic across multiple websites</li>
+                                            <li>Works with any number of websites - no limits!</li>
                                         </ul>
                                         <p class="text-blue-300 text-xs mt-2">
-                                            <strong>Cost Example:</strong> 10 websites = 1 API call ($0.10) instead of 10 calls ($1.00)
+                                            <strong>Cost Example:</strong> 25 websites = 1 API call ($0.10) instead of 25 calls ($2.50)
                                         </p>
                                     </div>
                                 </div>

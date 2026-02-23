@@ -463,30 +463,11 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                 'has_all_recipe_data' => !empty($masterParsed['ingredients']) && !empty($masterParsed['instructions']),
             ]);
 
-            // Step 2: Create master article and variations
-            // IMPORTANT: Only process up to maxVariations websites
-            // Any remaining jobs beyond the limit should be marked as skipped/cancelled
-            $variationCount = min($maxVariations, count($this->websiteIds));
-            $websitesToProcess = array_slice($this->websiteIds, 0, $variationCount);
+            // Step 2: Create master article and variations for ALL selected websites
+            // No limit - process all websites the user selected
+            $websitesToProcess = $this->websiteIds;
             
-            // Mark any jobs BEYOND the variation limit as completed with a note
-            // These won't get articles but shouldn't be left as "processing"
-            $skippedWebsites = array_slice($this->websiteIds, $variationCount);
-            foreach ($skippedWebsites as $skippedWebsiteId) {
-                $jobId = $this->generationJobIds[$skippedWebsiteId] ?? null;
-                if ($jobId) {
-                    $generationJob = ArticleGenerationJob::find($jobId);
-                    if ($generationJob && $generationJob->status !== 'completed') {
-                        $generationJob->markAsFailed("Skipped: Max variations limit ({$maxVariations}) reached. Increase 'Max Variations' in Agent Rewrite settings to generate for more websites.");
-                        Log::info("Skipped website {$skippedWebsiteId} - max variations limit reached", [
-                            'max_variations' => $maxVariations,
-                            'total_websites' => count($this->websiteIds)
-                        ]);
-                    }
-                }
-            }
-            
-            Log::info("Hybrid Mode: Processing {$variationCount} of " . count($this->websiteIds) . " websites (max_variations={$maxVariations})");
+            Log::info("Hybrid Mode: Processing all " . count($this->websiteIds) . " websites");
             
             foreach ($websitesToProcess as $index => $websiteId) {
                 $website = Website::with(['categories', 'authors'])->find($websiteId);
