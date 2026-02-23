@@ -399,6 +399,7 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
             return;
         }
 
+        // WRAP ENTIRE HYBRID MODE IN TRY-CATCH to ensure jobs are marked as failed on ANY error
         try {
             // Build prompt for master article
             $prompt = $this->buildPrompt($wordCount, $masterWebsite, 0);
@@ -639,11 +640,23 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                     if ($generationJob) {
                         $generationJob->markAsFailed($e->getMessage());
                     }
-                    Log::error("Failed to create article for website {$websiteId}: " . $e->getMessage());
+                    Log::error("Failed to create article for website {$websiteId}: " . $e->getMessage(), [
+                        'exception' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                    
+                    // Continue with other websites even if one fails
+                    continue;
                 }
             }
 
         } catch (\Exception $e) {
+            // CRITICAL: Ensure ALL jobs are marked as failed if master article generation fails
+            Log::error('HYBRID MODE CRITICAL ERROR - Marking all jobs as failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'job_ids' => $this->generationJobIds
+            ]);
             $this->failAllJobs('Master article generation failed: ' . $e->getMessage());
             throw $e;
         }

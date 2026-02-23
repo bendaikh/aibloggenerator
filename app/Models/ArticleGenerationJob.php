@@ -71,19 +71,30 @@ class ArticleGenerationJob extends Model
      */
     public function markAsProcessing(): void
     {
-        // Use fresh() to get the latest state from database
-        // and lock the row to prevent race conditions
-        $freshJob = static::lockForUpdate()->find($this->id);
-        
-        if (!$freshJob) {
-            return; // Job was deleted
-        }
-        
-        // Only update if not already completed or processing
-        if ($freshJob->status === 'pending') {
-            $freshJob->update([
-                'status' => 'processing',
-                'started_at' => now(),
+        try {
+            // Use fresh() to get the latest state from database
+            // and lock the row to prevent race conditions
+            $freshJob = static::lockForUpdate()->find($this->id);
+            
+            if (!$freshJob) {
+                \Log::warning("Cannot mark job {$this->id} as processing - job was deleted");
+                return; // Job was deleted
+            }
+            
+            // Only update if not already completed or processing
+            if ($freshJob->status === 'pending') {
+                $freshJob->update([
+                    'status' => 'processing',
+                    'started_at' => now(),
+                ]);
+                \Log::info("Job {$this->id} marked as processing");
+            } else {
+                \Log::warning("Job {$this->id} cannot be marked as processing - current status: {$freshJob->status}");
+            }
+        } catch (\Exception $e) {
+            \Log::error("Failed to mark job {$this->id} as processing", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
         }
     }
@@ -93,20 +104,32 @@ class ArticleGenerationJob extends Model
      */
     public function markAsCompleted(?int $articleId = null): void
     {
-        // Use fresh() to get the latest state from database
-        // and lock the row to prevent race conditions
-        $freshJob = static::lockForUpdate()->find($this->id);
-        
-        if (!$freshJob) {
-            return; // Job was deleted
-        }
-        
-        // Only update if not already completed (prevents re-marking)
-        if ($freshJob->status !== 'completed') {
-            $freshJob->update([
-                'status' => 'completed',
+        try {
+            // Use fresh() to get the latest state from database
+            // and lock the row to prevent race conditions
+            $freshJob = static::lockForUpdate()->find($this->id);
+            
+            if (!$freshJob) {
+                \Log::warning("Cannot mark job {$this->id} as completed - job was deleted");
+                return; // Job was deleted
+            }
+            
+            // Only update if not already completed (prevents re-marking)
+            if ($freshJob->status !== 'completed') {
+                $freshJob->update([
+                    'status' => 'completed',
+                    'article_id' => $articleId,
+                    'completed_at' => now(),
+                ]);
+                \Log::info("Job {$this->id} marked as completed", ['article_id' => $articleId]);
+            } else {
+                \Log::info("Job {$this->id} already completed");
+            }
+        } catch (\Exception $e) {
+            \Log::error("Failed to mark job {$this->id} as completed", [
+                'error' => $e->getMessage(),
                 'article_id' => $articleId,
-                'completed_at' => now(),
+                'trace' => $e->getTraceAsString()
             ]);
         }
     }
@@ -116,21 +139,45 @@ class ArticleGenerationJob extends Model
      */
     public function markAsFailed(string $errorMessage): void
     {
-        // Use fresh() to get the latest state from database
-        // and lock the row to prevent race conditions
-        $freshJob = static::lockForUpdate()->find($this->id);
-        
-        if (!$freshJob) {
-            return; // Job was deleted
-        }
-        
-        // Only update if not already completed (completed takes precedence over failed)
-        if ($freshJob->status !== 'completed') {
-            $freshJob->update([
-                'status' => 'failed',
-                'error_message' => $errorMessage,
-                'completed_at' => now(),
+        try {
+            // Use fresh() to get the latest state from database
+            // and lock the row to prevent race conditions
+            $freshJob = static::lockForUpdate()->find($this->id);
+            
+            if (!$freshJob) {
+                \Log::warning("Cannot mark job {$this->id} as failed - job was deleted");
+                return; // Job was deleted
+            }
+            
+            // Only update if not already completed (completed takes precedence over failed)
+            if ($freshJob->status !== 'completed') {
+                $freshJob->update([
+                    'status' => 'failed',
+                    'error_message' => $errorMessage,
+                    'completed_at' => now(),
+                ]);
+                \Log::warning("Job {$this->id} marked as failed", ['error' => $errorMessage]);
+            } else {
+                \Log::info("Job {$this->id} already completed - not marking as failed");
+            }
+        } catch (\Exception $e) {
+            \Log::error("CRITICAL: Failed to mark job {$this->id} as failed", [
+                'original_error' => $errorMessage,
+                'mark_error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
+            // As a last resort, try a simple update without locking
+            try {
+                static::where('id', $this->id)->update([
+                    'status' => 'failed',
+                    'error_message' => $errorMessage . ' (DB error: ' . $e->getMessage() . ')',
+                    'completed_at' => now(),
+                ]);
+            } catch (\Exception $fallbackError) {
+                \Log::critical("CRITICAL: Cannot update job {$this->id} status even with fallback", [
+                    'error' => $fallbackError->getMessage()
+                ]);
+            }
         }
     }
 }
