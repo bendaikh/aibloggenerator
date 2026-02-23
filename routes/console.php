@@ -9,4 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 // Schedule automatic cleanup of stuck article generation jobs
-Schedule::command('articles:fix-stuck-jobs --force')->everyFifteenMinutes();
+// Runs every 5 minutes to quickly catch and fix any stuck jobs
+Schedule::command('articles:fix-stuck-jobs --force')->everyFiveMinutes();

@@ -464,9 +464,31 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
             ]);
 
             // Step 2: Create master article and variations
+            // IMPORTANT: Only process up to maxVariations websites
+            // Any remaining jobs beyond the limit should be marked as skipped/cancelled
             $variationCount = min($maxVariations, count($this->websiteIds));
+            $websitesToProcess = array_slice($this->websiteIds, 0, $variationCount);
             
-            foreach ($this->websiteIds as $index => $websiteId) {
+            // Mark any jobs BEYOND the variation limit as completed with a note
+            // These won't get articles but shouldn't be left as "processing"
+            $skippedWebsites = array_slice($this->websiteIds, $variationCount);
+            foreach ($skippedWebsites as $skippedWebsiteId) {
+                $jobId = $this->generationJobIds[$skippedWebsiteId] ?? null;
+                if ($jobId) {
+                    $generationJob = ArticleGenerationJob::find($jobId);
+                    if ($generationJob && $generationJob->status !== 'completed') {
+                        $generationJob->markAsFailed("Skipped: Max variations limit ({$maxVariations}) reached. Increase 'Max Variations' in Agent Rewrite settings to generate for more websites.");
+                        Log::info("Skipped website {$skippedWebsiteId} - max variations limit reached", [
+                            'max_variations' => $maxVariations,
+                            'total_websites' => count($this->websiteIds)
+                        ]);
+                    }
+                }
+            }
+            
+            Log::info("Hybrid Mode: Processing {$variationCount} of " . count($this->websiteIds) . " websites (max_variations={$maxVariations})");
+            
+            foreach ($websitesToProcess as $index => $websiteId) {
                 $website = Website::with(['categories', 'authors'])->find($websiteId);
                 if (!$website) continue;
 
@@ -649,6 +671,15 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                     continue;
                 }
             }
+            
+            // FINAL CLEANUP: Ensure no jobs are left in "processing" or "pending" status
+            // This catches any edge cases where jobs weren't properly updated
+            $this->finalizeAllJobs('Hybrid mode completed');
+            
+            Log::info('Hybrid Mode: All articles processed successfully', [
+                'processed_count' => count($websitesToProcess),
+                'skipped_count' => count($skippedWebsites)
+            ]);
 
         } catch (\Exception $e) {
             // CRITICAL: Ensure ALL jobs are marked as failed if master article generation fails
@@ -666,7 +697,45 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
     {
         foreach ($this->generationJobIds as $jobId) {
             $job = ArticleGenerationJob::find($jobId);
-            if ($job) $job->markAsFailed($message);
+            if ($job && $job->status !== 'completed') {
+                $job->markAsFailed($message);
+            }
+        }
+    }
+    
+    /**
+     * Finalize all jobs after processing - ensure none are left in processing/pending state.
+     * Jobs that are still processing but have an article_id are marked as completed.
+     * Jobs that are still processing without an article_id are marked as failed.
+     */
+    private function finalizeAllJobs(string $context): void
+    {
+        foreach ($this->generationJobIds as $websiteId => $jobId) {
+            $job = ArticleGenerationJob::find($jobId);
+            if (!$job) continue;
+            
+            // Skip if already completed or failed
+            if (in_array($job->status, ['completed', 'failed'])) {
+                continue;
+            }
+            
+            // Check if this job has an associated article
+            if ($job->article_id) {
+                // Has article - mark as completed
+                $job->markAsCompleted($job->article_id);
+                Log::info("Finalized job {$jobId} as completed (had article_id)", [
+                    'context' => $context,
+                    'website_id' => $websiteId
+                ]);
+            } else {
+                // No article - mark as failed
+                $job->markAsFailed("Job did not complete successfully. {$context}");
+                Log::warning("Finalized job {$jobId} as failed (no article_id)", [
+                    'context' => $context,
+                    'website_id' => $websiteId,
+                    'previous_status' => $job->status
+                ]);
+            }
         }
     }
 

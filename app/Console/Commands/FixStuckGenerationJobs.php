@@ -31,14 +31,18 @@ class FixStuckGenerationJobs extends Command
         
         $this->info('Checking for stuck article generation jobs...');
         
-        // Find jobs that have been in 'processing' status for more than 15 minutes
-        // or in 'pending' status for more than 30 minutes
+        // Find jobs that have been in 'processing' status for more than 10 minutes
+        // or in 'pending' status for more than 15 minutes
+        // These thresholds are reasonable since article generation typically completes in 2-5 minutes
         $stuckProcessingJobs = ArticleGenerationJob::where('status', 'processing')
-            ->where('started_at', '<=', now()->subMinutes(15))
+            ->where(function($query) {
+                $query->where('started_at', '<=', now()->subMinutes(10))
+                      ->orWhereNull('started_at'); // Also catch jobs with null started_at
+            })
             ->get();
             
         $stuckPendingJobs = ArticleGenerationJob::where('status', 'pending')
-            ->where('created_at', '<=', now()->subMinutes(30))
+            ->where('created_at', '<=', now()->subMinutes(15))
             ->get();
             
         $totalStuck = $stuckProcessingJobs->count() + $stuckPendingJobs->count();
