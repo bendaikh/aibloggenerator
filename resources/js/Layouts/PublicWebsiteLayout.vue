@@ -15,8 +15,9 @@
             <meta v-if="website.yandex_verification" name="yandex-verification" :content="website.yandex_verification" />
         </Head>
         
-        <!-- Cookie Consent Banner (Custom CMP - only shown when HBAgency is NOT configured) -->
-        <!-- When HBAgency script is present, their script automatically injects their own CMP -->
+        <!-- Cookie Consent Banner (Custom CMP) -->
+        <!-- Shown for Google Ads and when no ad system is configured -->
+        <!-- Only hidden when HBAgency is active (they provide their own CMP) -->
         <CookieConsent 
             v-if="showCustomCMP"
             :show-settings-button="true"
@@ -472,12 +473,19 @@ const props = defineProps({
 // Consent Management
 const { hasConsentFor, consentGiven, initializeHBAgencyAds } = useConsentManagement();
 
-// Only show custom CMP when neither HBAgency nor Google Ads are configured and active
-// When HBAgency script is present and active, their script handles CMP automatically
+// Show custom CMP when Google Ads is active OR when neither ad system is configured
+// Only hide CMP when HBAgency is active (they provide their own CMP)
 const showCustomCMP = computed(() => {
     const hasActiveHBAgency = props.website?.hbagency_script && props.website?.hbagency_active;
-    const hasActiveGoogleAds = props.website?.google_adsense_id && props.website?.google_ads_active;
-    return !hasActiveHBAgency && !hasActiveGoogleAds;
+    
+    // If HBAgency is active, they handle their own CMP, so don't show ours
+    if (hasActiveHBAgency) {
+        return false;
+    }
+    
+    // Always show CMP if Google Ads is active (they need consent)
+    // OR if no ad system is configured (default behavior)
+    return true;
 });
 
 // Handle consent given
