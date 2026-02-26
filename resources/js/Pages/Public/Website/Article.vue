@@ -429,7 +429,7 @@ const checkDevice = () => {
 const { openSubscribePopup } = useSubscribePopup();
 
 // Consent Management
-const { hasConsentFor, consentGiven, initializeHBAgencyAds } = useConsentManagement();
+const { hasConsentFor, consentGiven, initializeHBAgencyAds, initializeGoogleAdsense } = useConsentManagement();
 
 // Function to initialize HBAgency ads (only if consent is given)
 const initHBAgencyAds = () => {
@@ -518,18 +518,53 @@ const initGoogleAds = () => {
         return;
     }
     
-    console.log('[Google Ads] Initializing Google AdSense ads');
+    // Check if advertising consent is given
+    const hasAdvertisingConsent = hasConsentFor(CONSENT_CATEGORIES.ADVERTISING);
+    if (!hasAdvertisingConsent) {
+        console.log('[Google Ads] No advertising consent - ads will not be initialized');
+        return;
+    }
     
-    // Push all ads to be loaded
+    console.log('[Google Ads] Initializing Google AdSense ads');
+    console.log('[Google Ads] AdSense ID:', props.website.google_adsense_id);
+    console.log('[Google Ads] Placements:', props.website.google_ads_placements);
+    
+    // Get all adsbygoogle elements
     const adElements = document.querySelectorAll('.adsbygoogle');
     console.log('[Google Ads] Found ad elements:', adElements.length);
     
+    if (adElements.length === 0) {
+        console.warn('[Google Ads] No ad elements found on page');
+        return;
+    }
+    
     adElements.forEach((ad, index) => {
         try {
-            if (!ad.getAttribute('data-adsbygoogle-status')) {
-                (window.adsbygoogle = window.adsbygoogle || []).push({});
-                console.log('[Google Ads] Initialized ad', index + 1);
+            const status = ad.getAttribute('data-adsbygoogle-status');
+            if (status === 'done') {
+                console.log('[Google Ads] Ad', index + 1, 'already initialized');
+                return;
             }
+            
+            const client = ad.getAttribute('data-ad-client');
+            const slot = ad.getAttribute('data-ad-slot');
+            
+            console.log('[Google Ads] Initializing ad', index + 1);
+            console.log('[Google Ads] - Client:', client);
+            console.log('[Google Ads] - Slot:', slot);
+            
+            if (!client) {
+                console.error('[Google Ads] Missing data-ad-client for ad', index + 1);
+                return;
+            }
+            
+            if (!slot) {
+                console.error('[Google Ads] Missing data-ad-slot for ad', index + 1);
+                return;
+            }
+            
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+            console.log('[Google Ads] Initialized ad', index + 1);
         } catch (e) {
             console.error('[Google Ads] Error initializing ad:', e);
         }
@@ -549,6 +584,16 @@ const handleConsentGranted = () => {
     }, 1000);
 };
 
+// Also listen for Google-specific consent event
+const handleGoogleConsentGranted = () => {
+    console.log('[Google Ads] Google consent granted event received');
+    setTimeout(() => {
+        if (props.website?.google_ads_active) {
+            initGoogleAds();
+        }
+    }, 500);
+};
+
 // Trigger HBAgency to refresh ads after Vue renders the ad divs
 onMounted(() => {
     nextTick(() => {
@@ -556,11 +601,14 @@ onMounted(() => {
         if (typeof window !== 'undefined') {
             window.addEventListener('ads_consent_granted', handleConsentGranted);
             window.addEventListener('consent_accepted_all', handleConsentGranted);
+            window.addEventListener('google_ads_consent_granted', handleGoogleConsentGranted);
         }
         
         // Only initialize ads if consent is already given
         const hasAdvertisingConsent = hasConsentFor(CONSENT_CATEGORIES.ADVERTISING);
         if (hasAdvertisingConsent) {
+            console.log('[Ads] Advertising consent already given, initializing ads...');
+            
             // Initialize HBAgency if active
             if (props.website?.hbagency_active) {
                 // Wait a bit for all ad divs to be in the DOM and HBAgency script to load
@@ -576,9 +624,15 @@ onMounted(() => {
             
             // Initialize Google Ads if active
             if (props.website?.google_ads_active) {
+                // Wait for DOM to be fully ready and AdSense script to load
                 setTimeout(() => {
                     initGoogleAds();
-                }, 500);
+                }, 1000);
+                
+                // Try again after 2 seconds
+                setTimeout(() => {
+                    initGoogleAds();
+                }, 2000);
             }
         } else {
             console.log('[Ads] Waiting for consent before initializing ads...');
@@ -623,6 +677,7 @@ onUnmounted(() => {
     if (typeof window !== 'undefined') {
         window.removeEventListener('ads_consent_granted', handleConsentGranted);
         window.removeEventListener('consent_accepted_all', handleConsentGranted);
+        window.removeEventListener('google_ads_consent_granted', handleGoogleConsentGranted);
         window.removeEventListener('resize', checkDevice);
     }
 });

@@ -192,6 +192,40 @@ const loadAdsAfterConsent = () => {
     setTimeout(() => {
         initializeHBAgencyAds();
     }, 500);
+    
+    // Also try to initialize Google AdSense if configured
+    setTimeout(() => {
+        initializeGoogleAdsense();
+    }, 500);
+};
+
+// Initialize Google AdSense
+const initializeGoogleAdsense = () => {
+    if (typeof window === 'undefined') return;
+    
+    console.log('[CMP] Initializing Google AdSense...');
+    
+    // Dispatch event for Google Ads initialization
+    window.dispatchEvent(new CustomEvent('google_ads_consent_granted'));
+    
+    // Get all adsbygoogle elements and initialize them
+    const adElements = document.querySelectorAll('.adsbygoogle');
+    console.log('[CMP] Found', adElements.length, 'Google ad slots');
+    
+    adElements.forEach((adElement, index) => {
+        try {
+            const status = adElement.getAttribute('data-adsbygoogle-status');
+            if (status === 'done') {
+                console.log('[CMP] Google ad slot', index + 1, 'already initialized');
+                return;
+            }
+            
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+            console.log('[CMP] Initialized Google ad slot', index + 1);
+        } catch (e) {
+            console.error('[CMP] Error initializing Google ad slot', index + 1, ':', e);
+        }
+    });
 };
 
 // Initialize HBAgency ads
@@ -277,6 +311,7 @@ export function useConsentManagement() {
         initializeConsent,
         loadAdsAfterConsent,
         initializeHBAgencyAds,
+        initializeGoogleAdsense,
         
         // Constants
         CONSENT_CATEGORIES,

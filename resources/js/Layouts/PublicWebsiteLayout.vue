@@ -517,16 +517,16 @@ onMounted(() => {
             initGoogleAnalytics(props.website.google_analytics_id);
         }
         
-        // Initialize Google AdSense ads
+        // Initialize Google AdSense ads only if consent is given
         if (props.website?.google_ads_active && props.website?.google_adsense_id) {
-            setTimeout(() => {
-                try {
-                    (window.adsbygoogle = window.adsbygoogle || []).push({});
-                    console.log('[Google Ads] AdSense initialized');
-                } catch (e) {
-                    console.error('[Google Ads] Error initializing:', e);
-                }
-            }, 100);
+            // Check if advertising consent is given
+            if (hasConsentFor(CONSENT_CATEGORIES.ADVERTISING)) {
+                setTimeout(() => {
+                    initGoogleAdsenseAds();
+                }, 500);
+            } else {
+                console.log('[Google Ads] Waiting for advertising consent...');
+            }
         }
     });
 });
@@ -567,6 +567,63 @@ const initGoogleAnalytics = (gaId) => {
     gtag('config', gaId);
     
     console.log('[Analytics] GA4 initialized:', gaId);
+};
+
+// Initialize Google AdSense ads
+const initGoogleAdsenseAds = () => {
+    if (typeof window === 'undefined') return;
+    if (!props.website?.google_ads_active || !props.website?.google_adsense_id) {
+        console.log('[Google Ads] Not active or missing AdSense ID');
+        return;
+    }
+    
+    console.log('[Google Ads] Initializing AdSense ads...');
+    
+    // Get all adsbygoogle elements
+    const adElements = document.querySelectorAll('.adsbygoogle');
+    console.log('[Google Ads] Found', adElements.length, 'ad slots');
+    
+    if (adElements.length === 0) {
+        console.warn('[Google Ads] No ad slots found on page');
+        return;
+    }
+    
+    // Initialize each ad slot
+    adElements.forEach((adElement, index) => {
+        try {
+            // Check if already initialized
+            const status = adElement.getAttribute('data-adsbygoogle-status');
+            if (status === 'done') {
+                console.log('[Google Ads] Ad slot', index + 1, 'already initialized');
+                return;
+            }
+            
+            // Verify required attributes
+            const client = adElement.getAttribute('data-ad-client');
+            const slot = adElement.getAttribute('data-ad-slot');
+            
+            if (!client) {
+                console.error('[Google Ads] Missing data-ad-client for ad slot', index + 1);
+                return;
+            }
+            
+            if (!slot) {
+                console.error('[Google Ads] Missing data-ad-slot for ad slot', index + 1);
+                return;
+            }
+            
+            console.log('[Google Ads] Initializing ad slot', index + 1, '- Client:', client, 'Slot:', slot);
+            
+            // Push to adsbygoogle
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+            
+            console.log('[Google Ads] Ad slot', index + 1, 'initialized successfully');
+        } catch (e) {
+            console.error('[Google Ads] Error initializing ad slot', index + 1, ':', e);
+        }
+    });
+    
+    console.log('[Google Ads] All ad slots processed');
 };
 
 // Get subscription popup settings
