@@ -224,6 +224,57 @@ PROMPT;
     }
 
     /**
+     * Generate a preview image and return it as a base64-encoded PNG data URI.
+     */
+    public function generatePreviewBase64(
+        string $topImage,
+        string $bottomImage,
+        string $headlineText,
+        string $subheadlineText,
+        string $headlineColor = '#ffffff',
+        string $subheadlineColor = '#d4a574',
+        string $overlayColor = '#000000',
+        int $overlayOpacity = 70,
+        string $frameDesign = 'simple_center',
+        string $headlineFont = 'arial',
+        string $subheadlineFont = 'georgia',
+        int $headlineFontSize = 28,
+        int $subheadlineFontSize = 22,
+        string $domainName = ''
+    ): string {
+        $topImagePath = $this->resolveImagePath($topImage);
+        $bottomImagePath = $this->resolveImagePath($bottomImage);
+
+        if (!$topImagePath || !$bottomImagePath) {
+            throw new \Exception('Top or bottom image not found');
+        }
+
+        $canvas = $this->createPinImage(
+            $topImagePath,
+            $bottomImagePath,
+            $headlineText,
+            $subheadlineText,
+            $headlineColor,
+            $subheadlineColor,
+            $overlayColor,
+            $overlayOpacity,
+            $frameDesign,
+            $headlineFont,
+            $subheadlineFont,
+            $headlineFontSize,
+            $subheadlineFontSize,
+            $domainName
+        );
+
+        ob_start();
+        imagepng($canvas, null, 6);
+        $imageData = ob_get_clean();
+        imagedestroy($canvas);
+
+        return 'data:image/png;base64,' . base64_encode($imageData);
+    }
+
+    /**
      * Create the Pinterest pin image based on frame design.
      */
     private function createPinImage(
@@ -842,17 +893,17 @@ PROMPT;
         $transformedSubheadline = strtoupper($subheadline);
         
         $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
-        $subheadlineH = $this->calculateTextHeight($transformedSubheadline, $fontPath, $scaledSubheadlineSize);
+        $subheadlineH = $this->calculateTextHeight($transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize);
         $totalTextHeight = $headlineH + $subheadlineH + (!empty($transformedHeadline) && !empty($transformedSubheadline) ? $gap : 0);
         
         while (($totalTextHeight > $availableHeight || 
                $this->isTextTooWide($transformedHeadline, $fontPath, $scaledHeadlineSize, 460) ||
-               $this->isTextTooWide($transformedSubheadline, $fontPath, $scaledSubheadlineSize, 460)) && 
+               $this->isTextTooWide($transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize, 460)) && 
                $scaledHeadlineSize > 12) {
             $scaledHeadlineSize = max(12, $scaledHeadlineSize - 2);
             $scaledSubheadlineSize = max(10, $scaledSubheadlineSize - 2);
             $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
-            $subheadlineH = $this->calculateTextHeight($transformedSubheadline, $fontPath, $scaledSubheadlineSize);
+            $subheadlineH = $this->calculateTextHeight($transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize);
             $totalTextHeight = $headlineH + $subheadlineH + (!empty($transformedHeadline) && !empty($transformedSubheadline) ? $gap : 0);
         }
         
@@ -868,7 +919,7 @@ PROMPT;
 
         // Draw Subheadline (Below Headline)
         if (!empty($transformedSubheadline)) {
-            $this->drawCenteredText($canvas, $transformedSubheadline, $fontPath, $scaledSubheadlineSize, $centerX, $startY, $subheadlineTextColor);
+            $this->drawCenteredText($canvas, $transformedSubheadline, $scriptFontPath ?? $fontPath, $scaledSubheadlineSize, $centerX, $startY, $subheadlineTextColor);
         }
 
         // 4. Draw the ribbon (polygon points for notched ribbon)
@@ -1012,6 +1063,9 @@ PROMPT;
         $headlineTextColor = imagecolorallocate($canvas, $headlineRgb['r'], $headlineRgb['g'], $headlineRgb['b']);
         $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
 
+        $fontPath = $this->getFontPath($headlineFont);
+        $scriptFontPath = $this->getFontPath($subheadlineFont);
+
         $availableHeight = self::TEXT_BAR_HEIGHT - ($capsuleHeight / 2) - ($bottomCapsuleHeight / 2) - 40;
         $mainAreaStartY = $textBarStartY + ($capsuleHeight / 2) + 20;
         
@@ -1023,17 +1077,17 @@ PROMPT;
         $transformedSub = strtoupper($subheadline);
         
         $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
-        $subH = $this->calculateTextHeight($transformedSub, $fontPath, $scaledSubSize);
+        $subH = $this->calculateTextHeight($transformedSub, $scriptFontPath ?? $fontPath, $scaledSubSize);
         $totalH = $headlineH + $subH + ($headline && $subheadline ? $gap : 0);
         
         while (($totalH > $availableHeight || 
                $this->isTextTooWide($transformedHeadline, $fontPath, $scaledHeadlineSize, 460) ||
-               $this->isTextTooWide($transformedSub, $fontPath, $scaledSubSize, 460)) && 
+               $this->isTextTooWide($transformedSub, $scriptFontPath ?? $fontPath, $scaledSubSize, 460)) && 
                $scaledHeadlineSize > 12) {
             $scaledHeadlineSize = max(12, $scaledHeadlineSize - 2);
             $scaledSubSize = max(10, $scaledSubSize - 2);
             $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
-            $subH = $this->calculateTextHeight($transformedSub, $fontPath, $scaledSubSize);
+            $subH = $this->calculateTextHeight($transformedSub, $scriptFontPath ?? $fontPath, $scaledSubSize);
             $totalH = $headlineH + $subH + ($headline && $subheadline ? $gap : 0);
         }
         
@@ -1045,7 +1099,7 @@ PROMPT;
         }
         
         if (!empty($transformedSub)) {
-            $this->drawCenteredText($canvas, $transformedSub, $fontPath, $scaledSubSize, self::PIN_WIDTH / 2, $startY, $subheadlineTextColor);
+            $this->drawCenteredText($canvas, $transformedSub, $scriptFontPath ?? $fontPath, $scaledSubSize, self::PIN_WIDTH / 2, $startY, $subheadlineTextColor);
         }
     }
 
@@ -1117,6 +1171,7 @@ PROMPT;
         $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
 
         $fontPath = $this->getFontPath($headlineFont);
+        $scriptFontPath = $this->getFontPath($subheadlineFont);
         $centerX = self::PIN_WIDTH / 2;
         
         // Transform text: Headline lowercase, bold
@@ -1132,17 +1187,17 @@ PROMPT;
         $gap = 10;
         
         $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
-        $subH = $this->calculateTextHeight($transformedSub, $fontPath, $scaledSubSize);
+        $subH = $this->calculateTextHeight($transformedSub, $scriptFontPath ?? $fontPath, $scaledSubSize);
         $totalH = $headlineH + $subH + ($headline && $subheadline ? $gap : 0);
         
         while (($totalH > $availableHeight || 
                $this->isTextTooWide($transformedHeadline, $fontPath, $scaledHeadlineSize, 460) ||
-               $this->isTextTooWide($transformedSub, $fontPath, $scaledSubSize, 460)) && 
+               $this->isTextTooWide($transformedSub, $scriptFontPath ?? $fontPath, $scaledSubSize, 460)) && 
                $scaledHeadlineSize > 12) {
             $scaledHeadlineSize = max(12, $scaledHeadlineSize - 2);
             $scaledSubSize = max(10, $scaledSubSize - 2);
             $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
-            $subH = $this->calculateTextHeight($transformedSub, $fontPath, $scaledSubSize);
+            $subH = $this->calculateTextHeight($transformedSub, $scriptFontPath ?? $fontPath, $scaledSubSize);
             $totalH = $headlineH + $subH + ($headline && $subheadline ? $gap : 0);
         }
         
@@ -1156,7 +1211,7 @@ PROMPT;
         
         // Draw Subheadline
         if (!empty($transformedSub)) {
-            $this->drawCenteredText($canvas, $transformedSub, $fontPath, $scaledSubSize, self::PIN_WIDTH / 2, $startY, $subheadlineTextColor);
+            $this->drawCenteredText($canvas, $transformedSub, $scriptFontPath ?? $fontPath, $scaledSubSize, self::PIN_WIDTH / 2, $startY, $subheadlineTextColor);
         }
 
         // 3. Draw domain bar overlapping the bottom line
@@ -1248,6 +1303,7 @@ PROMPT;
         $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
 
         $fontPath = $this->getFontPath($headlineFont);
+        $scriptFontPath = $this->getFontPath($subheadlineFont);
         $centerX = self::PIN_WIDTH / 2;
         
         // Transform text: Headline ALL CAPS, Subheadline Title Case
@@ -1263,17 +1319,17 @@ PROMPT;
         $gap = 10;
         
         $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
-        $subH = $this->calculateTextHeight($transformedSub, $fontPath, $scaledSubSize);
+        $subH = $this->calculateTextHeight($transformedSub, $scriptFontPath ?? $fontPath, $scaledSubSize);
         $totalH = $headlineH + $subH + ($headline && $subheadline ? $gap : 0);
         
         while (($totalH > $availableHeight || 
                $this->isTextTooWide($transformedHeadline, $fontPath, $scaledHeadlineSize, 480) ||
-               $this->isTextTooWide($transformedSub, $fontPath, $scaledSubSize, 480)) && 
+               $this->isTextTooWide($transformedSub, $scriptFontPath ?? $fontPath, $scaledSubSize, 480)) && 
                $scaledHeadlineSize > 12) {
             $scaledHeadlineSize = max(12, $scaledHeadlineSize - 2);
             $scaledSubSize = max(10, $scaledSubSize - 2);
             $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
-            $subH = $this->calculateTextHeight($transformedSub, $fontPath, $scaledSubSize);
+            $subH = $this->calculateTextHeight($transformedSub, $scriptFontPath ?? $fontPath, $scaledSubSize);
             $totalH = $headlineH + $subH + ($headline && $subheadline ? $gap : 0);
         }
         
@@ -1287,7 +1343,7 @@ PROMPT;
         
         // Draw Subheadline
         if (!empty($transformedSub)) {
-            $this->drawCenteredText($canvas, $transformedSub, $fontPath, $scaledSubSize, self::PIN_WIDTH / 2, $startY, $subheadlineTextColor);
+            $this->drawCenteredText($canvas, $transformedSub, $scriptFontPath ?? $fontPath, $scaledSubSize, self::PIN_WIDTH / 2, $startY, $subheadlineTextColor);
         }
     }
 
@@ -1353,6 +1409,7 @@ PROMPT;
         $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
 
         $fontPath = $this->getFontPath($headlineFont);
+        $scriptFontPath = $this->getFontPath($subheadlineFont);
         $centerX = self::PIN_WIDTH / 2;
         
         // Transform text: Bold and prominent (similar to the provided image)
@@ -1368,17 +1425,17 @@ PROMPT;
         $gap = 15;
         
         $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
-        $subH = $this->calculateTextHeight($transformedSub, $fontPath, $scaledSubSize);
+        $subH = $this->calculateTextHeight($transformedSub, $scriptFontPath ?? $fontPath, $scaledSubSize);
         $totalH = $headlineH + $subH + ($headline && $subheadline ? $gap : 0);
         
         while (($totalH > $availableHeight || 
                $this->isTextTooWide($transformedHeadline, $fontPath, $scaledHeadlineSize, 480) ||
-               $this->isTextTooWide($transformedSub, $fontPath, $scaledSubSize, 480)) && 
+               $this->isTextTooWide($transformedSub, $scriptFontPath ?? $fontPath, $scaledSubSize, 480)) && 
                $scaledHeadlineSize > 12) {
             $scaledHeadlineSize = max(12, $scaledHeadlineSize - 2);
             $scaledSubSize = max(12, $scaledSubSize - 2);
             $headlineH = $this->calculateTextHeight($transformedHeadline, $fontPath, $scaledHeadlineSize);
-            $subH = $this->calculateTextHeight($transformedSub, $fontPath, $scaledSubSize);
+            $subH = $this->calculateTextHeight($transformedSub, $scriptFontPath ?? $fontPath, $scaledSubSize);
             $totalH = $headlineH + $subH + ($headline && $subheadline ? $gap : 0);
         }
         
@@ -1392,7 +1449,7 @@ PROMPT;
         
         // Draw Subheadline
         if (!empty($transformedSub)) {
-            $this->drawCenteredText($canvas, $transformedSub, $fontPath, $scaledSubSize, $centerX, $startY, $subheadlineTextColor);
+            $this->drawCenteredText($canvas, $transformedSub, $scriptFontPath ?? $fontPath, $scaledSubSize, $centerX, $startY, $subheadlineTextColor);
         }
     }
 
@@ -1456,19 +1513,27 @@ PROMPT;
     }
 
     /**
+     * GD imagettfbbox measures text wider than CSS renders it due to differences
+     * in kerning, hinting and sidebearing. This factor compensates so wrapping
+     * behaviour matches the browser preview.
+     */
+    const GD_WIDTH_CORRECTION = 1.15;
+
+    /**
      * Helper: Check if any line of text is too wide for the max width.
      */
     private function isTextTooWide(string $text, ?string $fontPath, int $fontSize, int $maxWidth): bool
     {
         if (empty($text)) return false;
         
+        $effectiveMaxWidth = min((int)($maxWidth * self::GD_WIDTH_CORRECTION), self::PIN_WIDTH - 8);
         $lines = $this->wrapText($text, $fontPath, $fontSize, $maxWidth);
         
         if ($fontPath && file_exists($fontPath) && function_exists('imagettfbbox')) {
             foreach ($lines as $line) {
                 $bbox = imagettfbbox($fontSize, 0, $fontPath, $line);
                 $width = abs($bbox[2] - $bbox[0]);
-                if ($width > $maxWidth) {
+                if ($width > $effectiveMaxWidth) {
                     return true;
                 }
             }
@@ -1486,7 +1551,7 @@ PROMPT;
         if (empty($text)) return 0;
 
         $lines = $this->wrapText($text, $fontPath, $fontSize, $maxWidth);
-        $lineHeight = $fontSize * 1.5;
+        $lineHeight = $fontSize * 1.2; // Changed from 1.5 to 1.2 to match preview's "leading-tight"
         $totalHeight = count($lines) * $lineHeight;
 
         if ($fontPath && file_exists($fontPath) && function_exists('imagettftext')) {
@@ -1524,6 +1589,7 @@ PROMPT;
 
     /**
      * Helper: Wrap text into lines based on max width.
+     * Uses GD_WIDTH_CORRECTION to compensate for GD measuring text wider than CSS.
      */
     private function wrapText(string $text, ?string $fontPath, int $fontSize, int $maxWidth): array
     {
@@ -1533,13 +1599,15 @@ PROMPT;
         $lines = [];
         $currentLine = '';
 
+        $effectiveMaxWidth = min((int)($maxWidth * self::GD_WIDTH_CORRECTION), self::PIN_WIDTH - 8);
+
         if ($fontPath && file_exists($fontPath) && function_exists('imagettfbbox')) {
             foreach ($words as $word) {
                 $testLine = $currentLine === '' ? $word : $currentLine . ' ' . $word;
                 $bbox = imagettfbbox($fontSize, 0, $fontPath, $testLine);
                 $width = abs($bbox[2] - $bbox[0]);
 
-                if ($width <= $maxWidth) {
+                if ($width <= $effectiveMaxWidth) {
                     $currentLine = $testLine;
                 } else {
                     if ($currentLine !== '') $lines[] = $currentLine;
@@ -1566,7 +1634,7 @@ PROMPT;
         $lines = $this->wrapText($text, $fontPath, $fontSize, $maxWidth);
         
         if ($fontPath && file_exists($fontPath) && function_exists('imagettftext')) {
-            return (int)(count($lines) * ($fontSize * 1.5));
+            return (int)(count($lines) * ($fontSize * 1.2)); // Changed from 1.5 to 1.2 to match preview
         } else {
             return (int)(count($lines) * imagefontheight(5));
         }

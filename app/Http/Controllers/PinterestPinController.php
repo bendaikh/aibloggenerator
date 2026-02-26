@@ -638,6 +638,64 @@ class PinterestPinController extends Controller
     }
 
     /**
+     * Generate a real server-side preview of the pin image (returns base64).
+     */
+    public function preview(Request $request, Website $website)
+    {
+        $this->authorize('view', $website);
+
+        $validated = $request->validate([
+            'article_id' => 'required|exists:articles,id',
+            'headline_text' => 'required|string|max:100',
+            'subheadline_text' => 'required|string|max:100',
+            'headline_color' => 'nullable|string|max:20',
+            'subheadline_color' => 'nullable|string|max:20',
+            'headline_font' => 'nullable|string|max:50',
+            'subheadline_font' => 'nullable|string|max:50',
+            'headline_font_size' => 'nullable|integer|min:10|max:100',
+            'subheadline_font_size' => 'nullable|integer|min:10|max:100',
+            'overlay_color' => 'nullable|string|max:20',
+            'overlay_opacity' => 'nullable|integer|min:0|max:100',
+            'frame_design' => 'nullable|string|max:50',
+            'domain_name' => 'nullable|string|max:100',
+        ]);
+
+        $article = Article::findOrFail($validated['article_id']);
+        if ($article->website_id !== $website->id) {
+            return response()->json(['error' => 'Article does not belong to this website.'], 403);
+        }
+
+        if (!$article->featured_image) {
+            return response()->json(['error' => 'Article must have a featured image.'], 400);
+        }
+
+        try {
+            $service = new PinterestDesignService();
+            $base64 = $service->generatePreviewBase64(
+                $article->featured_image,
+                $article->secondary_image ?? $article->featured_image,
+                $validated['headline_text'],
+                $validated['subheadline_text'],
+                $validated['headline_color'] ?? '#ffffff',
+                $validated['subheadline_color'] ?? '#d4a574',
+                $validated['overlay_color'] ?? '#000000',
+                $validated['overlay_opacity'] ?? 70,
+                $validated['frame_design'] ?? 'simple_center',
+                $validated['headline_font'] ?? 'arial',
+                $validated['subheadline_font'] ?? 'georgia',
+                $validated['headline_font_size'] ?? 28,
+                $validated['subheadline_font_size'] ?? 22,
+                $validated['domain_name'] ?? ($website->domain ?: ($website->slug ? $website->slug . '.com' : ''))
+            );
+
+            return response()->json(['image' => $base64]);
+        } catch (\Exception $e) {
+            Log::error('Failed to generate preview', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Failed to generate preview: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Generate AI headline and subheadline for an article.
      */
     public function generateHeadlines(Request $request, Website $website)

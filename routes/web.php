@@ -190,6 +190,7 @@ $registerMainAppRoutes = function () {
         Route::post('/{website}/pinterest-pins/bulk-delete', [PinterestPinController::class, 'bulkDelete'])->name('superadmin.pinterest-pins.bulk-delete');
         Route::get('/{website}/pinterest-pins/{pin}/data', [PinterestPinController::class, 'getPinData'])->name('superadmin.pinterest-pins.data');
         Route::post('/{website}/pinterest-pins/generate-headlines', [PinterestPinController::class, 'generateHeadlines'])->name('superadmin.pinterest-pins.generate-headlines');
+        Route::post('/{website}/pinterest-pins/preview', [PinterestPinController::class, 'preview'])->name('superadmin.pinterest-pins.preview');
         Route::post('/{website}/pinterest-pins/{pin}/generate-copy-info', [PinterestPinController::class, 'generateCopyInfo'])->name('superadmin.pinterest-pins.generate-copy-info');
 
         // Subscribers Routes
