@@ -1,5 +1,5 @@
 <template>
-    <PublicWebsiteLayout :website="website">
+    <ThemeAwareLayout :website="website">
         <Head :title="category.name + ' - ' + website.name">
             <link v-if="website.favicon_url" :rel="'icon'" :href="website.favicon_url" />
             <meta v-if="website.pinterest_verification" name="p:domain_verify" :content="website.pinterest_verification" />
@@ -60,12 +60,12 @@
                 </div>
             </div>
         </div>
-    </PublicWebsiteLayout>
+    </ThemeAwareLayout>
 </template>
 
 <script setup>
 import { Head } from '@inertiajs/vue3';
-import PublicWebsiteLayout from '@/Layouts/PublicWebsiteLayout.vue';
+import ThemeAwareLayout from '@/Layouts/ThemeAwareLayout.vue';
 import ArticleCard from '@/Components/ArticleCard.vue';
 import { computed } from 'vue';
 

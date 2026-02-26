@@ -301,7 +301,7 @@ const generateBulkPreview = async () => {
 
 const debouncedBulkPreview = () => {
     if (bulkPreviewTimer) clearTimeout(bulkPreviewTimer);
-    bulkPreviewTimer = setTimeout(() => generateBulkPreview(), 600);
+    bulkPreviewTimer = setTimeout(() => generateBulkPreview(), 50);
 };
 
 watch(
@@ -432,14 +432,30 @@ watch(selectedArticles, (newSelection) => {
 // Article preview functions (declared here after articleForm, selectedArticles, showBulkGenerateModal)
 const generateArticlePreview = async () => {
     const articleId = selectedArticles.value[0];
-    if (!articleId || !articleForm.headline_text || !articleForm.subheadline_text) return;
+    if (!articleId) return;
+
+    // For multiple selections, use first article's title as preview text
+    let headlineText = articleForm.headline_text;
+    let subheadlineText = articleForm.subheadline_text;
+    
+    if (!headlineText || !subheadlineText) {
+        const article = props.articlesWithoutPins.find(a => a.id === articleId);
+        if (article) {
+            const words = article.title.split(' ');
+            const mid = Math.ceil(words.length / 2);
+            headlineText = headlineText || words.slice(0, mid).join(' ');
+            subheadlineText = subheadlineText || words.slice(mid).join(' ');
+        }
+    }
+    
+    if (!headlineText || !subheadlineText) return;
 
     isArticlePreviewLoading.value = true;
     try {
         const response = await axios.post(route('superadmin.pinterest-pins.preview', { website: props.currentWebsite.id }), {
             article_id: articleId,
-            headline_text: articleForm.headline_text,
-            subheadline_text: articleForm.subheadline_text,
+            headline_text: headlineText,
+            subheadline_text: subheadlineText,
             headline_color: articleForm.headline_color,
             subheadline_color: articleForm.subheadline_color,
             headline_font: articleForm.headline_font,
@@ -461,7 +477,7 @@ const generateArticlePreview = async () => {
 
 const debouncedArticlePreview = () => {
     if (articlePreviewTimer) clearTimeout(articlePreviewTimer);
-    articlePreviewTimer = setTimeout(() => generateArticlePreview(), 600);
+    articlePreviewTimer = setTimeout(() => generateArticlePreview(), 50);
 };
 
 watch(
@@ -1364,12 +1380,6 @@ const getStatusBadgeClass = (status) => {
                         </div>
                         
                         <div class="w-full relative overflow-y-auto overflow-x-hidden custom-scrollbar rounded-2xl" style="max-height: 600px;">
-                            <div v-if="isArticlePreviewLoading && articlePreviewImage" class="absolute inset-0 bg-black/40 flex items-center justify-center z-10 rounded-2xl">
-                                <div class="flex items-center gap-2 bg-black/70 px-4 py-2 rounded-lg">
-                                    <svg class="animate-spin h-5 w-5 text-pink-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                    <span class="text-white text-sm">Updating...</span>
-                                </div>
-                            </div>
                             <img v-if="articlePreviewImage" :src="articlePreviewImage" alt="Preview" class="w-full h-auto rounded-2xl shadow-2xl" />
                             <div v-else-if="isArticlePreviewLoading" class="bg-[#111] rounded-2xl flex items-center justify-center p-8" style="aspect-ratio: 1/2;">
                                 <svg class="animate-spin h-10 w-10 text-pink-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -1796,12 +1806,6 @@ const getStatusBadgeClass = (status) => {
                         </div>
                         
                         <div class="w-full relative overflow-y-auto overflow-x-hidden custom-scrollbar rounded-2xl" style="max-height: 700px;">
-                            <div v-if="isBulkPreviewLoading && bulkPreviewImage" class="absolute inset-0 bg-black/40 flex items-center justify-center z-10 rounded-2xl">
-                                <div class="flex items-center gap-2 bg-black/70 px-4 py-2 rounded-lg">
-                                    <svg class="animate-spin h-5 w-5 text-pink-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                    <span class="text-white text-sm">Updating...</span>
-                                </div>
-                            </div>
                             <img v-if="bulkPreviewImage" :src="bulkPreviewImage" alt="Preview" class="w-full h-auto rounded-2xl shadow-2xl" />
                             <div v-else-if="isBulkPreviewLoading" class="bg-[#111] rounded-2xl flex items-center justify-center p-8" style="aspect-ratio: 1/2;">
                                 <svg class="animate-spin h-10 w-10 text-pink-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>

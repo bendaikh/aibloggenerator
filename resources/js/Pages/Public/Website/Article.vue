@@ -1,5 +1,5 @@
 <template>
-    <PublicWebsiteLayout :website="website">
+    <ThemeAwareLayout :website="website">
         <Head :title="article.meta_title || (article.title + ' - ' + website.name)">
             <!-- Favicon -->
             <link v-if="website.favicon_url" :rel="'icon'" :href="website.favicon_url" />
@@ -389,13 +389,13 @@
                 </div>
             </div>
         </article>
-    </PublicWebsiteLayout>
+    </ThemeAwareLayout>
 </template>
 
 <script setup>
 import { Head } from '@inertiajs/vue3';
 import { computed, ref, onMounted, nextTick, onUnmounted } from 'vue';
-import PublicWebsiteLayout from '@/Layouts/PublicWebsiteLayout.vue';
+import ThemeAwareLayout from '@/Layouts/ThemeAwareLayout.vue';
 import RecipeCard from '@/Components/RecipeCard.vue';
 import { useSubscribePopup } from '@/composables/useSubscribePopup';
 import { useConsentManagement, CONSENT_CATEGORIES } from '@/composables/useConsentManagement';

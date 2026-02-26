@@ -585,11 +585,12 @@ class PublicWebsiteController extends Controller
                 $query->where('is_active', true)
                     ->where('show_in_menu', true)
                     ->orderBy('order');
-            }
+            },
+            'theme'
         ]);
 
         $latestArticles = $website->publishedArticles()
-            ->with('category')
+            ->with('category', 'author')
             ->orderByDesc('published_at')
             ->take(6)
             ->get();
@@ -631,7 +632,24 @@ class PublicWebsiteController extends Controller
             ->where('is_active', true)
             ->first();
 
-        return Inertia::render('Public/Website/Home', [
+        // Determine which view to render based on theme
+        $viewComponent = 'Public/Website/Home';
+        
+        // Check if the website has a theme relationship loaded
+        // We need to handle the case where 'theme' attribute might conflict with theme() relationship
+        $websiteTheme = null;
+        if ($website->relationLoaded('theme')) {
+            $websiteTheme = $website->getRelation('theme');
+        } elseif ($website->theme_id) {
+            // Fallback: load theme by ID if not already loaded
+            $websiteTheme = \App\Models\Theme::find($website->theme_id);
+        }
+        
+        if ($websiteTheme && $websiteTheme->slug === 'home-decor') {
+            $viewComponent = 'Public/Website/HomeDecor';
+        }
+
+        return Inertia::render($viewComponent, [
             'website' => $website,
             'latestArticles' => $latestArticles,
             'featuredArticles' => $featuredArticles,
