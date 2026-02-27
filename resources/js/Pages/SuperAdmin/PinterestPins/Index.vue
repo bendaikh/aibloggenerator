@@ -265,63 +265,60 @@ const previewPin = computed(() => {
     return props.missingDesignPins.find(p => p.id === selectedMissingPins.value[0]);
 });
 
-// Server-rendered preview state for bulk design modal
-const bulkPreviewImage = ref(null);
-const isBulkPreviewLoading = ref(false);
-let bulkPreviewTimer = null;
+// Preview logic shared between modals
+// Match exact server-side calculations:
+// Server: PIN_HEIGHT = 1024, PIN_WIDTH = 512, TEXT_BAR_HEIGHT = 200
+// Preview max-height = 600px, so scale factor = 600/1024 = 0.5859375
+const getPreviewStyles = (formData) => {
+    const PREVIEW_MAX_HEIGHT = 600; // max-height in the preview container
+    const SERVER_HEIGHT = 1024;
+    const SCALE_FACTOR = PREVIEW_MAX_HEIGHT / SERVER_HEIGHT; // 0.5859375
+    
+    // Server uses GD_WIDTH_CORRECTION = 1.15 which INCREASES allowed width before wrapping.
+    // This means text that fits in browser might wrap on server.
+    // We DON'T boost font size - instead we'll let CSS handle natural wrapping.
+    
+    return {
+        overlayBg: `rgba(${hexToRgb(formData.overlay_color)}, ${formData.overlay_opacity / 100})`,
+        headlineColor: formData.headline_color,
+        subheadlineColor: formData.subheadline_color,
+        headlineFontSize: `${formData.headline_font_size * SCALE_FACTOR}px`,
+        subheadlineFontSize: `${formData.subheadline_font_size * SCALE_FACTOR}px`,
+        headlineFontFamily: getFontFamily(formData.headline_font),
+        subheadlineFontFamily: getFontFamily(formData.subheadline_font),
+        lineHeight: '1.2', // Match server line height
+        // Max width scaled proportionally for text wrapping
+        maxWidth: `${480 * SCALE_FACTOR}px`, // 480px is server maxWidth for text
+    };
+};
 
-const generateBulkPreview = async () => {
-    const pin = previewPin.value;
-    if (!pin?.article_id || !bulkForm.headline_text || !bulkForm.subheadline_text) return;
+const previewStyles = computed(() => getPreviewStyles(bulkForm));
+const articlePreviewStyles = computed(() => getPreviewStyles(articleForm));
 
-    isBulkPreviewLoading.value = true;
-    try {
-        const response = await axios.post(route('superadmin.pinterest-pins.preview', { website: props.currentWebsite.id }), {
-            article_id: pin.article_id,
-            headline_text: bulkForm.headline_text,
-            subheadline_text: bulkForm.subheadline_text,
-            headline_color: bulkForm.headline_color,
-            subheadline_color: bulkForm.subheadline_color,
-            headline_font: bulkForm.headline_font,
-            subheadline_font: bulkForm.subheadline_font,
-            headline_font_size: bulkForm.headline_font_size,
-            subheadline_font_size: bulkForm.subheadline_font_size,
-            overlay_color: bulkForm.overlay_color,
-            overlay_opacity: bulkForm.overlay_opacity,
-            frame_design: bulkForm.frame_design,
-            domain_name: bulkForm.domain_name,
-        });
-        if (response.data.image) bulkPreviewImage.value = response.data.image;
-    } catch (e) {
-        console.error('Bulk preview failed:', e);
-    } finally {
-        isBulkPreviewLoading.value = false;
+const hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result 
+        ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
+        : '0, 0, 0';
+};
+
+const getFontFamily = (fontId) => {
+    switch (fontId) {
+        case 'arial': return 'Arial, Helvetica, sans-serif';
+        case 'montserrat': return '"Montserrat", sans-serif';
+        case 'bebas-neue': return '"Bebas Neue", cursive';
+        case 'poppins': return '"Poppins", sans-serif';
+        case 'roboto': return '"Roboto", sans-serif';
+        case 'open-sans': return '"Open Sans", sans-serif';
+        case 'georgia': return 'Georgia, serif';
+        case 'times': return '"Times New Roman", Times, serif';
+        case 'playfair-display': return '"Playfair Display", serif';
+        case 'dancing-script': return '"Dancing Script", cursive';
+        case 'pacifico': return '"Pacifico", cursive';
+        case 'great-vibes': return '"Great Vibes", cursive';
+        default: return 'Arial, sans-serif';
     }
 };
-
-const debouncedBulkPreview = () => {
-    if (bulkPreviewTimer) clearTimeout(bulkPreviewTimer);
-    bulkPreviewTimer = setTimeout(() => generateBulkPreview(), 50);
-};
-
-watch(
-    () => [
-        bulkForm.headline_text, bulkForm.subheadline_text,
-        bulkForm.headline_color, bulkForm.subheadline_color,
-        bulkForm.headline_font, bulkForm.subheadline_font,
-        bulkForm.headline_font_size, bulkForm.subheadline_font_size,
-        bulkForm.overlay_color, bulkForm.overlay_opacity,
-        bulkForm.frame_design, bulkForm.domain_name,
-    ],
-    () => { if (showBulkDesignModal.value) debouncedBulkPreview(); }
-);
-
-watch(previewPin, () => { if (showBulkDesignModal.value) debouncedBulkPreview(); });
-
-// Article preview state (watchers registered after articleForm is declared below)
-const articlePreviewImage = ref(null);
-const isArticlePreviewLoading = ref(false);
-let articlePreviewTimer = null;
 
 const fontOptions = {
     'sans-serif': [
@@ -428,71 +425,6 @@ watch(selectedArticles, (newSelection) => {
         articleForm.subheadline_text = '';
     }
 }, { deep: true });
-
-// Article preview functions (declared here after articleForm, selectedArticles, showBulkGenerateModal)
-const generateArticlePreview = async () => {
-    const articleId = selectedArticles.value[0];
-    if (!articleId) return;
-
-    // For multiple selections, use first article's title as preview text
-    let headlineText = articleForm.headline_text;
-    let subheadlineText = articleForm.subheadline_text;
-    
-    if (!headlineText || !subheadlineText) {
-        const article = props.articlesWithoutPins.find(a => a.id === articleId);
-        if (article) {
-            const words = article.title.split(' ');
-            const mid = Math.ceil(words.length / 2);
-            headlineText = headlineText || words.slice(0, mid).join(' ');
-            subheadlineText = subheadlineText || words.slice(mid).join(' ');
-        }
-    }
-    
-    if (!headlineText || !subheadlineText) return;
-
-    isArticlePreviewLoading.value = true;
-    try {
-        const response = await axios.post(route('superadmin.pinterest-pins.preview', { website: props.currentWebsite.id }), {
-            article_id: articleId,
-            headline_text: headlineText,
-            subheadline_text: subheadlineText,
-            headline_color: articleForm.headline_color,
-            subheadline_color: articleForm.subheadline_color,
-            headline_font: articleForm.headline_font,
-            subheadline_font: articleForm.subheadline_font,
-            headline_font_size: articleForm.headline_font_size,
-            subheadline_font_size: articleForm.subheadline_font_size,
-            overlay_color: articleForm.overlay_color,
-            overlay_opacity: articleForm.overlay_opacity,
-            frame_design: articleForm.frame_design,
-            domain_name: articleForm.domain_name,
-        });
-        if (response.data.image) articlePreviewImage.value = response.data.image;
-    } catch (e) {
-        console.error('Article preview failed:', e);
-    } finally {
-        isArticlePreviewLoading.value = false;
-    }
-};
-
-const debouncedArticlePreview = () => {
-    if (articlePreviewTimer) clearTimeout(articlePreviewTimer);
-    articlePreviewTimer = setTimeout(() => generateArticlePreview(), 50);
-};
-
-watch(
-    () => [
-        articleForm.headline_text, articleForm.subheadline_text,
-        articleForm.headline_color, articleForm.subheadline_color,
-        articleForm.headline_font, articleForm.subheadline_font,
-        articleForm.headline_font_size, articleForm.subheadline_font_size,
-        articleForm.overlay_color, articleForm.overlay_opacity,
-        articleForm.frame_design, articleForm.domain_name,
-    ],
-    () => { if (showBulkGenerateModal.value) debouncedArticlePreview(); }
-);
-
-watch(selectedArticles, () => { if (showBulkGenerateModal.value) debouncedArticlePreview(); }, { deep: true });
 
 const selectAll = computed({
     get: () => selectedArticles.value.length === props.articlesWithoutPins.length && props.articlesWithoutPins.length > 0,
@@ -1370,7 +1302,7 @@ const getStatusBadgeClass = (status) => {
                         </div>
                     </div>
 
-                    <!-- Right Side: Server-Rendered Preview -->
+                    <!-- Right Side: Synchronized Preview -->
                     <div class="hidden lg:flex w-1/3 bg-[#0a0a0a] items-center justify-center p-8 relative">
                         <div class="absolute top-6 left-8">
                             <h4 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
@@ -1379,17 +1311,174 @@ const getStatusBadgeClass = (status) => {
                             </h4>
                         </div>
                         
-                        <div class="w-full relative overflow-y-auto overflow-x-hidden custom-scrollbar rounded-2xl" style="max-height: 600px;">
-                            <img v-if="articlePreviewImage" :src="articlePreviewImage" alt="Preview" class="w-full h-auto rounded-2xl shadow-2xl" />
-                            <div v-else-if="isArticlePreviewLoading" class="bg-[#111] rounded-2xl flex items-center justify-center p-8" style="aspect-ratio: 1/2;">
-                                <svg class="animate-spin h-10 w-10 text-pink-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <div v-if="selectedArticles.length > 0" class="relative bg-white rounded-2xl shadow-2xl overflow-hidden" style="aspect-ratio: 1/2; width: 100%; max-height: 600px;">
+                            <!-- Top Image -->
+                            <div class="absolute top-0 left-0 right-0 h-[40.234375%] overflow-hidden bg-gray-100">
+                                <img
+                                    v-if="articlesWithoutPins.find(a => a.id === selectedArticles[0])?.featured_image"
+                                    :src="articlesWithoutPins.find(a => a.id === selectedArticles[0]).featured_image"
+                                    class="w-full h-full object-cover"
+                                />
                             </div>
-                            <div v-else class="text-center">
-                                <svg class="w-16 h-16 text-gray-800 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <p class="text-gray-600 text-sm">Select an article to see preview</p>
+
+                            <!-- Dynamic Text Overlay based on frame_design -->
+                            <div 
+                                v-if="articleForm.frame_design === 'simple_center'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: articlePreviewStyles.overlayBg }"
+                            >
+                                <p class="text-center font-bold lowercase w-full px-1" :style="{ color: articlePreviewStyles.headlineColor, fontSize: articlePreviewStyles.headlineFontSize, fontFamily: articlePreviewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ articleForm.headline_text || 'Title Preview' }}
+                                </p>
+                                <p class="text-center italic mt-1 w-full px-1" :style="{ color: articlePreviewStyles.subheadlineColor, fontSize: articlePreviewStyles.subheadlineFontSize, fontFamily: articlePreviewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ articleForm.subheadline_text || 'Subheadline Preview' }}
+                                </p>
                             </div>
+
+                            <div 
+                                v-else-if="articleForm.frame_design === 'black_christmas'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: articlePreviewStyles.overlayBg }"
+                            >
+                                <div class="absolute top-2 left-0 right-0 h-0.5" :style="{ backgroundColor: articlePreviewStyles.headlineColor }"></div>
+                                <div class="absolute bottom-2 left-0 right-0 h-0.5" :style="{ backgroundColor: articlePreviewStyles.headlineColor }"></div>
+                                <p class="text-center font-bold capitalize w-full px-1" :style="{ color: articlePreviewStyles.headlineColor, fontSize: articlePreviewStyles.headlineFontSize, fontFamily: articlePreviewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ articleForm.headline_text || 'Title Preview' }}
+                                </p>
+                                <p class="text-center mt-1 capitalize w-full px-1" :style="{ color: articlePreviewStyles.subheadlineColor, fontSize: articlePreviewStyles.subheadlineFontSize, fontFamily: articlePreviewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ articleForm.subheadline_text || 'Subheadline Preview' }}
+                                </p>
+                            </div>
+
+                            <div 
+                                v-else-if="articleForm.frame_design === 'green_dashed'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: articlePreviewStyles.overlayBg }"
+                            >
+                                <div class="absolute top-2 left-0 right-0 flex gap-1 px-1">
+                                    <div v-for="i in 15" :key="'t-'+i" class="flex-1 h-0.5 bg-white rounded-full"></div>
+                                </div>
+                                <div class="absolute bottom-2 left-0 right-0 flex gap-1 px-1">
+                                    <div v-for="i in 15" :key="'b-'+i" class="flex-1 h-0.5 bg-white rounded-full"></div>
+                                </div>
+                                <p class="text-center font-bold lowercase w-full px-1" :style="{ color: articlePreviewStyles.headlineColor, fontSize: articlePreviewStyles.headlineFontSize, fontFamily: articlePreviewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ articleForm.headline_text || 'Title Preview' }}
+                                </p>
+                                <p class="text-center italic mt-1 w-full px-1" :style="{ color: articlePreviewStyles.subheadlineColor, fontSize: articlePreviewStyles.subheadlineFontSize, fontFamily: articlePreviewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ articleForm.subheadline_text || 'Subheadline Preview' }}
+                                </p>
+                            </div>
+
+                            <div 
+                                v-else-if="articleForm.frame_design === 'ribbon_banner'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-between py-4"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: articlePreviewStyles.overlayBg }"
+                            >
+                                <div class="absolute top-0 left-0 right-0 h-3" :style="{ backgroundColor: articlePreviewStyles.headlineColor }"></div>
+                                <div class="flex-1 flex flex-col items-center justify-center w-full px-2 mt-2">
+                                    <p class="text-center font-bold uppercase w-full px-1" :style="{ color: articlePreviewStyles.headlineColor, fontSize: articlePreviewStyles.headlineFontSize, fontFamily: articlePreviewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                        {{ articleForm.headline_text || 'Title Preview' }}
+                                    </p>
+                                    <p class="text-center font-bold uppercase w-full mt-1 truncate px-1" :style="{ color: articlePreviewStyles.subheadlineColor, fontSize: articlePreviewStyles.subheadlineFontSize, fontFamily: articlePreviewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                        {{ articleForm.subheadline_text || 'Subheadline Preview' }}
+                                    </p>
+                                </div>
+                                <div class="relative w-[85%] flex items-center justify-center mb-1 h-6" :style="{ backgroundColor: articlePreviewStyles.headlineColor }">
+                                    <div class="absolute left-0 top-0 bottom-0 w-2" :style="{ backgroundColor: articleForm.overlay_color, clipPath: 'polygon(0 0, 100% 50%, 0 100%)' }"></div>
+                                    <div class="absolute right-0 top-0 bottom-0 w-2" :style="{ backgroundColor: articleForm.overlay_color, clipPath: 'polygon(100% 0, 0 50%, 100% 100%)' }"></div>
+                                    <p class="text-center font-bold text-white uppercase text-[8px] tracking-widest px-2">{{ articleForm.domain_name }}</p>
+                                </div>
+                            </div>
+
+                            <div 
+                                v-else-if="articleForm.frame_design === 'star_rating'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: articlePreviewStyles.overlayBg }"
+                            >
+                                <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 h-5 rounded-full flex items-center justify-center gap-0.5" :style="{ backgroundColor: articlePreviewStyles.headlineColor }">
+                                    <div v-for="i in 5" :key="'s-'+i" class="w-2 h-2 bg-yellow-200" style="clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);"></div>
+                                </div>
+                                <p class="text-center font-bold uppercase w-full px-1" :style="{ color: articlePreviewStyles.headlineColor, fontSize: articlePreviewStyles.headlineFontSize, fontFamily: articlePreviewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ articleForm.headline_text || 'Title Preview' }}
+                                </p>
+                                <p class="text-center font-bold uppercase w-full mt-1 truncate px-1" :style="{ color: articlePreviewStyles.subheadlineColor, fontSize: articlePreviewStyles.subheadlineFontSize, fontFamily: articlePreviewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ articleForm.subheadline_text || 'Subheadline Preview' }}
+                                </p>
+                                <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 h-5 rounded-full flex items-center justify-center min-w-[80px]" :style="{ backgroundColor: articlePreviewStyles.headlineColor }">
+                                    <p class="text-center font-bold text-white uppercase text-[8px] tracking-wider">{{ articleForm.domain_name }}</p>
+                                </div>
+                            </div>
+
+                            <div 
+                                v-else-if="articleForm.frame_design === 'minimal_bold'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: articlePreviewStyles.overlayBg }"
+                            >
+                                <div class="absolute top-0 left-0 right-0 h-1" :style="{ backgroundColor: articlePreviewStyles.headlineColor }"></div>
+                                <div class="absolute bottom-0 left-0 right-0 h-1" :style="{ backgroundColor: articlePreviewStyles.headlineColor }"></div>
+                                <p class="text-center font-bold lowercase w-full px-1" :style="{ color: articlePreviewStyles.headlineColor, fontSize: articlePreviewStyles.headlineFontSize, fontFamily: articlePreviewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ articleForm.headline_text || 'Title Preview' }}
+                                </p>
+                                <p class="text-center lowercase w-full mt-1 truncate px-1" :style="{ color: articlePreviewStyles.subheadlineColor, fontSize: articlePreviewStyles.subheadlineFontSize, fontFamily: articlePreviewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ articleForm.subheadline_text || 'Subheadline Preview' }}
+                                </p>
+                                <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 h-5 flex items-center justify-center min-w-[80px]" :style="{ backgroundColor: articlePreviewStyles.headlineColor }">
+                                    <p class="text-center font-bold text-white lowercase text-[8px]">{{ articleForm.domain_name }}</p>
+                                </div>
+                            </div>
+
+                            <div 
+                                v-else-if="articleForm.frame_design === 'crispy_orange'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: articlePreviewStyles.overlayBg }"
+                            >
+                                <div class="absolute top-0 left-0 right-0 h-1" :style="{ backgroundColor: articlePreviewStyles.headlineColor }"></div>
+                                <div class="absolute bottom-0 left-0 right-0 h-1" :style="{ backgroundColor: articlePreviewStyles.headlineColor }"></div>
+                                <p class="text-center font-bold uppercase w-full px-1" :style="{ color: articlePreviewStyles.headlineColor, fontSize: articlePreviewStyles.headlineFontSize, fontFamily: articlePreviewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ articleForm.headline_text || 'Title Preview' }}
+                                </p>
+                                <p class="text-center capitalize w-full mt-1 truncate px-1" :style="{ color: articlePreviewStyles.subheadlineColor, fontSize: articlePreviewStyles.subheadlineFontSize, fontFamily: articlePreviewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ articleForm.subheadline_text || 'Subheadline Preview' }}
+                                </p>
+                            </div>
+
+                            <div 
+                                v-else-if="articleForm.frame_design === 'torn_paper'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: articlePreviewStyles.overlayBg }"
+                            >
+                                <div class="absolute top-0 left-0 right-0 h-3 -mt-1.5" :style="{ backgroundColor: articleForm.overlay_color, clipPath: 'polygon(0% 100%, 5% 20%, 10% 80%, 15% 10%, 20% 90%, 25% 30%, 30% 70%, 35% 0%, 40% 100%, 45% 20%, 50% 80%, 55% 10%, 60% 90%, 65% 30%, 70% 70%, 75% 0%, 80% 100%, 85% 20%, 90% 80%, 95% 10%, 100% 100%)' }"></div>
+                                <div class="absolute bottom-0 left-0 right-0 h-3 -mb-1.5" :style="{ backgroundColor: articleForm.overlay_color, clipPath: 'polygon(0% 0%, 5% 80%, 10% 20%, 15% 90%, 20% 10%, 25% 70%, 30% 30%, 35% 100%, 40% 0%, 45% 80%, 50% 20%, 55% 90%, 60% 10%, 65% 70%, 70% 30%, 75% 100%, 80% 0%, 85% 80%, 90% 20%, 95% 90%, 100% 0%)' }"></div>
+                                <p class="text-center font-bold w-full px-1" :style="{ color: articlePreviewStyles.headlineColor, fontSize: articlePreviewStyles.headlineFontSize, fontFamily: articlePreviewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ articleForm.headline_text || 'Title Preview' }}
+                                </p>
+                                <p class="text-center font-bold w-full mt-1 truncate px-1" :style="{ color: articlePreviewStyles.subheadlineColor, fontSize: articlePreviewStyles.subheadlineFontSize, fontFamily: articlePreviewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ articleForm.subheadline_text || 'Subheadline Preview' }}
+                                </p>
+                            </div>
+
+                            <!-- Bottom Image -->
+                            <div class="absolute bottom-0 left-0 right-0 h-[40.234375%] overflow-hidden bg-gray-50">
+                                <img
+                                    v-if="articlesWithoutPins.find(a => a.id === selectedArticles[0])?.featured_image"
+                                    :src="articlesWithoutPins.find(a => a.id === selectedArticles[0]).featured_image"
+                                    class="w-full h-full object-cover"
+                                />
+                            </div>
+                        </div>
+                        <div v-else class="text-center">
+                            <svg class="w-16 h-16 text-gray-800 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <p class="text-gray-600 text-sm">Select an article to see preview</p>
                         </div>
                     </div>
                 </div>
@@ -1796,7 +1885,7 @@ const getStatusBadgeClass = (status) => {
                         </div>
                     </div>
 
-                    <!-- Server-Rendered Preview -->
+                    <!-- Synchronized Preview -->
                     <div class="hidden lg:flex w-1/2 bg-[#0a0a0a] items-center justify-center p-8 relative">
                         <div class="absolute top-6 left-8">
                             <h4 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
@@ -1805,16 +1894,158 @@ const getStatusBadgeClass = (status) => {
                             </h4>
                         </div>
                         
-                        <div class="w-full relative overflow-y-auto overflow-x-hidden custom-scrollbar rounded-2xl" style="max-height: 700px;">
-                            <img v-if="bulkPreviewImage" :src="bulkPreviewImage" alt="Preview" class="w-full h-auto rounded-2xl shadow-2xl" />
-                            <div v-else-if="isBulkPreviewLoading" class="bg-[#111] rounded-2xl flex items-center justify-center p-8" style="aspect-ratio: 1/2;">
-                                <svg class="animate-spin h-10 w-10 text-pink-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <!-- The Preview Box (Synced with bulkForm) -->
+                        <div v-if="previewPin" class="relative bg-white rounded-2xl shadow-2xl overflow-hidden" style="aspect-ratio: 1/2; height: 100%; max-height: 700px;">
+                            <!-- Top Image -->
+                            <div class="absolute top-0 left-0 right-0 h-[40.234375%] overflow-hidden">
+                                <img
+                                    v-if="previewPin.top_image_url"
+                                    :src="previewPin.top_image_url"
+                                    class="w-full h-full object-cover"
+                                />
+                                <div v-else class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">Image</div>
                             </div>
-                            <div v-else class="bg-[#111] rounded-2xl flex flex-col items-center justify-center p-8" style="aspect-ratio: 1/2;">
-                                <svg class="w-16 h-16 text-gray-700 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <p class="text-gray-500 text-sm text-center">Enter headline text to see preview</p>
+
+                            <!-- Dynamic Text Overlay based on frame_design -->
+                            <!-- simple_center -->
+                            <div 
+                                v-if="bulkForm.frame_design === 'simple_center'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
+                            >
+                                <p class="text-center font-bold lowercase w-full px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ bulkForm.headline_text || 'Title Preview' }}
+                                </p>
+                                <p class="text-center italic mt-1 w-full px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ bulkForm.subheadline_text || 'Subheadline Preview' }}
+                                </p>
+                            </div>
+
+                            <!-- black_christmas -->
+                            <div 
+                                v-else-if="bulkForm.frame_design === 'black_christmas'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
+                            >
+                                <div class="absolute top-2 left-0 right-0 h-0.5" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
+                                <div class="absolute bottom-2 left-0 right-0 h-0.5" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
+                                <p class="text-center font-bold capitalize w-full px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ bulkForm.headline_text || 'Title Preview' }}
+                                </p>
+                                <p class="text-center mt-1 capitalize w-full px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ bulkForm.subheadline_text || 'Subheadline Preview' }}
+                                </p>
+                            </div>
+
+                            <!-- green_dashed -->
+                            <div 
+                                v-else-if="bulkForm.frame_design === 'green_dashed'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
+                            >
+                                <div class="absolute top-2 left-0 right-0 flex gap-1 px-1">
+                                    <div v-for="i in 15" :key="'t-'+i" class="flex-1 h-0.5 bg-white rounded-full"></div>
+                                </div>
+                                <div class="absolute bottom-2 left-0 right-0 flex gap-1 px-1">
+                                    <div v-for="i in 15" :key="'b-'+i" class="flex-1 h-0.5 bg-white rounded-full"></div>
+                                </div>
+                                <p class="text-center font-bold lowercase w-full px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ bulkForm.headline_text || 'Title Preview' }}
+                                </p>
+                                <p class="text-center italic mt-1 w-full px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">
+                                    {{ bulkForm.subheadline_text || 'Subheadline Preview' }}
+                                </p>
+                            </div>
+
+                            <!-- ribbon_banner -->
+                            <div 
+                                v-else-if="bulkForm.frame_design === 'ribbon_banner'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-between py-4"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
+                            >
+                                <div class="absolute top-0 left-0 right-0 h-3" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
+                                <div class="flex-1 flex flex-col items-center justify-center w-full px-2 mt-2">
+                                    <p class="text-center font-bold uppercase w-full px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">{{ bulkForm.headline_text || 'Title Preview' }}</p>
+                                    <p class="text-center font-bold uppercase w-full mt-1 truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.subheadlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">{{ bulkForm.subheadline_text || 'Subheadline Preview' }}</p>
+                                </div>
+                                <div class="relative w-[85%] flex items-center justify-center mb-1 h-6" :style="{ backgroundColor: previewStyles.headlineColor }">
+                                    <div class="absolute left-0 top-0 bottom-0 w-2" :style="{ backgroundColor: bulkForm.overlay_color, clipPath: 'polygon(0 0, 100% 50%, 0 100%)' }"></div>
+                                    <div class="absolute right-0 top-0 bottom-0 w-2" :style="{ backgroundColor: bulkForm.overlay_color, clipPath: 'polygon(100% 0, 0 50%, 100% 100%)' }"></div>
+                                    <p class="text-center font-bold text-white uppercase text-[8px] tracking-widest px-2">{{ bulkForm.domain_name }}</p>
+                                </div>
+                            </div>
+
+                            <!-- star_rating -->
+                            <div 
+                                v-else-if="bulkForm.frame_design === 'star_rating'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
+                            >
+                                <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 h-5 rounded-full flex items-center justify-center gap-0.5" :style="{ backgroundColor: previewStyles.headlineColor }">
+                                    <div v-for="i in 5" :key="'s-'+i" class="w-2 h-2 bg-yellow-200" style="clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);"></div>
+                                </div>
+                                <p class="text-center font-bold uppercase w-full px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">{{ bulkForm.headline_text || 'Title Preview' }}</p>
+                                <p class="text-center font-bold uppercase w-full mt-1 truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">{{ bulkForm.subheadline_text || 'Subheadline Preview' }}</p>
+                                <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 h-5 rounded-full flex items-center justify-center min-w-[80px]" :style="{ backgroundColor: previewStyles.headlineColor }">
+                                    <p class="text-center font-bold text-white uppercase text-[8px] tracking-wider">{{ bulkForm.domain_name }}</p>
+                                </div>
+                            </div>
+
+                            <!-- minimal_bold -->
+                            <div 
+                                v-else-if="bulkForm.frame_design === 'minimal_bold'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
+                            >
+                                <div class="absolute top-0 left-0 right-0 h-1" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
+                                <div class="absolute bottom-0 left-0 right-0 h-1" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
+                                <p class="text-center font-bold lowercase w-full px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">{{ bulkForm.headline_text || 'Title Preview' }}</p>
+                                <p class="text-center lowercase w-full mt-1 truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">{{ bulkForm.subheadline_text || 'Subheadline Preview' }}</p>
+                                <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 h-5 flex items-center justify-center min-w-[80px]" :style="{ backgroundColor: previewStyles.headlineColor }">
+                                    <p class="text-center font-bold text-white lowercase text-[8px]">{{ bulkForm.domain_name }}</p>
+                                </div>
+                            </div>
+
+                            <!-- crispy_orange -->
+                            <div 
+                                v-else-if="bulkForm.frame_design === 'crispy_orange'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
+                            >
+                                <div class="absolute top-0 left-0 right-0 h-1" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
+                                <div class="absolute bottom-0 left-0 right-0 h-1" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
+                                <p class="text-center font-bold uppercase w-full px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">{{ bulkForm.headline_text || 'Title Preview' }}</p>
+                                <p class="text-center capitalize w-full mt-1 truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">{{ bulkForm.subheadline_text || 'Subheadline Preview' }}</p>
+                            </div>
+
+                            <!-- torn_paper -->
+                            <div 
+                                v-else-if="bulkForm.frame_design === 'torn_paper'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
+                            >
+                                <div class="absolute top-0 left-0 right-0 h-3 -mt-1.5" :style="{ backgroundColor: bulkForm.overlay_color, clipPath: 'polygon(0% 100%, 5% 20%, 10% 80%, 15% 10%, 20% 90%, 25% 30%, 30% 70%, 35% 0%, 40% 100%, 45% 20%, 50% 80%, 55% 10%, 60% 90%, 65% 30%, 70% 70%, 75% 0%, 80% 100%, 85% 20%, 90% 80%, 95% 10%, 100% 100%)' }"></div>
+                                <div class="absolute bottom-0 left-0 right-0 h-3 -mb-1.5" :style="{ backgroundColor: bulkForm.overlay_color, clipPath: 'polygon(0% 0%, 5% 80%, 10% 20%, 15% 90%, 20% 10%, 25% 70%, 30% 30%, 35% 100%, 40% 0%, 45% 80%, 50% 20%, 55% 90%, 60% 10%, 65% 70%, 70% 30%, 75% 100%, 80% 0%, 85% 80%, 90% 20%, 95% 90%, 100% 0%)' }"></div>
+                                <p class="text-center font-bold w-full px-1" :style="{ color: previewStyles.headlineColor, fontSize: previewStyles.headlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">{{ bulkForm.headline_text || 'Title Preview' }}</p>
+                                <p class="text-center font-bold w-full mt-1 truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">{{ bulkForm.subheadline_text || 'Subheadline Preview' }}</p>
+                            </div>
+
+                            <!-- Bottom Image -->
+                            <div class="absolute bottom-0 left-0 right-0 h-[40.234375%] overflow-hidden">
+                                <img
+                                    v-if="previewPin.bottom_image_url || previewPin.top_image_url"
+                                    :src="previewPin.bottom_image_url || previewPin.top_image_url"
+                                    class="w-full h-full object-cover"
+                                />
+                                <div v-else class="w-full h-full bg-gray-300 flex items-center justify-center text-gray-400">Image</div>
                             </div>
                         </div>
                     </div>
@@ -1851,6 +2082,8 @@ const getStatusBadgeClass = (status) => {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&family=Dancing+Script:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Poppins:wght@400;700&family=Pacifico&family=Great+Vibes&display=swap');
+
 @keyframes bounce-subtle {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-4px); }

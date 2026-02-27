@@ -500,7 +500,7 @@ PROMPT;
         $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
 
         $fontPath = $this->getFontPath($headlineFont);
-        $scriptFontPath = $this->getFontPath($subheadlineFont);
+        $scriptFontPath = $this->getSubheadlineFontPath($subheadlineFont, true);
         $centerX = self::PIN_WIDTH / 2;
         
         // Available height for text (with padding)
@@ -621,7 +621,7 @@ PROMPT;
         $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
 
         $fontPath = $this->getFontPath($headlineFont);
-        $scriptFontPath = $this->getFontPath($subheadlineFont);
+        $scriptFontPath = $this->getSubheadlineFontPath($subheadlineFont);
         $centerX = self::PIN_WIDTH / 2;
         
         // Available height for text (with padding for decorative lines)
@@ -757,7 +757,7 @@ PROMPT;
         $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
 
         $fontPath = $this->getFontPath($headlineFont);
-        $scriptFontPath = $this->getFontPath($subheadlineFont);
+        $scriptFontPath = $this->getSubheadlineFontPath($subheadlineFont, true);
         $centerX = self::PIN_WIDTH / 2;
         
         // Available height for text (with padding)
@@ -879,7 +879,7 @@ PROMPT;
         $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
 
         $fontPath = $this->getFontPath($headlineFont);
-        $scriptFontPath = $this->getFontPath($subheadlineFont);
+        $scriptFontPath = $this->getSubheadlineFontPath($subheadlineFont);
         $centerX = self::PIN_WIDTH / 2;
         
         // Available height for text (main area, excluding bar and ribbon)
@@ -1064,7 +1064,7 @@ PROMPT;
         $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
 
         $fontPath = $this->getFontPath($headlineFont);
-        $scriptFontPath = $this->getFontPath($subheadlineFont);
+        $scriptFontPath = $this->getSubheadlineFontPath($subheadlineFont);
 
         $availableHeight = self::TEXT_BAR_HEIGHT - ($capsuleHeight / 2) - ($bottomCapsuleHeight / 2) - 40;
         $mainAreaStartY = $textBarStartY + ($capsuleHeight / 2) + 20;
@@ -1171,7 +1171,7 @@ PROMPT;
         $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
 
         $fontPath = $this->getFontPath($headlineFont);
-        $scriptFontPath = $this->getFontPath($subheadlineFont);
+        $scriptFontPath = $this->getSubheadlineFontPath($subheadlineFont);
         $centerX = self::PIN_WIDTH / 2;
         
         // Transform text: Headline lowercase, bold
@@ -1303,7 +1303,7 @@ PROMPT;
         $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
 
         $fontPath = $this->getFontPath($headlineFont);
-        $scriptFontPath = $this->getFontPath($subheadlineFont);
+        $scriptFontPath = $this->getSubheadlineFontPath($subheadlineFont);
         $centerX = self::PIN_WIDTH / 2;
         
         // Transform text: Headline ALL CAPS, Subheadline Title Case
@@ -1409,7 +1409,7 @@ PROMPT;
         $subheadlineTextColor = imagecolorallocate($canvas, $subheadlineRgb['r'], $subheadlineRgb['g'], $subheadlineRgb['b']);
 
         $fontPath = $this->getFontPath($headlineFont);
-        $scriptFontPath = $this->getFontPath($subheadlineFont);
+        $scriptFontPath = $this->getSubheadlineFontPath($subheadlineFont);
         $centerX = self::PIN_WIDTH / 2;
         
         // Transform text: Bold and prominent (similar to the provided image)
@@ -1969,6 +1969,123 @@ PROMPT;
 
         Log::error('No font found at all', ['family' => $fontFamily]);
         return null;
+    }
+
+    /**
+     * Resolve a subheadline font path with preview-like behavior.
+     * We prefer regular/italic variants instead of bold, because preview
+     * subheadlines are visually lighter and (for some frames) italic.
+     */
+    private function getSubheadlineFontPath(string $fontFamily, bool $preferItalic = false): ?string
+    {
+        $fontsDir = resource_path('fonts');
+        $winFonts = 'C:\\Windows\\Fonts';
+
+        $fonts = [];
+        switch ($fontFamily) {
+            case 'montserrat':
+                $fonts = [
+                    $fontsDir . '/Montserrat-Regular.ttf',
+                    $fontsDir . '/Montserrat-Bold.ttf',
+                    $winFonts . '\\Montserrat-Regular.ttf',
+                    $winFonts . '\\Montserrat-Bold.ttf',
+                ];
+                break;
+            case 'poppins':
+                $fonts = [
+                    $fontsDir . '/Poppins-Regular.ttf',
+                    $fontsDir . '/Poppins-Bold.ttf',
+                    $winFonts . '\\Poppins-Regular.ttf',
+                    $winFonts . '\\Poppins-Bold.ttf',
+                ];
+                break;
+            case 'roboto':
+                $fonts = [
+                    $fontsDir . '/Roboto-Regular.ttf',
+                    $fontsDir . '/Roboto-Bold.ttf',
+                    $winFonts . '\\Roboto-Regular.ttf',
+                    $winFonts . '\\Roboto-Bold.ttf',
+                ];
+                break;
+            case 'open-sans':
+                $fonts = [
+                    $fontsDir . '/OpenSans-Regular.ttf',
+                    $fontsDir . '/OpenSans-Bold.ttf',
+                    $winFonts . '\\OpenSans-Regular.ttf',
+                    $winFonts . '\\OpenSans-Bold.ttf',
+                ];
+                break;
+            case 'playfair-display':
+                $fonts = [
+                    $fontsDir . '/PlayfairDisplay-Regular.ttf',
+                    $fontsDir . '/PlayfairDisplay-Bold.ttf',
+                    $winFonts . '\\PlayfairDisplay-Regular.ttf',
+                    $winFonts . '\\PlayfairDisplay-Bold.ttf',
+                    $fontsDir . '/georgia.ttf',
+                ];
+                break;
+            case 'dancing-script':
+                $fonts = [
+                    $fontsDir . '/DancingScript-Regular.ttf',
+                    $fontsDir . '/DancingScript-Bold.ttf',
+                    $fontsDir . '/georgiai.ttf',
+                    $fontsDir . '/georgia.ttf',
+                ];
+                break;
+            case 'georgia':
+                $fonts = $preferItalic
+                    ? [
+                        $fontsDir . '/georgiai.ttf',
+                        $fontsDir . '/georgia.ttf',
+                        $fontsDir . '/georgiab.ttf',
+                        $winFonts . '\\georgiai.ttf',
+                        $winFonts . '\\georgia.ttf',
+                      ]
+                    : [
+                        $fontsDir . '/georgia.ttf',
+                        $fontsDir . '/georgiab.ttf',
+                        $fontsDir . '/georgiai.ttf',
+                        $winFonts . '\\georgia.ttf',
+                        $winFonts . '\\georgiab.ttf',
+                      ];
+                break;
+            case 'times':
+                $fonts = $preferItalic
+                    ? [
+                        $fontsDir . '/timesi.ttf',
+                        $fontsDir . '/times.ttf',
+                        $fontsDir . '/timesbd.ttf',
+                        $winFonts . '\\timesi.ttf',
+                        $winFonts . '\\times.ttf',
+                      ]
+                    : [
+                        $fontsDir . '/times.ttf',
+                        $fontsDir . '/timesbd.ttf',
+                        $fontsDir . '/timesi.ttf',
+                        $winFonts . '\\times.ttf',
+                        $winFonts . '\\timesbd.ttf',
+                      ];
+                break;
+            case 'arial':
+                $fonts = [
+                    $fontsDir . '/arial.ttf',
+                    $fontsDir . '/arialbd.ttf',
+                    $winFonts . '\\arial.ttf',
+                    $winFonts . '\\arialbd.ttf',
+                ];
+                break;
+            default:
+                // Keep behavior robust for unknown families.
+                return $this->getFontPath($fontFamily);
+        }
+
+        foreach ($fonts as $font) {
+            if (file_exists($font)) {
+                return $font;
+            }
+        }
+
+        return $this->getFontPath($fontFamily);
     }
 
     /**

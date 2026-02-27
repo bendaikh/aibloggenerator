@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
@@ -20,9 +20,6 @@ const props = defineProps({
 const selectedArticle = ref(null);
 const isGeneratingHeadlines = ref(false);
 const aiError = ref('');
-const previewImage = ref(null);
-const isGeneratingPreview = ref(false);
-const previewError = ref('');
 
 const form = useForm({
     article_id: '',
@@ -102,76 +99,71 @@ const generateAIHeadlines = async () => {
     }
 };
 
-let previewDebounceTimer = null;
-
-const generatePreview = async () => {
-    if (!form.article_id || !form.headline_text || !form.subheadline_text) return;
-    
-    isGeneratingPreview.value = true;
-    previewError.value = '';
-    
-    try {
-        const response = await axios.post(route('superadmin.pinterest-pins.preview', {
-            website: props.currentWebsite.id
-        }), {
-            article_id: form.article_id,
-            headline_text: form.headline_text,
-            subheadline_text: form.subheadline_text,
-            headline_color: form.headline_color,
-            subheadline_color: form.subheadline_color,
-            headline_font: form.headline_font,
-            subheadline_font: form.subheadline_font,
-            headline_font_size: form.headline_font_size,
-            subheadline_font_size: form.subheadline_font_size,
-            overlay_color: form.overlay_color,
-            overlay_opacity: form.overlay_opacity,
-            frame_design: form.frame_design,
-            domain_name: form.domain_name,
-        });
-        
-        if (response.data.image) {
-            previewImage.value = response.data.image;
-        }
-    } catch (error) {
-        console.error('Failed to generate preview:', error);
-        previewError.value = error.response?.data?.error || 'Failed to generate preview.';
-    } finally {
-        isGeneratingPreview.value = false;
-    }
-};
-
-const debouncedPreview = () => {
-    if (previewDebounceTimer) clearTimeout(previewDebounceTimer);
-    previewDebounceTimer = setTimeout(() => {
-        generatePreview();
-    }, 50);
-};
-
 // When article is selected, auto-generate AI headlines
 watch(() => form.article_id, async (articleId) => {
     if (articleId) {
         selectedArticle.value = props.articles.find(a => a.id === parseInt(articleId));
         if (selectedArticle.value) {
+            // Auto-generate AI headlines
             await generateAIHeadlines();
         }
     } else {
         selectedArticle.value = null;
-        previewImage.value = null;
     }
 });
 
-// Auto-generate preview when any design setting changes
-watch(
-    () => [
-        form.article_id, form.headline_text, form.subheadline_text,
-        form.headline_color, form.subheadline_color,
-        form.headline_font, form.subheadline_font,
-        form.headline_font_size, form.subheadline_font_size,
-        form.overlay_color, form.overlay_opacity,
-        form.frame_design, form.domain_name,
-    ],
-    () => { debouncedPreview(); }
-);
+const previewStyles = computed(() => {
+    // Match exact server-side calculations:
+    // Server: PIN_HEIGHT = 1024, PIN_WIDTH = 512, TEXT_BAR_HEIGHT = 200
+    // Preview container max-width = 256px (aspect-ratio 1:2 = 512px height at full scale)
+    // Scale factor = 256/512 = 0.5
+    const PREVIEW_MAX_WIDTH = 256;
+    const SERVER_WIDTH = 512;
+    const SCALE_FACTOR = PREVIEW_MAX_WIDTH / SERVER_WIDTH; // 0.5
+    
+    // Server uses GD_WIDTH_CORRECTION = 1.15 which INCREASES allowed width before wrapping.
+    // We DON'T boost font size - instead we'll let CSS handle natural wrapping.
+    
+    return {
+        overlayBg: `rgba(${hexToRgb(form.overlay_color)}, ${form.overlay_opacity / 100})`,
+        headlineColor: form.headline_color,
+        subheadlineColor: form.subheadline_color,
+        headlineFontSize: `${form.headline_font_size * SCALE_FACTOR}px`,
+        subheadlineFontSize: `${form.subheadline_font_size * SCALE_FACTOR}px`,
+        headlineFontFamily: getFontFamily(form.headline_font),
+        subheadlineFontFamily: getFontFamily(form.subheadline_font),
+        lineHeight: '1.2',
+        maxWidth: `${480 * SCALE_FACTOR}px`, // 480px is server maxWidth for text
+    };
+});
+
+const getFontFamily = (fontId) => {
+    switch (fontId) {
+        // Sans-serif
+        case 'arial': return 'Arial, Helvetica, sans-serif';
+        case 'montserrat': return '"Montserrat", sans-serif';
+        case 'bebas-neue': return '"Bebas Neue", cursive';
+        case 'poppins': return '"Poppins", sans-serif';
+        case 'roboto': return '"Roboto", sans-serif';
+        case 'open-sans': return '"Open Sans", sans-serif';
+        // Serif
+        case 'georgia': return 'Georgia, serif';
+        case 'times': return '"Times New Roman", Times, serif';
+        case 'playfair-display': return '"Playfair Display", serif';
+        // Script
+        case 'dancing-script': return '"Dancing Script", cursive';
+        case 'pacifico': return '"Pacifico", cursive';
+        case 'great-vibes': return '"Great Vibes", cursive';
+        default: return 'Arial, sans-serif';
+    }
+};
+
+const hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result 
+        ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
+        : '0, 0, 0';
+};
 
 const submitForm = () => {
     form.post(route('superadmin.pinterest-pins.store', { website: props.currentWebsite.id }));
@@ -783,35 +775,381 @@ const submitForm = () => {
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
-                            Design Preview
+                            Live Preview
                         </h3>
 
-                        <!-- Preview Error -->
-                        <div v-if="previewError" class="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                            <p class="text-red-400 text-sm">{{ previewError }}</p>
-                        </div>
-
-                        <!-- Server-Rendered Preview Image -->
-                        <div class="rounded-xl overflow-y-auto overflow-x-hidden mx-auto relative max-h-[800px] scrollbar-thin scrollbar-thumb-pink-500 scrollbar-track-[#2a2a2a]" style="max-width: 512px;">
-                            <div v-if="previewImage" class="w-full">
+                        <!-- Pin Preview (1:2 ratio = 512x1024) -->
+                        <div class="relative bg-white rounded-xl overflow-hidden mx-auto" style="aspect-ratio: 1/2; max-width: 256px;">
+                            <!-- Top Image -->
+                            <div class="absolute top-0 left-0 right-0 h-[40.234375%] overflow-hidden">
                                 <img
-                                    :src="previewImage"
-                                    alt="Pin Preview"
-                                    class="w-full h-auto rounded-xl"
+                                    v-if="selectedArticle?.featured_image"
+                                    :src="selectedArticle.featured_image.startsWith('http') ? selectedArticle.featured_image : '/' + selectedArticle.featured_image"
+                                    alt="Top image"
+                                    class="w-full h-full object-cover"
                                 />
+                                <div v-else class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
+                                    <span class="text-gray-500 text-sm">Top Image</span>
+                                </div>
                             </div>
-                            <div v-else-if="isGeneratingPreview" class="bg-[#111] rounded-xl flex flex-col items-center justify-center p-8" style="aspect-ratio: 1/2;">
-                                <svg class="animate-spin h-10 w-10 text-pink-400 mb-4" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <p class="text-gray-400 text-sm">Generating preview...</p>
+
+                            <!-- Text Overlay - Simple Center -->
+                            <div 
+                                v-if="form.frame_design === 'simple_center'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-2 overflow-hidden"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
+                            >
+                                <p 
+                                    class="text-center font-bold lowercase tracking-wide leading-tight w-full px-1"
+                                    :style="{ 
+                                        color: previewStyles.headlineColor, 
+                                        fontSize: previewStyles.headlineFontSize,
+                                        fontFamily: previewStyles.headlineFontFamily,
+                                        wordWrap: 'break-word',
+                                        overflowWrap: 'break-word'
+                                    }"
+                                >
+                                    {{ form.headline_text || 'cozy cinnamon' }}
+                                </p>
+                                <p 
+                                    class="text-center italic leading-tight w-full px-1 mt-1"
+                                    :style="{ 
+                                        color: previewStyles.subheadlineColor, 
+                                        fontSize: previewStyles.subheadlineFontSize,
+                                        fontFamily: previewStyles.subheadlineFontFamily,
+                                        wordWrap: 'break-word',
+                                        overflowWrap: 'break-word'
+                                    }"
+                                >
+                                    {{ form.subheadline_text || 'Sugar donut bread' }}
+                                </p>
                             </div>
-                            <div v-else class="bg-[#111] rounded-xl flex flex-col items-center justify-center p-8" style="aspect-ratio: 1/2;">
-                                <svg class="w-16 h-16 text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <p class="text-gray-500 text-sm text-center">Select an article and enter text to<br/>see your pin preview</p>
+
+                            <!-- Text Overlay - Black Christmas -->
+                            <div 
+                                v-else-if="form.frame_design === 'black_christmas'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4 overflow-hidden"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
+                            >
+                                <!-- Top decorative line -->
+                                <div class="absolute top-2 left-0 right-0 h-0.5" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
+                                <!-- Bottom decorative line -->
+                                <div class="absolute bottom-2 left-0 right-0 h-0.5" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
+                                <p 
+                                    class="text-center font-bold tracking-wide capitalize w-full px-1"
+                                    :style="{ 
+                                        color: previewStyles.headlineColor,
+                                        fontSize: previewStyles.headlineFontSize,
+                                        fontFamily: previewStyles.headlineFontFamily,
+                                        wordWrap: 'break-word',
+                                        lineHeight: '1.2'
+                                    }"
+                                >
+                                    {{ form.headline_text || 'White Christmas' }}
+                                </p>
+                                <p 
+                                    class="text-center mt-1 capitalize w-full px-1"
+                                    :style="{ 
+                                        color: previewStyles.subheadlineColor,
+                                        fontSize: previewStyles.subheadlineFontSize,
+                                        fontFamily: previewStyles.subheadlineFontFamily,
+                                        wordWrap: 'break-word',
+                                        lineHeight: '1.2'
+                                    }"
+                                >
+                                    {{ form.subheadline_text || 'Mojitos' }}
+                                </p>
+                            </div>
+
+                            <!-- Text Overlay - Green Dashed -->
+                            <div 
+                                v-else-if="form.frame_design === 'green_dashed'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4 overflow-hidden"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
+                            >
+                                <!-- Top dashed line -->
+                                <div class="absolute top-2 left-0 right-0 flex gap-1.5 px-1">
+                                    <div v-for="i in 20" :key="'top-'+i" class="flex-1 h-1 bg-white rounded-sm"></div>
+                                </div>
+                                <!-- Bottom dashed line -->
+                                <div class="absolute bottom-2 left-0 right-0 flex gap-1.5 px-1">
+                                    <div v-for="i in 20" :key="'bottom-'+i" class="flex-1 h-1 bg-white rounded-sm"></div>
+                                </div>
+                                <p 
+                                    class="text-center font-bold lowercase tracking-wide w-full px-1"
+                                    :style="{ 
+                                        color: previewStyles.headlineColor,
+                                        fontSize: previewStyles.headlineFontSize,
+                                        fontFamily: previewStyles.headlineFontFamily,
+                                        wordWrap: 'break-word',
+                                        lineHeight: '1.2'
+                                    }"
+                                >
+                                    {{ form.headline_text || 'chicken street tacos' }}
+                                </p>
+                                <p 
+                                    class="text-center italic mt-1 w-full px-1"
+                                    :style="{ 
+                                        color: previewStyles.subheadlineColor,
+                                        fontSize: previewStyles.subheadlineFontSize,
+                                        fontFamily: previewStyles.subheadlineFontFamily,
+                                        wordWrap: 'break-word',
+                                        lineHeight: '1.2'
+                                    }"
+                                >
+                                    {{ form.subheadline_text || 'easy to make' }}
+                                </p>
+                            </div>
+
+                            <!-- Text Overlay - Ribbon Banner -->
+                            <div 
+                                v-else-if="form.frame_design === 'ribbon_banner'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-between py-2 overflow-hidden"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
+                            >
+                                <!-- Top thick bar -->
+                                <div class="absolute top-0 left-0 right-0 h-4" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
+                                
+                                <div class="flex-1 flex flex-col items-center justify-center w-full px-2 mt-4">
+                                    <p 
+                                        class="text-center font-bold uppercase w-full leading-tight"
+                                        :style="{ 
+                                            color: previewStyles.headlineColor,
+                                            fontSize: previewStyles.headlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.headline_text || 'BISCOFF COOKIE BUTTER' }}
+                                    </p>
+                                    <p 
+                                        class="text-center font-bold uppercase w-full mt-1 leading-tight"
+                                        :style="{ 
+                                            color: previewStyles.subheadlineColor,
+                                            fontSize: previewStyles.subheadlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.subheadline_text || 'CINNAMON ROLLS' }}
+                                    </p>
+                                </div>
+
+                                <!-- Ribbon -->
+                                <div 
+                                    class="relative w-[85%] flex items-center justify-center mb-2"
+                                    style="height: 18%;"
+                                    :style="{ backgroundColor: previewStyles.headlineColor }"
+                                >
+                                    <!-- Notch Left -->
+                                    <div class="absolute left-0 top-0 bottom-0 w-3" :style="{ backgroundColor: form.overlay_color, clipPath: 'polygon(0 0, 100% 50%, 0 100%)' }"></div>
+                                    <!-- Notch Right -->
+                                    <div class="absolute right-0 top-0 bottom-0 w-3" :style="{ backgroundColor: form.overlay_color, clipPath: 'polygon(100% 0, 0 50%, 100% 100%)' }"></div>
+                                    
+                                    <p 
+                                        class="text-center font-bold text-white uppercase tracking-wider px-4 text-[10px]"
+                                        :style="{ fontFamily: previewStyles.headlineFontFamily }"
+                                    >
+                                        {{ form.domain_name || 'WWW.HADIK.COM' }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Text Overlay - Star Rating -->
+                            <div 
+                                v-else-if="form.frame_design === 'star_rating'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center px-4 overflow-hidden"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
+                            >
+                                <!-- Top capsule with stars -->
+                                <div 
+                                    class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 h-6 rounded-full flex items-center justify-center gap-0.5 z-10"
+                                    :style="{ backgroundColor: previewStyles.headlineColor }"
+                                >
+                                    <div v-for="i in 5" :key="'star-'+i" class="w-2 h-2 bg-yellow-200" style="clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);"></div>
+                                </div>
+
+                                <div class="flex flex-col items-center justify-center w-full px-2">
+                                    <p 
+                                        class="text-center font-bold uppercase w-full leading-tight"
+                                        :style="{ 
+                                            color: previewStyles.headlineColor,
+                                            fontSize: previewStyles.headlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.headline_text || 'COZY CINNAMON' }}
+                                    </p>
+                                    <p 
+                                        class="text-center font-bold uppercase w-full mt-1 leading-tight"
+                                        :style="{ 
+                                            color: previewStyles.subheadlineColor,
+                                            fontSize: previewStyles.subheadlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.subheadline_text || 'SUGAR DONUT' }}
+                                    </p>
+                                </div>
+
+                                <!-- Domain Name Capsule -->
+                                <div 
+                                    class="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 h-6 rounded-full flex items-center justify-center z-10 min-w-[100px]"
+                                    :style="{ backgroundColor: previewStyles.headlineColor }"
+                                >
+                                    <p 
+                                        class="text-center font-bold text-white uppercase text-[9px] tracking-wider"
+                                        :style="{ fontFamily: previewStyles.headlineFontFamily }"
+                                    >
+                                        {{ form.domain_name || 'WWW.HADIK.COM' }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Text Overlay - Minimal Bold -->
+                            <div 
+                                v-else-if="form.frame_design === 'minimal_bold'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center overflow-visible"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
+                            >
+                                <!-- Top and Bottom thick lines -->
+                                <div class="absolute top-0 left-0 right-0 h-1" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
+                                <div class="absolute bottom-0 left-0 right-0 h-1" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
+
+                                <div class="flex flex-col items-center justify-center w-full px-2">
+                                    <p 
+                                        class="text-center font-bold lowercase w-full leading-tight"
+                                        :style="{ 
+                                            color: previewStyles.headlineColor,
+                                            fontSize: previewStyles.headlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.headline_text || 'yesy folder this' }}
+                                    </p>
+                                    <p 
+                                        class="text-center lowercase w-full mt-1 leading-tight"
+                                        :style="{ 
+                                            color: previewStyles.subheadlineColor,
+                                            fontSize: previewStyles.subheadlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.subheadline_text || '' }}
+                                    </p>
+                                </div>
+
+                                <!-- Domain Name Bar -->
+                                <div 
+                                    class="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 h-6 flex items-center justify-center z-10 min-w-[100px]"
+                                    :style="{ backgroundColor: previewStyles.headlineColor }"
+                                >
+                                    <p 
+                                        class="text-center font-bold text-white lowercase text-[9px] tracking-wider"
+                                        :style="{ fontFamily: previewStyles.headlineFontFamily }"
+                                    >
+                                        {{ form.domain_name || 'testteha.com' }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Text Overlay - Crispy Orange -->
+                            <div 
+                                v-else-if="form.frame_design === 'crispy_orange'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center overflow-hidden"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
+                            >
+                                <!-- Top and Bottom accent lines -->
+                                <div class="absolute top-0 left-0 right-0 h-1" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
+                                <div class="absolute bottom-0 left-0 right-0 h-1" :style="{ backgroundColor: previewStyles.headlineColor }"></div>
+
+                                <div class="flex flex-col items-center justify-center w-full px-2">
+                                    <p 
+                                        class="text-center font-bold uppercase w-full leading-tight"
+                                        :style="{ 
+                                            color: previewStyles.headlineColor,
+                                            fontSize: previewStyles.headlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.headline_text || 'crispy oven roasted' }}
+                                    </p>
+                                    <p 
+                                        class="text-center capitalize w-full mt-1 leading-tight"
+                                        :style="{ 
+                                            color: previewStyles.subheadlineColor,
+                                            fontSize: previewStyles.subheadlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.subheadline_text || 'easy potatoes' }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Text Overlay - Torn Paper -->
+                            <div 
+                                v-else-if="form.frame_design === 'torn_paper'"
+                                class="absolute left-0 right-0 flex flex-col items-center justify-center"
+                                style="top: 40.234375%; height: 19.53125%;"
+                                :style="{ backgroundColor: previewStyles.overlayBg }"
+                            >
+                                <!-- Jagged Edge Top -->
+                                <div class="absolute top-0 left-0 right-0 h-4 -mt-2" :style="{ backgroundColor: form.overlay_color, clipPath: 'polygon(0% 100%, 5% 20%, 10% 80%, 15% 10%, 20% 90%, 25% 30%, 30% 70%, 35% 0%, 40% 100%, 45% 20%, 50% 80%, 55% 10%, 60% 90%, 65% 30%, 70% 70%, 75% 0%, 80% 100%, 85% 20%, 90% 80%, 95% 10%, 100% 100%)' }"></div>
+                                
+                                <!-- Jagged Edge Bottom -->
+                                <div class="absolute bottom-0 left-0 right-0 h-4 -mb-2" :style="{ backgroundColor: form.overlay_color, clipPath: 'polygon(0% 0%, 5% 80%, 10% 20%, 15% 90%, 20% 10%, 25% 70%, 30% 30%, 35% 100%, 40% 0%, 45% 80%, 50% 20%, 55% 90%, 60% 10%, 65% 70%, 70% 30%, 75% 100%, 80% 0%, 85% 80%, 90% 20%, 95% 90%, 100% 0%)' }"></div>
+
+                                <div class="flex flex-col items-center justify-center w-full px-4 z-10">
+                                    <p 
+                                        class="text-center font-bold w-full leading-tight"
+                                        :style="{ 
+                                            color: previewStyles.headlineColor,
+                                            fontSize: previewStyles.headlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.headline_text || 'Test Folder cd' }}
+                                    </p>
+                                    <p 
+                                        class="text-center font-bold w-full mt-2 leading-tight"
+                                        :style="{ 
+                                            color: previewStyles.subheadlineColor,
+                                            fontSize: previewStyles.subheadlineFontSize,
+                                            fontFamily: previewStyles.headlineFontFamily,
+                                            wordWrap: 'break-word'
+                                        }"
+                                    >
+                                        {{ form.subheadline_text || 'Test Folder cd' }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Bottom Image -->
+                            <div class="absolute bottom-0 left-0 right-0 h-[40.234375%] overflow-hidden">
+                                <img
+                                    v-if="selectedArticle?.secondary_image || selectedArticle?.featured_image"
+                                    :src="(selectedArticle.secondary_image || selectedArticle.featured_image).startsWith('http') ? (selectedArticle.secondary_image || selectedArticle.featured_image) : '/' + (selectedArticle.secondary_image || selectedArticle.featured_image)"
+                                    alt="Bottom image"
+                                    class="w-full h-full object-cover"
+                                />
+                                <div v-else class="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                                    <span class="text-gray-500 text-sm">Bottom Image</span>
+                                </div>
                             </div>
                         </div>
 
@@ -819,7 +1157,7 @@ const submitForm = () => {
                             Output: 512 x 1024px (Pinterest 1:2 ratio)
                         </p>
                         <p class="text-center text-gray-600 text-xs mt-2">
-                            Preview updates automatically as you change settings
+                            ? Font sizes auto-scale if text is too long
                         </p>
                     </div>
 
@@ -836,6 +1174,8 @@ const submitForm = () => {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&family=Dancing+Script:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Poppins:wght@400;700&family=Pacifico&family=Great+Vibes&display=swap');
+
 input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 20px;
@@ -843,24 +1183,5 @@ input[type="range"]::-webkit-slider-thumb {
     border-radius: 50%;
     background: #ec4899;
     cursor: pointer;
-}
-
-/* Custom scrollbar styling for preview */
-.scrollbar-thin::-webkit-scrollbar {
-    width: 8px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-track {
-    background: #2a2a2a;
-    border-radius: 4px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #ec4899;
-    border-radius: 4px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: #db2777;
 }
 </style>
