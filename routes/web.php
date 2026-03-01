@@ -162,6 +162,11 @@ $registerMainAppRoutes = function () {
         Route::get('/api/generation-jobs', [AIArticleController::class, 'getGenerationJobs'])->name('api.generation-jobs');
         Route::delete('/api/generation-jobs/{jobId}', [AIArticleController::class, 'dismissJob'])->name('api.generation-jobs.dismiss');
         Route::delete('/api/generation-jobs', [AIArticleController::class, 'clearCompletedJobs'])->name('api.generation-jobs.clear');
+        
+        // AI Image Generation Routes (for home decor and similar themes)
+        Route::post('/{website}/articles/{article}/generate-images', [AIArticleController::class, 'generateImages'])->name('superadmin.articles.generate-images');
+        Route::get('/{website}/articles/{article}/images', [AIArticleController::class, 'getArticleImages'])->name('superadmin.articles.images');
+        Route::delete('/{website}/articles/{article}/images/{imageId}', [AIArticleController::class, 'deleteArticleImage'])->name('superadmin.articles.images.delete');
         Route::get('/{website}/categories', [CategoryController::class, 'index'])->name('superadmin.categories.index');
         Route::post('/{website}/categories', [CategoryController::class, 'store'])->name('superadmin.categories.store');
         Route::put('/{website}/categories/{category}', [CategoryController::class, 'update'])->name('superadmin.categories.update');

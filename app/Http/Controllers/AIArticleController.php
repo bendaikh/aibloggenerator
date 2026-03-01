@@ -7,6 +7,8 @@ use App\Models\Website;
 use App\Models\Category;
 use App\Models\ArticleGenerationJob;
 use App\Jobs\GenerateAIArticleJob;
+use App\Jobs\GenerateAIImagesJob;
+use App\Services\AIImageService;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Inertia\Inertia;
@@ -564,5 +566,160 @@ PROMPT;
         $content = preg_replace('/\n{3,}/', "\n\n", $content);
         
         return trim($content);
+    }
+
+    /**
+     * Generate AI images for an article (for home decor and similar themes).
+     * This can generate images based on article sections/list items.
+     */
+    public function generateImages(Request $request, Website $website, Article $article)
+    {
+        $this->authorize('update', $website);
+
+        $user = auth()->user();
+
+        if (empty($user->openai_api_key)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'OpenAI API key not configured. Please add your API key in settings.'
+            ], 400);
+        }
+
+        $validated = $request->validate([
+            'items' => 'nullable|array',
+            'items.*.title' => 'required|string|max:500',
+            'items.*.description' => 'nullable|string|max:1000',
+            'size' => 'nullable|string|in:1024x1024,1792x1024,1024x1792',
+            'quality' => 'nullable|string|in:standard,hd',
+            'style' => 'nullable|string|in:natural,vivid',
+            'auto_detect' => 'nullable|boolean',
+        ]);
+
+        $items = $validated['items'] ?? [];
+        $size = $validated['size'] ?? '1024x1024';
+        $quality = $validated['quality'] ?? 'standard';
+        $style = $validated['style'] ?? 'natural';
+        $autoDetect = $validated['auto_detect'] ?? true;
+
+        // Auto-detect items from article content if not provided
+        if (empty($items) && $autoDetect) {
+            $items = $this->extractListItemsFromContent($article->content, $article->title);
+        }
+
+        if (empty($items)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No items found to generate images for. Please provide items or ensure the article has list sections.'
+            ], 400);
+        }
+
+        // Dispatch the job to generate images asynchronously
+        GenerateAIImagesJob::dispatch(
+            $article->id,
+            $user->id,
+            $items,
+            $size,
+            $quality,
+            $style
+        );
+
+        $itemsCount = count($items);
+        
+        return response()->json([
+            'success' => true,
+            'message' => "Image generation started for {$itemsCount} items. Images will appear in the article once generated.",
+            'items_count' => $itemsCount,
+            'estimated_cost' => $this->estimateImageCost($itemsCount, $size, $quality)
+        ]);
+    }
+
+    /**
+     * Extract list items from article content for image generation.
+     */
+    private function extractListItemsFromContent(string $content, string $articleTitle): array
+    {
+        $items = [];
+
+        // First check if this is a "list" type article (e.g., "Top 10 Homes")
+        $listInfo = AIImageService::detectListArticle($articleTitle, $content);
+        
+        if (!$listInfo['is_list']) {
+            return [];
+        }
+
+        // Extract H2/H3 sections that could be list items
+        if (preg_match_all('/<h([23])[^>]*>(?:\d+[\.\):]?\s*)?([^<]+)<\/h\1>(?:\s*<p[^>]*>([^<]+)<\/p>)?/i', $content, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $index => $match) {
+                $title = trim(strip_tags($match[2]));
+                $description = isset($match[3]) ? trim(strip_tags($match[3])) : '';
+                
+                // Filter out generic headers
+                if (!preg_match('/^(introduction|conclusion|tips|faq|frequently|summary|overview|ingredients|instructions)/i', $title)) {
+                    $items[] = [
+                        'title' => $title,
+                        'description' => Str::limit($description, 200),
+                    ];
+                }
+            }
+        }
+
+        return $items;
+    }
+
+    /**
+     * Estimate the cost of generating images.
+     */
+    private function estimateImageCost(int $count, string $size, string $quality): float
+    {
+        $isLargeSize = in_array($size, ['1792x1024', '1024x1792']);
+        $isHD = $quality === 'hd';
+
+        $costPerImage = 0.040; // Base: 1024x1024 standard
+        
+        if ($isLargeSize && $isHD) {
+            $costPerImage = 0.120;
+        } elseif ($isLargeSize || $isHD) {
+            $costPerImage = 0.080;
+        }
+
+        return round($count * $costPerImage, 2);
+    }
+
+    /**
+     * Get AI-generated images for an article.
+     */
+    public function getArticleImages(Website $website, Article $article)
+    {
+        $this->authorize('view', $website);
+
+        $images = $article->articleImages()->orderBy('position')->get();
+
+        return response()->json([
+            'success' => true,
+            'images' => $images
+        ]);
+    }
+
+    /**
+     * Delete an AI-generated image.
+     */
+    public function deleteArticleImage(Website $website, Article $article, $imageId)
+    {
+        $this->authorize('update', $website);
+
+        $image = $article->articleImages()->findOrFail($imageId);
+        
+        // Delete the file from storage
+        $filePath = str_replace('/storage/', '', $image->local_path);
+        if (\Storage::disk('public')->exists($filePath)) {
+            \Storage::disk('public')->delete($filePath);
+        }
+
+        $image->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Image deleted successfully'
+        ]);
     }
 }

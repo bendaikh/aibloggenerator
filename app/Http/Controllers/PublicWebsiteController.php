@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Website;
 use App\Models\Article;
+use App\Models\ArticleImage;
 use App\Models\Page;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -49,7 +50,8 @@ class PublicWebsiteController extends Controller
             },
             'pages' => function ($query) {
                 $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
-            }
+            },
+            'theme'
         ]);
 
         // Try exact match first, then try with ID pattern (e.g., slug-431)
@@ -110,7 +112,8 @@ class PublicWebsiteController extends Controller
             },
             'pages' => function ($query) {
                 $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
-            }
+            },
+            'theme'
         ]);
 
         // Try exact match first, then try with ID pattern (e.g., slug-431)
@@ -123,7 +126,8 @@ class PublicWebsiteController extends Controller
             ->where('article_type', 'article')
             ->where('status', 'published')
             ->where('published_at', '<=', now())
-            ->with(['category', 'user', 'author'])
+            ->with(['category', 'user', 'author', 'articleImages'])
+            ->orderByDesc('id')
             ->firstOrFail();
 
         // Increment views
@@ -136,13 +140,35 @@ class PublicWebsiteController extends Controller
             ->take(3)
             ->get();
 
-        // Load the website's theme to determine if recipe sections should be shown
+        // Load the website's theme to determine which template to use
         $websiteTheme = $website->theme()->first();
+        
+        // Determine which article template to use based on theme
+        $viewComponent = 'Public/Website/Article';
+        if ($websiteTheme && $websiteTheme->slug === 'home-decor') {
+            $viewComponent = 'Public/Website/ArticleHomeDecor';
+        }
 
-        return Inertia::render('Public/Website/Article', [
+        return Inertia::render($viewComponent, [
             'website' => $website,
             'article' => $article,
             'relatedArticles' => $relatedArticles,
+            'articleImages' => ($article->articleImages ?? collect())
+                ->values()
+                ->map(fn ($image) => [
+                    'id' => $image->id,
+                    'title' => $image->title,
+                    'url' => $image->url,
+                    'local_path' => $image->local_path,
+                    'position' => $image->position,
+                    'size' => $image->size,
+                    'quality' => $image->quality,
+                    'style' => $image->style,
+                    'cost' => $image->cost,
+                    'generation_type' => $image->generation_type,
+                    'metadata' => $image->metadata,
+                ])
+                ->all(),
             'showRecipeSections' => $websiteTheme ? $websiteTheme->show_recipe_sections : true,
         ]);
     }
@@ -168,7 +194,8 @@ class PublicWebsiteController extends Controller
             },
             'pages' => function ($query) {
                 $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
-            }
+            },
+            'theme'
         ]);
 
         $category = $website->categories()
@@ -225,7 +252,8 @@ class PublicWebsiteController extends Controller
             },
             'pages' => function ($query) {
                 $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
-            }
+            },
+            'theme'
         ]);
 
         $page = $website->pages()
@@ -273,7 +301,8 @@ class PublicWebsiteController extends Controller
             },
             'pages' => function ($query) {
                 $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
-            }
+            },
+            'theme'
         ]);
 
         // Try exact match first, then try with ID pattern (e.g., slug-431)
@@ -332,7 +361,8 @@ class PublicWebsiteController extends Controller
             },
             'pages' => function ($query) {
                 $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
-            }
+            },
+            'theme'
         ]);
 
         // Try exact match first, then try with ID pattern (e.g., slug-431)
@@ -345,7 +375,8 @@ class PublicWebsiteController extends Controller
             ->where('article_type', 'article')
             ->where('status', 'published')
             ->where('published_at', '<=', now())
-            ->with(['category', 'user', 'author'])
+            ->with(['category', 'user', 'author', 'articleImages'])
+            ->orderByDesc('id')
             ->firstOrFail();
 
         // Increment views
@@ -358,13 +389,35 @@ class PublicWebsiteController extends Controller
             ->take(3)
             ->get();
 
-        // Load the website's theme to determine if recipe sections should be shown
+        // Load the website's theme to determine which template to use
         $websiteTheme = $website->theme()->first();
+        
+        // Determine which article template to use based on theme
+        $viewComponent = 'Public/Website/Article';
+        if ($websiteTheme && $websiteTheme->slug === 'home-decor') {
+            $viewComponent = 'Public/Website/ArticleHomeDecor';
+        }
 
-        return Inertia::render('Public/Website/Article', [
+        return Inertia::render($viewComponent, [
             'website' => $website,
             'article' => $article,
             'relatedArticles' => $relatedArticles,
+            'articleImages' => ($article->articleImages ?? collect())
+                ->values()
+                ->map(fn ($image) => [
+                    'id' => $image->id,
+                    'title' => $image->title,
+                    'url' => $image->url,
+                    'local_path' => $image->local_path,
+                    'position' => $image->position,
+                    'size' => $image->size,
+                    'quality' => $image->quality,
+                    'style' => $image->style,
+                    'cost' => $image->cost,
+                    'generation_type' => $image->generation_type,
+                    'metadata' => $image->metadata,
+                ])
+                ->all(),
             'showRecipeSections' => $websiteTheme ? $websiteTheme->show_recipe_sections : true,
         ]);
     }
@@ -388,7 +441,8 @@ class PublicWebsiteController extends Controller
             },
             'pages' => function ($query) {
                 $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
-            }
+            },
+            'theme'
         ]);
 
         $category = $website->categories()
@@ -443,7 +497,8 @@ class PublicWebsiteController extends Controller
             },
             'pages' => function ($query) {
                 $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
-            }
+            },
+            'theme'
         ]);
 
         $articles = $website->publishedArticles()
@@ -485,7 +540,8 @@ class PublicWebsiteController extends Controller
             },
             'pages' => function ($query) {
                 $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
-            }
+            },
+            'theme'
         ]);
 
         $page = $website->pages()
@@ -522,7 +578,8 @@ class PublicWebsiteController extends Controller
             },
             'pages' => function ($query) {
                 $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
-            }
+            },
+            'theme'
         ]);
 
         $articles = $website->publishedArticles()
@@ -557,7 +614,8 @@ class PublicWebsiteController extends Controller
             },
             'pages' => function ($query) {
                 $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
-            }
+            },
+            'theme'
         ]);
 
         $articles = $website->publishedArticles()

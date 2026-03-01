@@ -544,58 +544,175 @@ class OrganizationController extends Controller
     private function getAboutUsContent(Website $website): string
     {
         $name = $website->name;
+        $themeSlug = $website->theme?->slug ?? 'recipe';
         
+        if ($themeSlug === 'home-decor') {
+            return $this->getHomeDecorAboutUsContent($name);
+        }
+        
+        return $this->getRecipeAboutUsContent($name);
+    }
+
+    /**
+     * Get About Us content for Home Decor theme
+     */
+    private function getHomeDecorAboutUsContent(string $name): string
+    {
         return <<<HTML
 <!-- Hero Section -->
-<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 60px 40px; border-radius: 20px; margin-bottom: 40px; text-align: center; color: white;">
+<div style="background: linear-gradient(135deg, #d4a574 0%, #c4956a 100%); padding: 60px 40px; border-radius: 20px; margin-bottom: 40px; text-align: center; color: white;">
     <h1 style="font-size: 2.5rem; margin-bottom: 20px; font-weight: 700;">Welcome to {$name}</h1>
-    <p style="font-size: 1.25rem; opacity: 0.95; max-width: 600px; margin: 0 auto;">We're passionate about creating exceptional content that inspires, educates, and connects people from all walks of life.</p>
+    <p style="font-size: 1.25rem; opacity: 0.95; max-width: 600px; margin: 0 auto;">We're passionate about creating beautiful living spaces that inspire comfort, style, and personal expression in every home.</p>
+</div>
+
+<!-- Our Story Section -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 50px; align-items: center;">
+    <div>
+        <h2 style="color: #44403c; font-size: 1.8rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+            <span style="background: #c4956a; color: white; width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;">🏠</span>
+            Our Story
+        </h2>
+        <p style="color: #78716c; line-height: 1.8; font-size: 1.1rem;">
+            Founded with a passion for interior design and cozy living, {$name} has grown from a small design blog into a thriving community of home enthusiasts. Every day, we strive to bring you inspiration that transforms houses into homes.
+        </p>
+        <p style="color: #78716c; line-height: 1.8; font-size: 1.1rem; margin-top: 15px;">
+            Our journey began with a simple belief: everyone deserves a beautiful, comfortable space to call their own. Today, we continue that mission by curating the best in home decor, DIY projects, and interior design trends.
+        </p>
+    </div>
+    <div style="background: linear-gradient(135deg, #fef7ed 0%, #fed7aa 100%); padding: 40px; border-radius: 16px; border: 2px solid #fdba74;">
+        <div style="text-align: center;">
+            <div style="font-size: 3rem; font-weight: 700; color: #c2410c;">500+</div>
+            <div style="color: #ea580c; font-weight: 500;">Design Ideas</div>
+        </div>
+        <div style="text-align: center; margin-top: 30px;">
+            <div style="font-size: 3rem; font-weight: 700; color: #c2410c;">25K+</div>
+            <div style="color: #ea580c; font-weight: 500;">Happy Homeowners</div>
+        </div>
+    </div>
+</div>
+
+<!-- Our Values Section -->
+<div style="background: #faf5f0; padding: 50px 40px; border-radius: 20px; margin-bottom: 50px;">
+    <h2 style="text-align: center; color: #44403c; font-size: 1.8rem; margin-bottom: 40px;">Our Design Philosophy</h2>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px;">
+        <div style="text-align: center; padding: 30px; background: white; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 2.5rem; margin-bottom: 15px;">✨</div>
+            <h3 style="color: #44403c; font-size: 1.2rem; margin-bottom: 10px;">Timeless Elegance</h3>
+            <p style="color: #78716c; font-size: 0.95rem;">We believe in designs that stand the test of time, blending classic aesthetics with modern comfort.</p>
+        </div>
+        <div style="text-align: center; padding: 30px; background: white; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 2.5rem; margin-bottom: 15px;">🌿</div>
+            <h3 style="color: #44403c; font-size: 1.2rem; margin-bottom: 10px;">Natural Beauty</h3>
+            <p style="color: #78716c; font-size: 0.95rem;">We embrace natural materials, earthy tones, and organic textures that bring warmth to any space.</p>
+        </div>
+        <div style="text-align: center; padding: 30px; background: white; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 2.5rem; margin-bottom: 15px;">💝</div>
+            <h3 style="color: #44403c; font-size: 1.2rem; margin-bottom: 10px;">Personal Touch</h3>
+            <p style="color: #78716c; font-size: 0.95rem;">Your home should reflect who you are. We help you find your unique style and express it beautifully.</p>
+        </div>
+    </div>
+</div>
+
+<!-- What We Offer Section -->
+<div style="margin-bottom: 50px;">
+    <h2 style="color: #44403c; font-size: 1.8rem; margin-bottom: 30px; text-align: center;">What We Offer</h2>
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+        <div style="display: flex; gap: 15px; padding: 25px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px;">
+            <div style="font-size: 1.5rem;">🛋️</div>
+            <div>
+                <h4 style="color: #92400e; font-weight: 600; margin-bottom: 5px;">Room Makeovers</h4>
+                <p style="color: #a16207; font-size: 0.9rem;">Complete room transformation ideas from living rooms to cozy bedrooms.</p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 15px; padding: 25px; background: linear-gradient(135deg, #fce7d6 0%, #f5d0b5 100%); border-radius: 12px;">
+            <div style="font-size: 1.5rem;">🎨</div>
+            <div>
+                <h4 style="color: #9a3412; font-weight: 600; margin-bottom: 5px;">Color Palettes</h4>
+                <p style="color: #c2410c; font-size: 0.9rem;">Curated color schemes that create harmony and warmth in your spaces.</p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 15px; padding: 25px; background: linear-gradient(135deg, #e8e4df 0%, #d6cfc7 100%); border-radius: 12px;">
+            <div style="font-size: 1.5rem;">🔨</div>
+            <div>
+                <h4 style="color: #57534e; font-weight: 600; margin-bottom: 5px;">DIY Projects</h4>
+                <p style="color: #78716c; font-size: 0.9rem;">Step-by-step guides for creating beautiful decor pieces yourself.</p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 15px; padding: 25px; background: linear-gradient(135deg, #d5e8d4 0%, #b8d4b4 100%); border-radius: 12px;">
+            <div style="font-size: 1.5rem;">🌱</div>
+            <div>
+                <h4 style="color: #166534; font-weight: 600; margin-bottom: 5px;">Sustainable Living</h4>
+                <p style="color: #15803d; font-size: 0.9rem;">Eco-friendly decor ideas and sustainable home improvement tips.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CTA Section -->
+<div style="background: linear-gradient(135deg, #44403c 0%, #57534e 100%); padding: 50px 40px; border-radius: 20px; text-align: center; color: white;">
+    <h2 style="font-size: 1.8rem; margin-bottom: 15px;">Ready to Transform Your Space?</h2>
+    <p style="opacity: 0.9; margin-bottom: 25px; max-width: 500px; margin-left: auto; margin-right: auto;">Explore our collection of home decor ideas and find inspiration for every room in your home.</p>
+    <a href="/" style="display: inline-block; background: #c4956a; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: background 0.3s;">Explore Ideas →</a>
+</div>
+HTML;
+    }
+
+    /**
+     * Get About Us content for Recipe theme
+     */
+    private function getRecipeAboutUsContent(string $name): string
+    {
+        return <<<HTML
+<!-- Hero Section -->
+<div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 60px 40px; border-radius: 20px; margin-bottom: 40px; text-align: center; color: white;">
+    <h1 style="font-size: 2.5rem; margin-bottom: 20px; font-weight: 700;">Welcome to {$name}</h1>
+    <p style="font-size: 1.25rem; opacity: 0.95; max-width: 600px; margin: 0 auto;">We're passionate about creating delicious recipes that bring joy to your kitchen and your table.</p>
 </div>
 
 <!-- Our Story Section -->
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 50px; align-items: center;">
     <div>
         <h2 style="color: #1e293b; font-size: 1.8rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-            <span style="background: #10b981; color: white; width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;">📖</span>
+            <span style="background: #10b981; color: white; width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;">👨‍🍳</span>
             Our Story
         </h2>
         <p style="color: #475569; line-height: 1.8; font-size: 1.1rem;">
-            Founded with a vision to democratize knowledge, {$name} has grown from a small passion project into a thriving community of readers and contributors. Every day, we strive to bring you content that matters.
+            Founded with a love for home cooking, {$name} has grown from a small food blog into a thriving community of home chefs and food lovers. Every day, we strive to bring you recipes that are both delicious and achievable.
         </p>
         <p style="color: #475569; line-height: 1.8; font-size: 1.1rem; margin-top: 15px;">
-            Our journey began with a simple belief: everyone deserves access to quality information that can transform their lives. Today, we continue that mission with unwavering dedication.
+            Our journey began in a tiny kitchen with a simple belief: everyone can create amazing meals at home. Today, we continue that mission by sharing tested recipes, cooking tips, and culinary inspiration.
         </p>
     </div>
     <div style="background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%); padding: 40px; border-radius: 16px; border: 2px solid #99f6e4;">
         <div style="text-align: center;">
             <div style="font-size: 3rem; font-weight: 700; color: #0d9488;">1000+</div>
-            <div style="color: #14b8a6; font-weight: 500;">Articles Published</div>
+            <div style="color: #14b8a6; font-weight: 500;">Recipes Published</div>
         </div>
         <div style="text-align: center; margin-top: 30px;">
             <div style="font-size: 3rem; font-weight: 700; color: #0d9488;">50K+</div>
-            <div style="color: #14b8a6; font-weight: 500;">Happy Readers</div>
+            <div style="color: #14b8a6; font-weight: 500;">Happy Home Cooks</div>
         </div>
     </div>
 </div>
 
 <!-- Our Values Section -->
 <div style="background: #f8fafc; padding: 50px 40px; border-radius: 20px; margin-bottom: 50px;">
-    <h2 style="text-align: center; color: #1e293b; font-size: 1.8rem; margin-bottom: 40px;">Our Core Values</h2>
+    <h2 style="text-align: center; color: #1e293b; font-size: 1.8rem; margin-bottom: 40px;">Our Kitchen Values</h2>
     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px;">
         <div style="text-align: center; padding: 30px; background: white; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 2.5rem; margin-bottom: 15px;">🎯</div>
-            <h3 style="color: #1e293b; font-size: 1.2rem; margin-bottom: 10px;">Quality First</h3>
-            <p style="color: #64748b; font-size: 0.95rem;">We never compromise on the quality of our content. Every piece is carefully researched and crafted.</p>
+            <div style="font-size: 2.5rem; margin-bottom: 15px;">🍳</div>
+            <h3 style="color: #1e293b; font-size: 1.2rem; margin-bottom: 10px;">Tested Recipes</h3>
+            <p style="color: #64748b; font-size: 0.95rem;">Every recipe is kitchen-tested multiple times to ensure perfect results every time you cook.</p>
         </div>
         <div style="text-align: center; padding: 30px; background: white; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 2.5rem; margin-bottom: 15px;">💡</div>
-            <h3 style="color: #1e293b; font-size: 1.2rem; margin-bottom: 10px;">Innovation</h3>
-            <p style="color: #64748b; font-size: 0.95rem;">We embrace new ideas and technologies to deliver content in the most engaging ways possible.</p>
+            <div style="font-size: 2.5rem; margin-bottom: 15px;">🥗</div>
+            <h3 style="color: #1e293b; font-size: 1.2rem; margin-bottom: 10px;">Fresh Ingredients</h3>
+            <p style="color: #64748b; font-size: 0.95rem;">We believe in using fresh, quality ingredients that make every dish shine.</p>
         </div>
         <div style="text-align: center; padding: 30px; background: white; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 2.5rem; margin-bottom: 15px;">🤝</div>
-            <h3 style="color: #1e293b; font-size: 1.2rem; margin-bottom: 10px;">Community</h3>
-            <p style="color: #64748b; font-size: 0.95rem;">Our readers are at the heart of everything we do. We build for you, with you.</p>
+            <div style="font-size: 2.5rem; margin-bottom: 15px;">❤️</div>
+            <h3 style="color: #1e293b; font-size: 1.2rem; margin-bottom: 10px;">Made with Love</h3>
+            <p style="color: #64748b; font-size: 0.95rem;">Cooking is an act of love. Our recipes are designed to bring families together.</p>
         </div>
     </div>
 </div>
@@ -605,31 +722,31 @@ class OrganizationController extends Controller
     <h2 style="color: #1e293b; font-size: 1.8rem; margin-bottom: 30px; text-align: center;">What We Offer</h2>
     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
         <div style="display: flex; gap: 15px; padding: 25px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px;">
-            <div style="font-size: 1.5rem;">✨</div>
+            <div style="font-size: 1.5rem;">🍰</div>
             <div>
-                <h4 style="color: #92400e; font-weight: 600; margin-bottom: 5px;">Expert Articles</h4>
-                <p style="color: #a16207; font-size: 0.9rem;">In-depth articles written by industry experts and passionate writers.</p>
-            </div>
-        </div>
-        <div style="display: flex; gap: 15px; padding: 25px; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 12px;">
-            <div style="font-size: 1.5rem;">📚</div>
-            <div>
-                <h4 style="color: #1e40af; font-weight: 600; margin-bottom: 5px;">Curated Resources</h4>
-                <p style="color: #1d4ed8; font-size: 0.9rem;">Handpicked resources to help you learn and grow in your journey.</p>
-            </div>
-        </div>
-        <div style="display: flex; gap: 15px; padding: 25px; background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); border-radius: 12px;">
-            <div style="font-size: 1.5rem;">🎙️</div>
-            <div>
-                <h4 style="color: #6b21a8; font-weight: 600; margin-bottom: 5px;">Engaging Content</h4>
-                <p style="color: #7c3aed; font-size: 0.9rem;">From tutorials to thought pieces, we cover topics that matter to you.</p>
+                <h4 style="color: #92400e; font-weight: 600; margin-bottom: 5px;">Easy Recipes</h4>
+                <p style="color: #a16207; font-size: 0.9rem;">Simple, straightforward recipes that anyone can follow and master.</p>
             </div>
         </div>
         <div style="display: flex; gap: 15px; padding: 25px; background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); border-radius: 12px;">
-            <div style="font-size: 1.5rem;">🌍</div>
+            <div style="font-size: 1.5rem;">📝</div>
             <div>
-                <h4 style="color: #166534; font-weight: 600; margin-bottom: 5px;">Global Perspective</h4>
-                <p style="color: #15803d; font-size: 0.9rem;">Content that embraces diversity and brings worldwide perspectives.</p>
+                <h4 style="color: #166534; font-weight: 600; margin-bottom: 5px;">Detailed Instructions</h4>
+                <p style="color: #15803d; font-size: 0.9rem;">Step-by-step guides with tips and tricks for perfect results.</p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 15px; padding: 25px; background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-radius: 12px;">
+            <div style="font-size: 1.5rem;">🌮</div>
+            <div>
+                <h4 style="color: #991b1b; font-weight: 600; margin-bottom: 5px;">World Cuisines</h4>
+                <p style="color: #dc2626; font-size: 0.9rem;">Explore flavors from around the world, from Italian to Asian and beyond.</p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 15px; padding: 25px; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 12px;">
+            <div style="font-size: 1.5rem;">⏱️</div>
+            <div>
+                <h4 style="color: #1e40af; font-weight: 600; margin-bottom: 5px;">Quick Meals</h4>
+                <p style="color: #1d4ed8; font-size: 0.9rem;">Delicious recipes for busy weeknights when time is short.</p>
             </div>
         </div>
     </div>
@@ -637,9 +754,9 @@ class OrganizationController extends Controller
 
 <!-- CTA Section -->
 <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); padding: 50px 40px; border-radius: 20px; text-align: center; color: white;">
-    <h2 style="font-size: 1.8rem; margin-bottom: 15px;">Ready to Explore?</h2>
-    <p style="opacity: 0.9; margin-bottom: 25px; max-width: 500px; margin-left: auto; margin-right: auto;">Dive into our collection of articles and discover content that will inspire and inform you.</p>
-    <a href="/" style="display: inline-block; background: #10b981; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: background 0.3s;">Browse Articles →</a>
+    <h2 style="font-size: 1.8rem; margin-bottom: 15px;">Ready to Start Cooking?</h2>
+    <p style="opacity: 0.9; margin-bottom: 25px; max-width: 500px; margin-left: auto; margin-right: auto;">Dive into our collection of recipes and discover dishes that will delight your taste buds.</p>
+    <a href="/" style="display: inline-block; background: #10b981; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: background 0.3s;">Browse Recipes →</a>
 </div>
 HTML;
     }
@@ -651,12 +768,166 @@ HTML;
     {
         $name = $website->name;
         $email = 'contact@' . ($website->domain ?? $website->subdomain . '.example.com');
+        $themeSlug = $website->theme?->slug ?? 'recipe';
         
+        if ($themeSlug === 'home-decor') {
+            return $this->getHomeDecorContactUsContent($name, $email);
+        }
+        
+        return $this->getRecipeContactUsContent($name, $email);
+    }
+
+    /**
+     * Get Contact Us content for Home Decor theme
+     */
+    private function getHomeDecorContactUsContent(string $name, string $email): string
+    {
         return <<<HTML
 <!-- Hero Section -->
-<div style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); padding: 50px 40px; border-radius: 20px; margin-bottom: 40px; text-align: center; color: white;">
+<div style="background: linear-gradient(135deg, #d4a574 0%, #c4956a 100%); padding: 50px 40px; border-radius: 20px; margin-bottom: 40px; text-align: center; color: white;">
     <h1 style="font-size: 2.5rem; margin-bottom: 15px; font-weight: 700;">Get in Touch</h1>
-    <p style="font-size: 1.15rem; opacity: 0.95;">We'd love to hear from you! Reach out and let's start a conversation.</p>
+    <p style="font-size: 1.15rem; opacity: 0.95;">We'd love to hear from you! Share your design questions or just say hello.</p>
+</div>
+
+<!-- Main Content Grid -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 50px;">
+    
+    <!-- Contact Form -->
+    <div style="background: #faf5f0; padding: 40px; border-radius: 20px; border: 1px solid #e7e0d8;">
+        <h2 style="color: #44403c; font-size: 1.5rem; margin-bottom: 25px; display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.3rem;">✉️</span> Send Us a Message
+        </h2>
+        
+        <form id="contact-form" style="display: flex; flex-direction: column; gap: 20px;">
+            <div>
+                <label style="display: block; color: #57534e; font-weight: 500; margin-bottom: 8px; font-size: 0.95rem;">Your Name *</label>
+                <input type="text" name="name" required placeholder="Jane Smith" style="width: 100%; padding: 14px 16px; border: 2px solid #e7e0d8; border-radius: 10px; font-size: 1rem; transition: border-color 0.3s; outline: none; box-sizing: border-box; background: white;" onfocus="this.style.borderColor='#c4956a'" onblur="this.style.borderColor='#e7e0d8'">
+            </div>
+            
+            <div>
+                <label style="display: block; color: #57534e; font-weight: 500; margin-bottom: 8px; font-size: 0.95rem;">Email Address *</label>
+                <input type="email" name="email" required placeholder="jane@example.com" style="width: 100%; padding: 14px 16px; border: 2px solid #e7e0d8; border-radius: 10px; font-size: 1rem; transition: border-color 0.3s; outline: none; box-sizing: border-box; background: white;" onfocus="this.style.borderColor='#c4956a'" onblur="this.style.borderColor='#e7e0d8'">
+            </div>
+            
+            <div>
+                <label style="display: block; color: #57534e; font-weight: 500; margin-bottom: 8px; font-size: 0.95rem;">Subject *</label>
+                <select name="subject" required style="width: 100%; padding: 14px 16px; border: 2px solid #e7e0d8; border-radius: 10px; font-size: 1rem; background: white; cursor: pointer; outline: none; box-sizing: border-box;">
+                    <option value="">Select a topic...</option>
+                    <option value="general">General Inquiry</option>
+                    <option value="design">Design Advice</option>
+                    <option value="diy">DIY Project Help</option>
+                    <option value="partnership">Partnership / Collaboration</option>
+                    <option value="advertising">Advertising</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            
+            <div>
+                <label style="display: block; color: #57534e; font-weight: 500; margin-bottom: 8px; font-size: 0.95rem;">Your Message *</label>
+                <textarea name="message" required rows="5" placeholder="Tell us about your home decor question or project..." style="width: 100%; padding: 14px 16px; border: 2px solid #e7e0d8; border-radius: 10px; font-size: 1rem; resize: vertical; font-family: inherit; transition: border-color 0.3s; outline: none; box-sizing: border-box; background: white;" onfocus="this.style.borderColor='#c4956a'" onblur="this.style.borderColor='#e7e0d8'"></textarea>
+            </div>
+            
+            <button type="submit" style="background: linear-gradient(135deg, #d4a574 0%, #c4956a 100%); color: white; padding: 16px 32px; border: none; border-radius: 10px; font-size: 1.05rem; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 20px rgba(196,149,106,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                Send Message →
+            </button>
+        </form>
+        
+        <p style="color: #a8a29e; font-size: 0.85rem; margin-top: 15px; text-align: center;">We typically respond within 24-48 hours</p>
+    </div>
+    
+    <!-- Contact Info & Other Ways -->
+    <div>
+        <!-- Direct Contact -->
+        <div style="background: linear-gradient(135deg, #fef7ed 0%, #fed7aa 100%); padding: 30px; border-radius: 16px; margin-bottom: 25px; border: 2px solid #fdba74;">
+            <h3 style="color: #c2410c; font-size: 1.2rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                <span>📧</span> Direct Contact
+            </h3>
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="background: white; width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">📬</div>
+                    <div>
+                        <div style="color: #78716c; font-size: 0.85rem;">Email Us</div>
+                        <a href="mailto:{$email}" style="color: #c2410c; font-weight: 600; text-decoration: none;">{$email}</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Response Time -->
+        <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 30px; border-radius: 16px; margin-bottom: 25px; border: 2px solid #fcd34d;">
+            <h3 style="color: #92400e; font-size: 1.2rem; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <span>⏰</span> Response Time
+            </h3>
+            <p style="color: #a16207; font-size: 0.95rem; line-height: 1.6;">
+                We aim to respond to all inquiries within <strong>24-48 business hours</strong>. For urgent matters, please indicate so in your message subject.
+            </p>
+        </div>
+        
+        <!-- Business Inquiries -->
+        <div style="background: linear-gradient(135deg, #e8e4df 0%, #d6cfc7 100%); padding: 30px; border-radius: 16px; border: 2px solid #c4b9ad;">
+            <h3 style="color: #44403c; font-size: 1.2rem; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <span>🏠</span> Collaboration Ideas
+            </h3>
+            <p style="color: #57534e; font-size: 0.95rem; line-height: 1.6; margin-bottom: 15px;">
+                Interested in working together? We love collaborating with home decor brands, interior designers, and fellow creatives.
+            </p>
+            <ul style="color: #57534e; font-size: 0.9rem; padding-left: 20px; margin: 0;">
+                <li style="margin-bottom: 8px;">Brand Partnerships</li>
+                <li style="margin-bottom: 8px;">Product Reviews</li>
+                <li style="margin-bottom: 8px;">Room Makeover Features</li>
+                <li>Guest Design Posts</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section -->
+<div style="background: #faf5f0; padding: 50px 40px; border-radius: 20px; margin-bottom: 40px;">
+    <h2 style="text-align: center; color: #44403c; font-size: 1.8rem; margin-bottom: 35px;">Frequently Asked Questions</h2>
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; max-width: 900px; margin: 0 auto;">
+        <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <h4 style="color: #44403c; font-size: 1rem; margin-bottom: 10px;">Can you help with my room design?</h4>
+            <p style="color: #78716c; font-size: 0.9rem; margin: 0;">While we don't offer personal design services, we're happy to point you to relevant articles and resources that might help!</p>
+        </div>
+        <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <h4 style="color: #44403c; font-size: 1rem; margin-bottom: 10px;">Do you feature products?</h4>
+            <p style="color: #78716c; font-size: 0.9rem; margin: 0;">Yes! If you have a home decor product you'd like us to review or feature, please reach out with details.</p>
+        </div>
+        <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <h4 style="color: #44403c; font-size: 1rem; margin-bottom: 10px;">Can I contribute design ideas?</h4>
+            <p style="color: #78716c; font-size: 0.9rem; margin: 0;">Absolutely! We love featuring room makeovers and DIY projects from our community. Share your project with us!</p>
+        </div>
+        <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <h4 style="color: #44403c; font-size: 1rem; margin-bottom: 10px;">Where do you find inspiration?</h4>
+            <p style="color: #78716c; font-size: 0.9rem; margin: 0;">Everywhere! From nature and travel to vintage finds and modern design trends. Follow us for daily inspiration.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Social Follow -->
+<div style="background: linear-gradient(135deg, #44403c 0%, #57534e 100%); padding: 40px; border-radius: 20px; text-align: center; color: white;">
+    <h3 style="font-size: 1.4rem; margin-bottom: 10px;">Connect With Us</h3>
+    <p style="opacity: 0.8; margin-bottom: 20px;">Follow us for daily design inspiration and behind-the-scenes peeks at beautiful homes.</p>
+    <div style="display: flex; justify-content: center; gap: 15px;">
+        <a href="#" style="display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; background: rgba(255,255,255,0.1); border-radius: 12px; text-decoration: none; font-size: 1.5rem; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">📘</a>
+        <a href="#" style="display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; background: rgba(255,255,255,0.1); border-radius: 12px; text-decoration: none; font-size: 1.5rem; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">📸</a>
+        <a href="#" style="display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; background: rgba(255,255,255,0.1); border-radius: 12px; text-decoration: none; font-size: 1.5rem; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">📌</a>
+        <a href="#" style="display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; background: rgba(255,255,255,0.1); border-radius: 12px; text-decoration: none; font-size: 1.5rem; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">🏠</a>
+    </div>
+</div>
+HTML;
+    }
+
+    /**
+     * Get Contact Us content for Recipe theme
+     */
+    private function getRecipeContactUsContent(string $name, string $email): string
+    {
+        return <<<HTML
+<!-- Hero Section -->
+<div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 50px 40px; border-radius: 20px; margin-bottom: 40px; text-align: center; color: white;">
+    <h1 style="font-size: 2.5rem; margin-bottom: 15px; font-weight: 700;">Get in Touch</h1>
+    <p style="font-size: 1.15rem; opacity: 0.95;">We'd love to hear from you! Share your recipes, questions, or just say hello.</p>
 </div>
 
 <!-- Main Content Grid -->
@@ -671,12 +942,12 @@ HTML;
         <form id="contact-form" style="display: flex; flex-direction: column; gap: 20px;">
             <div>
                 <label style="display: block; color: #475569; font-weight: 500; margin-bottom: 8px; font-size: 0.95rem;">Your Name *</label>
-                <input type="text" name="name" required placeholder="John Doe" style="width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 1rem; transition: border-color 0.3s; outline: none; box-sizing: border-box;" onfocus="this.style.borderColor='#0ea5e9'" onblur="this.style.borderColor='#e2e8f0'">
+                <input type="text" name="name" required placeholder="John Doe" style="width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 1rem; transition: border-color 0.3s; outline: none; box-sizing: border-box;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e2e8f0'">
             </div>
             
             <div>
                 <label style="display: block; color: #475569; font-weight: 500; margin-bottom: 8px; font-size: 0.95rem;">Email Address *</label>
-                <input type="email" name="email" required placeholder="john@example.com" style="width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 1rem; transition: border-color 0.3s; outline: none; box-sizing: border-box;" onfocus="this.style.borderColor='#0ea5e9'" onblur="this.style.borderColor='#e2e8f0'">
+                <input type="email" name="email" required placeholder="john@example.com" style="width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 1rem; transition: border-color 0.3s; outline: none; box-sizing: border-box;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e2e8f0'">
             </div>
             
             <div>
@@ -684,20 +955,20 @@ HTML;
                 <select name="subject" required style="width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 1rem; background: white; cursor: pointer; outline: none; box-sizing: border-box;">
                     <option value="">Select a topic...</option>
                     <option value="general">General Inquiry</option>
-                    <option value="feedback">Feedback</option>
+                    <option value="recipe">Recipe Question</option>
+                    <option value="suggestion">Recipe Suggestion</option>
                     <option value="partnership">Partnership / Collaboration</option>
                     <option value="advertising">Advertising</option>
-                    <option value="support">Technical Support</option>
                     <option value="other">Other</option>
                 </select>
             </div>
             
             <div>
                 <label style="display: block; color: #475569; font-weight: 500; margin-bottom: 8px; font-size: 0.95rem;">Your Message *</label>
-                <textarea name="message" required rows="5" placeholder="Write your message here..." style="width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 1rem; resize: vertical; font-family: inherit; transition: border-color 0.3s; outline: none; box-sizing: border-box;" onfocus="this.style.borderColor='#0ea5e9'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+                <textarea name="message" required rows="5" placeholder="Tell us about your cooking question or recipe idea..." style="width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 1rem; resize: vertical; font-family: inherit; transition: border-color 0.3s; outline: none; box-sizing: border-box;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
             </div>
             
-            <button type="submit" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; padding: 16px 32px; border: none; border-radius: 10px; font-size: 1.05rem; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 20px rgba(14,165,233,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+            <button type="submit" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 16px 32px; border: none; border-radius: 10px; font-size: 1.05rem; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 20px rgba(16,185,129,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
                 Send Message →
             </button>
         </form>
@@ -734,18 +1005,18 @@ HTML;
         </div>
         
         <!-- Business Inquiries -->
-        <div style="background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); padding: 30px; border-radius: 16px; border: 2px solid #d8b4fe;">
-            <h3 style="color: #6b21a8; font-size: 1.2rem; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-                <span>💼</span> Business Inquiries
+        <div style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); padding: 30px; border-radius: 16px; border: 2px solid #86efac;">
+            <h3 style="color: #166534; font-size: 1.2rem; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <span>🍳</span> Recipe Collaboration
             </h3>
-            <p style="color: #7c3aed; font-size: 0.95rem; line-height: 1.6; margin-bottom: 15px;">
-                Interested in partnerships, collaborations, or advertising opportunities? We're always open to working with brands that align with our values.
+            <p style="color: #15803d; font-size: 0.95rem; line-height: 1.6; margin-bottom: 15px;">
+                Are you a fellow food lover, chef, or food brand? We'd love to collaborate on recipes and content!
             </p>
-            <ul style="color: #7c3aed; font-size: 0.9rem; padding-left: 20px; margin: 0;">
-                <li style="margin-bottom: 8px;">Sponsored Content</li>
-                <li style="margin-bottom: 8px;">Brand Partnerships</li>
-                <li style="margin-bottom: 8px;">Advertising Opportunities</li>
-                <li>Guest Contributions</li>
+            <ul style="color: #15803d; font-size: 0.9rem; padding-left: 20px; margin: 0;">
+                <li style="margin-bottom: 8px;">Recipe Development</li>
+                <li style="margin-bottom: 8px;">Product Features</li>
+                <li style="margin-bottom: 8px;">Guest Chef Posts</li>
+                <li>Cookbook Reviews</li>
             </ul>
         </div>
     </div>
@@ -756,20 +1027,20 @@ HTML;
     <h2 style="text-align: center; color: #1e293b; font-size: 1.8rem; margin-bottom: 35px;">Frequently Asked Questions</h2>
     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; max-width: 900px; margin: 0 auto;">
         <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <h4 style="color: #1e293b; font-size: 1rem; margin-bottom: 10px;">How quickly will I get a response?</h4>
-            <p style="color: #64748b; font-size: 0.9rem; margin: 0;">We typically respond within 24-48 business hours. Complex inquiries may take a bit longer.</p>
+            <h4 style="color: #1e293b; font-size: 1rem; margin-bottom: 10px;">Can I submit my own recipe?</h4>
+            <p style="color: #64748b; font-size: 0.9rem; margin: 0;">Absolutely! We love featuring recipes from our community. Send us your recipe with photos and we'll review it!</p>
         </div>
         <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <h4 style="color: #1e293b; font-size: 1rem; margin-bottom: 10px;">Can I contribute articles?</h4>
-            <p style="color: #64748b; font-size: 0.9rem; margin: 0;">Yes! We welcome guest contributors. Please reach out with your topic ideas and writing samples.</p>
+            <h4 style="color: #1e293b; font-size: 1rem; margin-bottom: 10px;">Can I request a specific recipe?</h4>
+            <p style="color: #64748b; font-size: 0.9rem; margin: 0;">Yes! If there's a dish you'd love to see us make, let us know and we'll try to add it to our list.</p>
         </div>
         <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <h4 style="color: #1e293b; font-size: 1rem; margin-bottom: 10px;">Do you offer advertising?</h4>
-            <p style="color: #64748b; font-size: 0.9rem; margin: 0;">Yes, we offer various advertising options. Contact us for our media kit and pricing.</p>
+            <h4 style="color: #1e293b; font-size: 1rem; margin-bottom: 10px;">Do you do sponsored content?</h4>
+            <p style="color: #64748b; font-size: 0.9rem; margin: 0;">We work with select brands that align with our values. Contact us for our media kit and collaboration options.</p>
         </div>
         <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <h4 style="color: #1e293b; font-size: 1rem; margin-bottom: 10px;">Where are you located?</h4>
-            <p style="color: #64748b; font-size: 0.9rem; margin: 0;">We're a remote team working across multiple time zones to serve our global audience.</p>
+            <h4 style="color: #1e293b; font-size: 1rem; margin-bottom: 10px;">How do I fix a recipe issue?</h4>
+            <p style="color: #64748b; font-size: 0.9rem; margin: 0;">If you had trouble with one of our recipes, reach out! We'll help troubleshoot and update the recipe if needed.</p>
         </div>
     </div>
 </div>
@@ -777,12 +1048,12 @@ HTML;
 <!-- Social Follow -->
 <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); padding: 40px; border-radius: 20px; text-align: center; color: white;">
     <h3 style="font-size: 1.4rem; margin-bottom: 10px;">Connect With Us</h3>
-    <p style="opacity: 0.8; margin-bottom: 20px;">Follow us on social media for the latest updates and behind-the-scenes content.</p>
+    <p style="opacity: 0.8; margin-bottom: 20px;">Follow us for daily recipe inspiration and behind-the-scenes kitchen moments.</p>
     <div style="display: flex; justify-content: center; gap: 15px;">
         <a href="#" style="display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; background: rgba(255,255,255,0.1); border-radius: 12px; text-decoration: none; font-size: 1.5rem; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">📘</a>
-        <a href="#" style="display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; background: rgba(255,255,255,0.1); border-radius: 12px; text-decoration: none; font-size: 1.5rem; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">🐦</a>
         <a href="#" style="display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; background: rgba(255,255,255,0.1); border-radius: 12px; text-decoration: none; font-size: 1.5rem; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">📸</a>
-        <a href="#" style="display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; background: rgba(255,255,255,0.1); border-radius: 12px; text-decoration: none; font-size: 1.5rem; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">💼</a>
+        <a href="#" style="display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; background: rgba(255,255,255,0.1); border-radius: 12px; text-decoration: none; font-size: 1.5rem; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">📌</a>
+        <a href="#" style="display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; background: rgba(255,255,255,0.1); border-radius: 12px; text-decoration: none; font-size: 1.5rem; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">🍳</a>
     </div>
 </div>
 HTML;

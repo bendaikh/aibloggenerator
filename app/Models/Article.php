@@ -128,6 +128,14 @@ class Article extends Model
     }
 
     /**
+     * Get the AI-generated images for this article.
+     */
+    public function articleImages(): HasMany
+    {
+        return $this->hasMany(ArticleImage::class)->orderBy('position');
+    }
+
+    /**
      * Scope a query to only include published articles.
      */
     public function scopePublished($query)

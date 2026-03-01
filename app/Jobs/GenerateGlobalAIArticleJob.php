@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Author;
 use App\Models\ArticleGenerationJob;
 use App\Models\ApiUsageLog;
+use App\Services\AIImageService;
 use App\Services\PinterestDesignService;
 use App\Services\RewritingService;
 use App\Services\VariationEngine;
@@ -180,6 +181,9 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
         foreach ($this->websiteIds as $index => $websiteId) {
             $website = Website::with(['categories', 'authors'])->find($websiteId);
             if (!$website) continue;
+            
+            // Get website theme for home-decor detection (use theme() method to get relationship, not the theme column)
+            $websiteTheme = $website->theme()->first();
 
             $vIndex = $this->variationIndex !== null ? $this->variationIndex : $index;
 
@@ -295,6 +299,13 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                 // Get default author for this website
                 $defaultAuthor = $this->getDefaultAuthor($website);
 
+                // Determine article type based on website theme
+                // Home decor themed websites should use 'article' type (not recipe)
+                $effectiveArticleType = $this->articleType;
+                if ($websiteTheme && $websiteTheme->slug === 'home-decor') {
+                    $effectiveArticleType = 'article';
+                }
+
                 // Debug: Log ingredients/instructions data before article creation
                 $ingredientsToSave = $parsed['ingredients'] ?? [];
                 $instructionsToSave = $parsed['instructions'] ?? [];
@@ -343,14 +354,18 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                     'ai_generated' => true,
                     'generation_type' => 'ai',
                     'generation_mode' => 'full_ai',
-                    'article_type' => $this->articleType,
+                    'article_type' => $effectiveArticleType,
                 ]);
 
                 if ($generationJob) {
                     $generationJob->markAsCompleted($article->id);
                 }
                 
-                Log::info("Generated unique article for website {$websiteId}", ['title' => $parsed['title']]);
+                Log::info("Generated unique article for website {$websiteId}", [
+                    'title' => $parsed['title'],
+                    'article_type' => $effectiveArticleType,
+                    'is_home_decor' => $websiteTheme?->slug === 'home-decor'
+                ]);
 
                 // Generate Pinterest pin if article has images (marked as missing design for manual review)
                 if ($article->featured_image) {
@@ -364,6 +379,9 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                         ]);
                     }
                 }
+
+                // Generate AI images for home decor articles
+                $this->dispatchAIImageGenerationIfNeeded($article, $website, $user, $parsed['content'] ?? '');
                 
             } catch (\Exception $e) {
                 if ($generationJob) {
@@ -398,6 +416,9 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
             $this->failAllJobs('Master website not found');
             return;
         }
+        
+        // Get master website theme for home-decor detection
+        $masterWebsiteTheme = $masterWebsite->theme()->first();
 
         // WRAP ENTIRE HYBRID MODE IN TRY-CATCH to ensure jobs are marked as failed on ANY error
         try {
@@ -472,6 +493,9 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
             foreach ($websitesToProcess as $index => $websiteId) {
                 $website = Website::with(['categories', 'authors'])->find($websiteId);
                 if (!$website) continue;
+                
+                // Get website theme for home-decor detection (use theme() method to get relationship, not the theme column)
+                $websiteTheme = $website->theme()->first();
 
                 $jobId = $this->generationJobIds[$websiteId] ?? null;
                 $generationJob = $jobId ? ArticleGenerationJob::find($jobId) : null;
@@ -549,6 +573,13 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
 
                     $defaultAuthor = $this->getDefaultAuthor($website);
 
+                    // Determine article type based on website theme
+                    // Home decor themed websites should use 'article' type (not recipe)
+                    $effectiveArticleType = $this->articleType;
+                    if ($websiteTheme && $websiteTheme->slug === 'home-decor') {
+                        $effectiveArticleType = 'article';
+                    }
+
                     // Debug: Log ingredients/instructions data before article creation
                     $ingredientsToSave = $articleData['ingredients'] ?? [];
                     $instructionsToSave = $articleData['instructions'] ?? [];
@@ -557,6 +588,8 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                     Log::info("HYBRID MODE - Creating article for website {$websiteId}", [
                         'is_master' => $isMaster,
                         'variation_index' => $index,
+                        'article_type' => $effectiveArticleType,
+                        'is_home_decor' => $websiteTheme?->slug === 'home-decor',
                         'ingredients_count' => count($ingredientsToSave),
                         'instructions_count' => count($instructionsToSave),
                         'notes_count' => count($notesToSave),
@@ -565,7 +598,7 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                     ]);
                     
                     // CRITICAL: If no ingredients, log warning
-                    if (empty($ingredientsToSave) && $this->articleType === 'recipe') {
+                    if (empty($ingredientsToSave) && $effectiveArticleType === 'recipe') {
                         Log::warning("HYBRID MODE - No ingredients for recipe article!", [
                             'website_id' => $websiteId,
                             'title' => $articleData['title'],
@@ -601,7 +634,7 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                         'ai_generated' => true,
                         'generation_type' => 'ai',
                         'generation_mode' => 'hybrid_rewrite',
-                        'article_type' => $this->articleType,
+                        'article_type' => $effectiveArticleType,
                         'variation_index' => $isMaster ? null : $index,
                         'variation_metadata' => $isMaster ? null : [
                             'rewritten_locally' => true,
@@ -648,6 +681,9 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                         }
                     }
 
+                    // Generate AI images for home decor articles
+                    $this->dispatchAIImageGenerationIfNeeded($article, $website, $user, $articleData['content'] ?? '');
+
                 } catch (\Exception $e) {
                     if ($generationJob) {
                         $generationJob->markAsFailed($e->getMessage());
@@ -667,8 +703,7 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
             $this->finalizeAllJobs('Hybrid mode completed');
             
             Log::info('Hybrid Mode: All articles processed successfully', [
-                'processed_count' => count($websitesToProcess),
-                'skipped_count' => count($skippedWebsites)
+                'processed_count' => count($websitesToProcess)
             ]);
 
         } catch (\Exception $e) {
@@ -812,11 +847,43 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
     }
 
     /**
+     * Get the variation style for a given index to ensure unique articles.
+     */
+    private function getVariationStyle(int $variationIndex): string
+    {
+        $variationStyles = [
+            "Focus on beginner-friendly tips and simple explanations.",
+            "Take an expert perspective with advanced techniques and insider knowledge.",
+            "Use a storytelling approach with personal anecdotes and experiences.",
+            "Focus on quick tips and time-saving hacks.",
+            "Take a health-conscious and nutritional perspective.",
+            "Focus on budget-friendly options and cost-saving ideas.",
+            "Emphasize traditional methods and classic approaches.",
+            "Take a modern, trendy perspective with current innovations.",
+            "Focus on family-friendly adaptations and kid-approved variations.",
+            "Take an international perspective, comparing different regional approaches.",
+        ];
+        
+        return $variationStyles[$variationIndex % count($variationStyles)];
+    }
+
+    /**
      * Build the AI prompt with variation for unique articles.
      */
     private function buildPrompt(string $wordCount, Website $website, int $variationIndex): string
     {
         $keywordsText = !empty($this->keywords) ? "\n- Naturally weave in these keywords: {$this->keywords}" : '';
+        
+        // Check if website uses home-decor theme - if so, use home decor prompt regardless of article_type
+        // Use theme() method to get the relationship, not the theme column (which is a string)
+        $websiteTheme = $website->theme()->first();
+        if ($websiteTheme && $websiteTheme->slug === 'home-decor') {
+            Log::info("Building home decor prompt for website with home-decor theme", [
+                'website_id' => $website->id,
+                'topic' => $this->topic
+            ]);
+            return $this->buildHomeDecorPrompt($wordCount, $this->getVariationStyle($variationIndex), rand(1000, 9999), $variationIndex, $keywordsText);
+        }
         
         // Handle ingredients: if provided by user, tell AI to use them; otherwise AI generates
         $ingredientsText = '';
@@ -846,22 +913,14 @@ FOR RECIPE CONTENT:
 INGREDIENTS_INSTRUCTION;
         }
         
-        // Add variation instructions to ensure unique articles
-        $variationStyles = [
-            "Focus on beginner-friendly tips and simple explanations.",
-            "Take an expert perspective with advanced techniques and insider knowledge.",
-            "Use a storytelling approach with personal anecdotes and experiences.",
-            "Focus on quick tips and time-saving hacks.",
-            "Take a health-conscious and nutritional perspective.",
-            "Focus on budget-friendly options and cost-saving ideas.",
-            "Emphasize traditional methods and classic approaches.",
-            "Take a modern, trendy perspective with current innovations.",
-            "Focus on family-friendly adaptations and kid-approved variations.",
-            "Take an international perspective, comparing different regional approaches.",
-        ];
-        
-        $variationStyle = $variationStyles[$variationIndex % count($variationStyles)];
+        // Get variation style for unique articles
+        $variationStyle = $this->getVariationStyle($variationIndex);
         $randomSeed = rand(1000, 9999);
+        
+        // Use different prompt for article type (non-recipe)
+        if ($this->articleType === 'article') {
+            return $this->buildHomeDecorPrompt($wordCount, $variationStyle, $randomSeed, $variationIndex, $keywordsText);
+        }
         
         $ingredientsPrompt = "";
         if ($this->articleType === 'recipe') {
@@ -1007,6 +1066,137 @@ REQUIRED JSON FIELDS (ALL MUST BE PRESENT):
 - Example ingredients: ["2 cups all-purpose flour", "1 lb ground beef", "3 cloves garlic, minced", "1/2 cup olive oil"]
 - Example instructions: ["Preheat the oven to 375°F.", "In a large bowl, combine flour and salt.", "Heat oil in a skillet over medium heat."]
 - IF EITHER ARRAY IS EMPTY, THE RECIPE WILL BE REJECTED!
+
+IMPORTANT: Return ONLY the JSON object, no additional text before or after.
+PROMPT;
+    }
+
+    /**
+     * Build a specialized prompt for home decor / general articles (non-recipe).
+     * This prompt is optimized for list articles like "Top 10 Homes" with proper H2/H3 structure for image generation.
+     */
+    private function buildHomeDecorPrompt(string $wordCount, string $variationStyle, int $randomSeed, int $variationIndex, string $keywordsText): string
+    {
+        return <<<PROMPT
+You are a professional home decor and lifestyle blog writer who creates stunning, visually-inspiring content.
+
+Write a DETAILED, COMPREHENSIVE and COMPLETELY UNIQUE blog post about: "{$this->topic}"
+
+CRITICAL TITLE RULE:
+- The TITLE field below is pre-filled with the exact title the user wants. DO NOT CHANGE IT. Use it exactly as written - no additions, no modifications, no "improvements".
+
+UNIQUENESS REQUIREMENT (Variation #{$variationIndex}, Seed: {$randomSeed}):
+- {$variationStyle}
+- Use different examples, metaphors, and explanations than typical articles
+- Create a fresh, original perspective that stands out
+
+⚠️ CRITICAL STRUCTURE FOR LIST ARTICLES ⚠️
+If this is a "list" article (e.g., "Top 10 Homes", "Best 15 Living Rooms", etc.):
+- EACH ITEM in the list MUST have its own <h2> header with a descriptive, unique title
+- Example for "Top 10 Homes in the World":
+  - <h2>1. Villa Savoye - The Modernist Masterpiece in Poissy, France</h2>
+  - <h2>2. Fallingwater - Frank Lloyd Wright's Architectural Wonder</h2>
+  - <h2>3. Casa Batlló - Gaudí's Dreamlike Barcelona Residence</h2>
+- Each item section should have 3-5 paragraphs describing the home/space in vivid detail
+- Include details like: location, architectural style, designer/architect, key features, why it's special
+- This structure is CRITICAL because AI will generate images based on these H2 headers
+
+MOST CRITICAL RULE - BOLD TITLES ON ALL CONTENT (DO NOT SKIP THIS):
+**EVERY SINGLE PARAGRAPH AND LIST ITEM** in the article MUST begin with a bold title. This is NON-NEGOTIABLE.
+
+FOR PARAGRAPHS:
+- Format: <p><strong>Descriptive Title Here:</strong> Then your paragraph content...</p>
+- WRONG: <p>This stunning home features floor-to-ceiling windows...</p>
+- RIGHT: <p><strong>Breathtaking Glass Architecture:</strong> This stunning home features floor-to-ceiling windows...</p>
+
+FOR LIST ITEMS (VERY IMPORTANT):
+- Format: <li><strong>Title Here:</strong> Then the list item content...</li>
+- WRONG: <li>Natural materials like wood and stone</li>
+- RIGHT: <li><strong>Natural Materials:</strong> Incorporates warm wood and natural stone throughout</li>
+
+EVERY <p> and <li> tag MUST start with <strong>Title:</strong>
+- NO paragraph or list item should EVER start without a bold title
+- If I see ANY paragraph or list item without a bold title, the article is REJECTED
+
+CRITICAL WRITING STYLE RULES - DO NOT VIOLATE THESE:
+1. Use DESCRIPTIVE, ENGAGING headers (<h2> and <h3>) to organize your content. Avoid generic ones like "Introduction" or "Conclusion". Instead, use creative headers that fit the topic.
+2. DO NOT start with generic phrases like "Are you looking for..." or "In this article, we will..."
+3. DO NOT use phrases like "In conclusion", "To summarize", "Let's dive in", or "Without further ado"
+4. DO NOT follow a formulaic structure
+5. DO NOT use overused AI phrases like "game-changer", "elevate", "delve into", or "embark on a journey"
+6. REMEMBER: Every <p> AND <li> tag MUST have <strong>Title:</strong> at the start!
+
+HOW TO WRITE THIS (follow this closely):
+- Start with a captivating introduction (3-4 paragraphs) that sets the scene and builds anticipation
+- Write with passion about design, architecture, and the emotional impact of beautiful spaces
+- Use sensory language - describe textures, colors, light, and atmosphere
+- Each home/space should feel like a mini-story with its own character
+
+PARAGRAPH STRUCTURE (VERY IMPORTANT):
+- Each paragraph should be 4-6 sentences minimum, not just 1-2 sentences.
+- Use multiple paragraphs per section - don't cram everything into one paragraph.
+- Add detailed descriptions, historical context, and design insights in each paragraph.
+- Every major point deserves its own paragraph with full explanation.
+
+REMINDER - BOLD TITLES ON EVERY PARAGRAPH AND LIST ITEM (MANDATORY):
+- EVERY <p> tag = <p><strong>Title:</strong> content</p>
+- EVERY <li> tag = <li><strong>Title:</strong> content</li>
+- NO EXCEPTIONS. Check every paragraph and list item before submitting.
+
+CONTENT DEPTH REQUIREMENTS FOR HOME DECOR ARTICLES:
+- Include a rich introduction section (3-4 paragraphs) setting the context for your list
+- For each item in the list, include:
+  - A detailed <h2> header with the item name and a descriptive subtitle
+  - 3-5 paragraphs with vivid descriptions
+  - Design highlights and architectural features
+  - What makes it unique or noteworthy
+- Include a "Design Inspiration" or "Key Takeaways" section with actionable insights
+- Include a "Frequently Asked Questions" section with at least 5 Q&As
+- End with a concluding section that ties everything together (2-3 paragraphs)
+
+Requirements:
+- Length: MINIMUM {$wordCount} words. This is a MINIMUM - feel free to write more! Be as detailed and comprehensive as possible. DO NOT stop early.
+- Tone: {$this->tone} (but always authentic and personal)
+- Use proper HTML formatting: <h2> for main list items/sections, <h3> for subsections, <p>, <ul>, <ol>, <strong>, <em>, <blockquote> for quotes/tips
+- Make it SEO-friendly but human-first{$keywordsText}
+
+CRITICAL OUTPUT FORMAT RULE:
+- DO NOT use markdown syntax like ** or __ in your output
+- Use HTML tags only: <strong> for bold, <em> for italic
+- All metadata must be plain text without any markdown formatting
+
+YOU MUST RESPOND WITH A VALID JSON OBJECT. The JSON structure must be EXACTLY as follows:
+
+{
+  "title": "{$this->topic}",
+  "excerpt": "2-3 sentences teaser - plain text, no markdown",
+  "meta_title": "SEO title, 50-60 characters - plain text",
+  "meta_description": "SEO description, 150-160 characters - plain text",
+  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
+  "prep_time": "",
+  "cook_time": "",
+  "rest_time": "",
+  "total_time": "",
+  "notes": ["Design tip 1", "Design tip 2", "Design tip 3"],
+  "ingredients": [],
+  "instructions": [],
+  "content": "<h2>Introduction</h2><p><strong>Opening Title:</strong> Your engaging introduction...</p>..."
+}
+
+REQUIRED JSON FIELDS (ALL MUST BE PRESENT):
+- "title": EXACTLY "{$this->topic}" (do not change)
+- "excerpt": String, 2-3 sentences teaser (PLAIN TEXT, no HTML)
+- "meta_title": String, SEO title 50-60 characters (PLAIN TEXT, no HTML)
+- "meta_description": String, SEO description 150-160 characters (PLAIN TEXT, no HTML)
+- "tags": Array of 5-8 relevant tag strings (PLAIN TEXT, no HTML)
+- "prep_time": Empty string "" (not applicable for home decor articles)
+- "cook_time": Empty string "" (not applicable for home decor articles)
+- "rest_time": Empty string "" (not applicable for home decor articles)
+- "total_time": Empty string "" (not applicable for home decor articles)
+- "notes": Array of 3-5 design tips or insights (PLAIN TEXT, no HTML)
+- "ingredients": Empty array [] (not applicable for home decor articles)
+- "instructions": Empty array [] (not applicable for home decor articles)
+- "content": String containing the full article in HTML format (use <strong> for bold, <em> for italic)
 
 IMPORTANT: Return ONLY the JSON object, no additional text before or after.
 PROMPT;
@@ -1771,5 +1961,111 @@ PROMPT;
         $value = preg_replace('/\s+/', ' ', $value);
         
         return trim($value);
+    }
+
+    /**
+     * Check if the website uses home-decor theme and dispatch AI image generation if needed.
+     * This automatically generates images for "list" articles (e.g., "Top 10 Homes").
+     */
+    private function dispatchAIImageGenerationIfNeeded(Article $article, Website $website, User $user, string $content): void
+    {
+        try {
+            // Check if website uses home-decor theme
+            // Use theme() method to get the relationship, not the theme column (which is a string)
+            $websiteTheme = $website->theme()->first();
+            if (!$websiteTheme || $websiteTheme->slug !== 'home-decor') {
+                Log::info("AI Image Generation: Website theme is not home-decor, skipping", [
+                    'website_id' => $website->id,
+                    'theme_slug' => $websiteTheme?->slug ?? 'none'
+                ]);
+                return;
+            }
+
+            Log::info("AI Image Generation: Home decor theme detected, analyzing article", [
+                'website_id' => $website->id,
+                'article_id' => $article->id,
+                'article_type' => $this->articleType,
+                'topic' => $this->topic
+            ]);
+
+            // Check if this is a "list" article that needs multiple images
+            $listAnalysis = AIImageService::detectListArticle($this->topic, $content);
+            
+            Log::info("AI Image Generation: List analysis result", [
+                'article_id' => $article->id,
+                'is_list' => $listAnalysis['is_list'] ?? false,
+                'needs_images' => $listAnalysis['needs_images'] ?? false,
+                'count' => $listAnalysis['count'] ?? 0
+            ]);
+
+            // Extract items from content for image generation
+            $imageService = new AIImageService($user);
+            $items = [];
+            
+            if ($listAnalysis['is_list'] && $listAnalysis['needs_images']) {
+                // For list articles, generate images for each item
+                $items = $imageService->generatePromptsForListItems($content, $this->topic);
+            }
+            
+            // ALWAYS add a hero/featured image as the first item
+            // This ensures we have a thumbnail for the article
+            $heroItem = [
+                'title' => $article->title,
+                'description' => 'Featured hero image representing the main topic of the article. This will be used as the article thumbnail.',
+                'position' => 0,
+                'is_hero' => true
+            ];
+
+            // If no list items found from content, just use the hero image
+            if (empty($items)) {
+                Log::info("AI Image Generation: No list items found, generating single featured image", [
+                    'article_id' => $article->id,
+                    'topic' => $this->topic
+                ]);
+                $items = [$heroItem];
+            } else {
+                // Prepend hero image to the list of items
+                // Re-index positions for list items starting from 1
+                foreach ($items as $index => &$item) {
+                    $item['position'] = $index + 1;
+                }
+                unset($item);
+                
+                // Add hero at position 0
+                array_unshift($items, $heroItem);
+                
+                Log::info("AI Image Generation: Added hero image, total images to generate", [
+                    'article_id' => $article->id,
+                    'total_items' => count($items)
+                ]);
+            }
+
+            // Limit to reasonable number of images (max 15 to control costs)
+            $items = array_slice($items, 0, 15);
+
+            Log::info("AI Image Generation: Dispatching job for home decor article", [
+                'article_id' => $article->id,
+                'website_id' => $website->id,
+                'items_count' => count($items),
+                'estimated_cost' => count($items) * 0.04 // Standard quality cost per image
+            ]);
+
+            // Dispatch the image generation job
+            GenerateAIImagesJob::dispatch(
+                $article->id,
+                $user->id,
+                $items,
+                '1024x1024', // Standard size for article images
+                'standard',  // Standard quality to control costs
+                'natural'    // Natural style for home decor
+            );
+
+        } catch (\Exception $e) {
+            Log::error("AI Image Generation: Failed to dispatch job", [
+                'article_id' => $article->id,
+                'website_id' => $website->id,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 }
