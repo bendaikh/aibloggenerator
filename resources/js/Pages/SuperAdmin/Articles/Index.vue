@@ -36,6 +36,14 @@
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 h-12 w-12 rounded-lg overflow-hidden bg-[#252525]">
                                         <img v-if="article.featured_image" :src="article.featured_image" :alt="article.title" class="h-full w-full object-cover" />
+                                        <div v-else-if="isThumbnailPending(article)" class="h-full w-full bg-[#252525] animate-pulse flex items-center justify-center">
+                                            <div class="flex flex-col items-center gap-1 text-emerald-400">
+                                                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                                </svg>
+                                            </div>
+                                        </div>
                                         <div v-else class="h-full w-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
                                             <span class="text-white text-lg">📝</span>
                                         </div>
@@ -145,7 +153,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
 
@@ -157,6 +165,63 @@ const props = defineProps({
     websites: Array
 });
 
+const THUMBNAIL_POLL_INTERVAL_MS = 10000;
+const MAX_THUMBNAIL_POLL_ATTEMPTS = 18; // ~3 minutes
+const thumbnailPollAttempt = ref(0);
+let thumbnailPollTimer = null;
+
+const isThumbnailPending = (article) => {
+    if (!article || article.featured_image) {
+        return false;
+    }
+
+    // Home decor/global AI articles are article-type and generated via AI.
+    if (article.article_type !== 'article' || article.generation_type !== 'ai') {
+        return false;
+    }
+
+    // Avoid infinite loading indicators for old records.
+    const createdAt = article.created_at ? new Date(article.created_at) : null;
+    if (!createdAt || Number.isNaN(createdAt.getTime())) {
+        return false;
+    }
+
+    const ageMs = Date.now() - createdAt.getTime();
+    return ageMs <= 20 * 60 * 1000; // 20 minutes
+};
+
+const hasPendingThumbnails = computed(() => {
+    return (props.articles?.data || []).some((article) => isThumbnailPending(article));
+});
+
+const stopThumbnailPolling = () => {
+    if (thumbnailPollTimer) {
+        clearInterval(thumbnailPollTimer);
+        thumbnailPollTimer = null;
+    }
+};
+
+const startThumbnailPollingIfNeeded = () => {
+    if (!hasPendingThumbnails.value || thumbnailPollTimer) {
+        return;
+    }
+
+    thumbnailPollAttempt.value = 0;
+    thumbnailPollTimer = setInterval(() => {
+        thumbnailPollAttempt.value += 1;
+
+        router.reload({
+            only: ['articles'],
+            preserveState: true,
+            preserveScroll: true,
+        });
+
+        if (!hasPendingThumbnails.value || thumbnailPollAttempt.value >= MAX_THUMBNAIL_POLL_ATTEMPTS) {
+            stopThumbnailPolling();
+        }
+    }, THUMBNAIL_POLL_INTERVAL_MS);
+};
+
 const deleteArticle = (article) => {
     if (confirm(`Are you sure you want to delete "${article.title}"?`)) {
         router.delete(route('superadmin.articles.destroy', { 
@@ -165,4 +230,12 @@ const deleteArticle = (article) => {
         }));
     }
 };
+
+onMounted(() => {
+    startThumbnailPollingIfNeeded();
+});
+
+onBeforeUnmount(() => {
+    stopThumbnailPolling();
+});
 </script>

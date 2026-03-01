@@ -85,6 +85,17 @@
                     />
                 </div>
             </div>
+            <div v-else-if="isImageGenerationPending" class="relative">
+                <div class="aspect-[21/9] overflow-hidden bg-[#E8DFD5] animate-pulse flex items-center justify-center">
+                    <div class="flex items-center gap-3 text-[#8B7355]">
+                        <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        <span class="text-sm font-medium">Generating featured image...</span>
+                    </div>
+                </div>
+            </div>
 
             <!-- Main Content Area -->
             <div class="container mx-auto px-4 py-12 md:py-16">
@@ -110,9 +121,9 @@
                                 </div>
 
                                 <!-- Featured Products / Shop Section -->
-                                <div v-if="articleImages.length > 0" class="bg-white border border-[#E5D5C3] rounded-2xl p-6">
+                                <div v-if="articleImages.length > 0 || isImageGenerationPending" class="bg-white border border-[#E5D5C3] rounded-2xl p-6">
                                     <h3 class="text-xs font-bold uppercase tracking-wider text-[#8B8B8B] mb-4">FEATURED IN THIS ARTICLE</h3>
-                                    <div class="space-y-4">
+                                    <div v-if="articleImages.length > 0" class="space-y-4">
                                         <div
                                             v-for="(image, index) in articleImages.slice(0, 3)"
                                             :key="index"
@@ -132,6 +143,15 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div v-else class="space-y-4">
+                                        <div v-for="n in 3" :key="`pending-thumb-${n}`" class="flex gap-3 animate-pulse">
+                                            <div class="w-16 h-16 rounded-lg bg-[#EFE7DE] flex-shrink-0"></div>
+                                            <div class="flex-1 min-w-0 space-y-2 pt-2">
+                                                <div class="h-3 bg-[#EFE7DE] rounded w-4/5"></div>
+                                                <div class="h-3 bg-[#EFE7DE] rounded w-3/5"></div>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <a v-if="articleImages.length > 3" href="#" class="block mt-4 text-sm text-[#FF6B4A] font-medium hover:underline">
                                         SHOP THE LOOK →
                                     </a>
@@ -143,6 +163,11 @@
                         <main class="lg:col-span-9 order-1 lg:order-2">
                             <!-- First Letter Drop Cap Intro -->
                             <div class="prose prose-lg max-w-none article-content-homedecor" v-html="processedContent"></div>
+
+                            <!-- Image Generation Status -->
+                            <div v-if="isImageGenerationPending" class="mt-8 p-4 rounded-xl bg-[#F9F7F4] border border-[#E5D5C3] text-[#6B6B6B] text-sm">
+                                Images are being generated for this article. They will appear automatically in a few moments.
+                            </div>
 
                             <!-- Additional Images Gallery (images not embedded in content) -->
                             <div v-if="galleryImages.length > 0" class="mt-12 space-y-8">
@@ -309,7 +334,8 @@
 
 <script setup>
 import { Head } from '@inertiajs/vue3';
-import { computed, ref, onMounted } from 'vue';
+import { router } from '@inertiajs/vue3';
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
 import HomeDecorLayout from '@/Layouts/HomeDecorLayout.vue';
 import axios from 'axios';
 
@@ -322,6 +348,12 @@ const props = defineProps({
         default: () => []
     }
 });
+
+const imagePollingActive = ref(false);
+let imagePollingTimer = null;
+const imagePollingAttempt = ref(0);
+const MAX_IMAGE_POLL_ATTEMPTS = 18; // ~3 minutes at 10s interval
+const IMAGE_POLL_INTERVAL_MS = 10000;
 
 // Newsletter
 const newsletterEmail = ref('');
@@ -355,6 +387,10 @@ const subscribeNewsletter = async () => {
 
 // Article images from props
 const articleImages = computed(() => props.articleImages || []);
+
+const isImageGenerationPending = computed(() => {
+    return imagePollingActive.value && articleImages.value.length === 0;
+});
 
 // Separate hero images from content images
 const heroImage = computed(() => {
@@ -458,6 +494,25 @@ const contentWithImages = computed(() => {
                 `;
                 
                 return headerHtml + imageHtml;
+            }
+
+            // While image generation is pending, show a skeleton placeholder
+            // directly under each H2 so users see where images will appear.
+            if (isImageGenerationPending.value) {
+                const placeholderHtml = `
+                    <figure class="my-8">
+                        <div class="rounded-2xl overflow-hidden shadow-sm bg-[#EFE7DE] animate-pulse h-72 flex items-center justify-center">
+                            <div class="flex items-center gap-2 text-[#8B7355] text-sm">
+                                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                                <span>Generating image for this section...</span>
+                            </div>
+                        </div>
+                    </figure>
+                `;
+                return headerHtml + placeholderHtml;
             }
         }
         
@@ -596,6 +651,47 @@ const articleSchemaJson = computed(() => {
     }
     
     return JSON.stringify(schema);
+});
+
+const stopImagePolling = () => {
+    imagePollingActive.value = false;
+    if (imagePollingTimer) {
+        clearInterval(imagePollingTimer);
+        imagePollingTimer = null;
+    }
+};
+
+const startImagePollingIfNeeded = () => {
+    // Only poll if no images yet; this component is home-decor specific.
+    if ((props.articleImages || []).length > 0 || imagePollingTimer) {
+        return;
+    }
+
+    imagePollingActive.value = true;
+    imagePollingAttempt.value = 0;
+
+    imagePollingTimer = setInterval(() => {
+        imagePollingAttempt.value += 1;
+
+        router.reload({
+            only: ['article', 'articleImages'],
+            preserveState: true,
+            preserveScroll: true,
+        });
+
+        const hasImagesNow = (props.articleImages || []).length > 0;
+        if (hasImagesNow || imagePollingAttempt.value >= MAX_IMAGE_POLL_ATTEMPTS) {
+            stopImagePolling();
+        }
+    }, IMAGE_POLL_INTERVAL_MS);
+};
+
+onMounted(() => {
+    startImagePollingIfNeeded();
+});
+
+onBeforeUnmount(() => {
+    stopImagePolling();
 });
 </script>
 
