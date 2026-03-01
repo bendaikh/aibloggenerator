@@ -53,7 +53,7 @@ class ArticleImage extends Model
     }
 
     /**
-     * Get the processed image URL (handles local paths and storage)
+     * Get the processed image URL (handles local paths, storage, and public uploads)
      */
     public function getUrlAttribute(): string
     {
@@ -61,10 +61,12 @@ class ArticleImage extends Model
             return $this->local_path;
         }
 
-        if (str_starts_with($this->local_path, '/storage/')) {
+        // Already a valid public path (storage or uploads)
+        if (str_starts_with($this->local_path, '/storage/') || str_starts_with($this->local_path, '/uploads/')) {
             return $this->local_path;
         }
 
+        // Legacy: Assume storage path if no prefix
         return '/storage/' . ltrim($this->local_path, '/');
     }
 }

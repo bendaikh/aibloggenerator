@@ -184,17 +184,13 @@ class GenerateAIImagesJob implements ShouldQueue
             
             // Set the hero image as the article's featured image (thumbnail)
             if ($featuredImagePath && empty($article->featured_image)) {
-                $featuredImageUrl = str_starts_with($featuredImagePath, '/storage/') 
-                    ? $featuredImagePath 
-                    : '/storage/' . ltrim($featuredImagePath, '/');
-                    
                 $article->update([
-                    'featured_image' => $featuredImageUrl
+                    'featured_image' => $featuredImagePath
                 ]);
                 
                 Log::info('GenerateAIImagesJob: Set featured image for article', [
                     'article_id' => $this->articleId,
-                    'featured_image' => $featuredImageUrl
+                    'featured_image' => $featuredImagePath
                 ]);
             }
 

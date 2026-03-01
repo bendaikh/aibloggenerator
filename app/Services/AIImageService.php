@@ -192,7 +192,7 @@ class AIImageService
     }
 
     /**
-     * Download an image from URL and store it locally
+     * Download an image from URL and store it locally in public/uploads
      */
     public function downloadAndStoreImage(string $url, string $title): string
     {
@@ -205,10 +205,9 @@ class AIImageService
 
             // Generate unique filename
             $filename = Str::slug($title) . '-' . Str::random(8) . '.webp';
-            $path = 'uploads/images/ai-generated/' . $filename;
             
-            // Ensure directory exists
-            $directory = storage_path('app/public/uploads/images/ai-generated');
+            // Save directly to public/uploads (not storage)
+            $directory = public_path('uploads/images/ai-generated');
             if (!is_dir($directory)) {
                 mkdir($directory, 0755, true);
             }
@@ -216,18 +215,18 @@ class AIImageService
             // Try to convert to WebP for smaller file size
             $image = @imagecreatefromstring($imageContents);
             if ($image !== false) {
-                $fullPath = storage_path('app/public/' . $path);
+                $fullPath = $directory . '/' . $filename;
                 imagewebp($image, $fullPath, 85);
                 imagedestroy($image);
             } else {
                 // Fallback: save as PNG
                 $filename = Str::slug($title) . '-' . Str::random(8) . '.png';
-                $path = 'uploads/images/ai-generated/' . $filename;
-                Storage::disk('public')->put($path, $imageContents);
+                $fullPath = $directory . '/' . $filename;
+                file_put_contents($fullPath, $imageContents);
             }
 
-            // Return the public URL path
-            return '/storage/' . $path;
+            // Return the public URL path (relative to public/)
+            return '/uploads/images/ai-generated/' . $filename;
 
         } catch (\Exception $e) {
             Log::error('AIImageService: Failed to download and store image', [
