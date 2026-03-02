@@ -35,7 +35,12 @@
                             <td class="px-6 py-4">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 h-12 w-12 rounded-lg overflow-hidden bg-[#252525]">
-                                        <img v-if="article.featured_image" :src="article.featured_image" :alt="article.title" class="h-full w-full object-cover" />
+                                        <img
+                                            v-if="article.processed_featured_image || article.featured_image"
+                                            :src="article.processed_featured_image || article.featured_image"
+                                            :alt="article.title"
+                                            class="h-full w-full object-cover"
+                                        />
                                         <div v-else-if="isThumbnailPending(article)" class="h-full w-full bg-[#252525] animate-pulse flex items-center justify-center">
                                             <div class="flex flex-col items-center gap-1 text-emerald-400">
                                                 <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -153,7 +158,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
 
@@ -165,13 +170,15 @@ const props = defineProps({
     websites: Array
 });
 
-const THUMBNAIL_POLL_INTERVAL_MS = 10000;
-const MAX_THUMBNAIL_POLL_ATTEMPTS = 18; // ~3 minutes
+const THUMBNAIL_POLL_INTERVAL_MS = 5000;
+// gpt-image-1 generation can take several minutes for multi-image articles.
+// Keep polling for up to ~20 minutes to avoid stale "generating" indicators.
+const MAX_THUMBNAIL_POLL_ATTEMPTS = 120; // ~20 minutes
 const thumbnailPollAttempt = ref(0);
 let thumbnailPollTimer = null;
 
 const isThumbnailPending = (article) => {
-    if (!article || article.featured_image) {
+    if (!article || article.featured_image || article.processed_featured_image) {
         return false;
     }
 
@@ -207,12 +214,20 @@ const startThumbnailPollingIfNeeded = () => {
     }
 
     thumbnailPollAttempt.value = 0;
+
+    // Do an immediate refresh so recently completed images show up quickly.
+    router.reload({
+        only: ['articles'],
+        preserveState: false,
+        preserveScroll: true,
+    });
+
     thumbnailPollTimer = setInterval(() => {
         thumbnailPollAttempt.value += 1;
 
         router.reload({
             only: ['articles'],
-            preserveState: true,
+            preserveState: false,
             preserveScroll: true,
         });
 
@@ -231,9 +246,17 @@ const deleteArticle = (article) => {
     }
 };
 
-onMounted(() => {
-    startThumbnailPollingIfNeeded();
-});
+watch(
+    hasPendingThumbnails,
+    (hasPending) => {
+        if (hasPending) {
+            startThumbnailPollingIfNeeded();
+        } else {
+            stopThumbnailPolling();
+        }
+    },
+    { immediate: true }
+);
 
 onBeforeUnmount(() => {
     stopThumbnailPolling();

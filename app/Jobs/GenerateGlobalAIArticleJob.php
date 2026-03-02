@@ -2058,7 +2058,7 @@ PROMPT;
                 '1024x1024', // Standard size for article images
                 'standard',  // Standard quality to control costs
                 'natural'    // Natural style for home decor
-            );
+            )->onQueue('images');
 
         } catch (\Exception $e) {
             Log::error("AI Image Generation: Failed to dispatch job", [

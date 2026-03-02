@@ -26,12 +26,12 @@ class AIImageService
     }
 
     /**
-     * Generate a single image using DALL-E 3
+     * Generate a single image using gpt-image-1
      * 
      * @param string $prompt The image generation prompt
      * @param string $size Image size: '1024x1024', '1792x1024', or '1024x1792'
-     * @param string $quality Image quality: 'standard' or 'hd'
-     * @param string $style Image style: 'natural' or 'vivid'
+     * @param string $quality Image quality: 'standard' or 'hd' (converted to gpt-image-1 format)
+     * @param string $style Image style: 'natural' or 'vivid' (ignored for gpt-image-1)
      * @return array ['url' => string, 'revised_prompt' => string]
      */
     public function generateImage(
@@ -41,32 +41,48 @@ class AIImageService
         string $style = 'natural'
     ): array {
         try {
+            // Convert quality parameter from DALL-E format to gpt-image-1 format
+            // 'standard' -> 'auto', 'hd' -> 'high'
+            $gptQuality = $quality === 'hd' ? 'high' : 'auto';
+            // Convert legacy DALL-E sizes to gpt-image-1 supported sizes.
+            $gptSize = match ($size) {
+                '1792x1024' => '1536x1024',
+                '1024x1792' => '1024x1536',
+                default => $size,
+            };
+            
             Log::info('AIImageService: Generating image', [
                 'prompt' => Str::limit($prompt, 100),
-                'size' => $size,
-                'quality' => $quality,
-                'style' => $style
+                'size' => $gptSize,
+                'quality' => $gptQuality,
+                'model' => 'gpt-image-1'
             ]);
 
-            $response = $this->client->images()->create([
-                'model' => 'dall-e-3',
+            // Build request parameters for gpt-image-1
+            $requestParams = [
+                'model' => 'gpt-image-1',
                 'prompt' => $prompt,
                 'n' => 1,
-                'size' => $size,
-                'quality' => $quality,
-                'style' => $style,
-                'response_format' => 'url',
-            ]);
+                'size' => $gptSize,
+                'quality' => $gptQuality,
+            ];
 
-            $imageUrl = $response->data[0]->url;
-            $revisedPrompt = $response->data[0]->revisedPrompt ?? $prompt;
+            $response = $this->client->images()->create($requestParams);
+
+            $imageUrl = $response->data[0]->url ?? null;
+            $imageBase64 = $response->data[0]->b64Json ?? $response->data[0]->b64_json ?? null;
+            $revisedPrompt = $response->data[0]->revisedPrompt ?? $response->data[0]->revised_prompt ?? $prompt;
+
+            if (!$imageUrl && !$imageBase64) {
+                throw new \Exception('No image payload returned by gpt-image-1');
+            }
 
             // Log API usage
             $cost = $this->calculateImageCost($size, $quality);
             ApiUsageLog::create([
                 'user_id' => $this->user->id,
                 'provider' => 'openai',
-                'model' => 'dall-e-3',
+                'model' => 'gpt-image-1',
                 'operation' => 'image_generation',
                 'prompt_tokens' => 0,
                 'completion_tokens' => 0,
@@ -76,8 +92,7 @@ class AIImageService
                 'metadata' => [
                     'prompt' => Str::limit($prompt, 500),
                     'size' => $size,
-                    'quality' => $quality,
-                    'style' => $style,
+                    'quality' => $gptQuality,
                 ]
             ]);
 
@@ -87,6 +102,7 @@ class AIImageService
 
             return [
                 'url' => $imageUrl,
+                'b64_json' => $imageBase64,
                 'revised_prompt' => $revisedPrompt,
                 'cost' => $cost
             ];
@@ -126,15 +142,22 @@ class AIImageService
                 
                 $result = $this->generateImage($prompt, $size, $quality, $style);
                 
-                // Download and store the image locally
-                $localPath = $this->downloadAndStoreImage($result['url'], $item['title'] ?? "item-{$index}");
+                // gpt-image-1 may return base64 image data instead of a URL.
+                $localPath = null;
+                if (!empty($result['b64_json'])) {
+                    $localPath = $this->storeBase64Image($result['b64_json'], $item['title'] ?? "item-{$index}");
+                } elseif (!empty($result['url'])) {
+                    $localPath = $this->downloadAndStoreImage($result['url'], $item['title'] ?? "item-{$index}");
+                } else {
+                    throw new \Exception('No image data available to store.');
+                }
                 
                 $generatedImages[] = [
                     'index' => $index,
                     'item' => $item,
                     'prompt' => $prompt,
                     'revised_prompt' => $result['revised_prompt'],
-                    'original_url' => $result['url'],
+                    'original_url' => $result['url'] ?? null,
                     'local_path' => $localPath,
                     'cost' => $result['cost']
                 ];
@@ -238,7 +261,46 @@ class AIImageService
     }
 
     /**
-     * Calculate the cost for DALL-E 3 image generation
+     * Store a base64-encoded image payload to public/uploads.
+     */
+    public function storeBase64Image(string $base64Image, string $title): string
+    {
+        try {
+            $imageContents = base64_decode($base64Image, true);
+
+            if ($imageContents === false) {
+                throw new \Exception('Failed to decode base64 image payload');
+            }
+
+            $filename = Str::slug($title) . '-' . Str::random(8) . '.webp';
+            $directory = public_path('uploads/images/ai-generated');
+            if (!is_dir($directory)) {
+                mkdir($directory, 0755, true);
+            }
+
+            $image = @imagecreatefromstring($imageContents);
+            if ($image !== false) {
+                $fullPath = $directory . '/' . $filename;
+                imagewebp($image, $fullPath, 85);
+                imagedestroy($image);
+            } else {
+                $filename = Str::slug($title) . '-' . Str::random(8) . '.png';
+                $fullPath = $directory . '/' . $filename;
+                file_put_contents($fullPath, $imageContents);
+            }
+
+            return '/uploads/images/ai-generated/' . $filename;
+
+        } catch (\Exception $e) {
+            Log::error('AIImageService: Failed to store base64 image', [
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Calculate the cost for gpt-image-1 image generation
      * 
      * Pricing as of March 2026:
      * - 1024x1024 Standard: $0.040

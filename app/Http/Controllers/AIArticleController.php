@@ -621,7 +621,7 @@ PROMPT;
             $size,
             $quality,
             $style
-        );
+        )->onQueue('images');
 
         $itemsCount = count($items);
         
