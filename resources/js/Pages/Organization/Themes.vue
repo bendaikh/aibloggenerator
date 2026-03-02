@@ -57,10 +57,16 @@ defineProps({
                         <div class="mb-4">
                             <div :class="[
                                 'w-16 h-16 rounded-xl flex items-center justify-center',
-                                theme.slug === 'recipe' ? 'bg-gradient-to-br from-emerald-400 to-teal-500' : 'bg-gradient-to-br from-rose-400 to-pink-500'
+                                theme.slug === 'recipe' ? 'bg-gradient-to-br from-emerald-400 to-teal-500' : 
+                                theme.slug === 'crochet' ? 'bg-gradient-to-br from-[#3A5A40] to-[#A3B18A]' :
+                                'bg-gradient-to-br from-rose-400 to-pink-500'
                             ]">
                                 <svg v-if="theme.slug === 'recipe'" class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                </svg>
+                                <svg v-else-if="theme.slug === 'crochet'" class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14v2m-3-3l1 1m5-1l-1 1" />
                                 </svg>
                                 <svg v-else class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -130,7 +136,9 @@ defineProps({
                         <div class="mt-4 pt-4 border-t border-[#2a2a2a]">
                             <p class="text-xs text-gray-500 uppercase tracking-wider font-medium mb-1">Best For:</p>
                             <p class="text-sm text-gray-300">
-                                {{ theme.slug === 'recipe' ? 'Food blogs, cooking websites, recipe collections' : 'Home decor, lifestyle blogs, general content' }}
+                                {{ theme.slug === 'recipe' ? 'Food blogs, cooking websites, recipe collections' : 
+                                   theme.slug === 'crochet' ? 'Crochet patterns, knitting blogs, creative crafts' :
+                                   'Home decor, lifestyle blogs, general content' }}
                             </p>
                         </div>
                     </div>

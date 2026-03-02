@@ -194,7 +194,80 @@ class WebsiteController extends Controller
             return $this->getHomeDecorAboutUsContent($name);
         }
         
+        if ($themeSlug === 'crochet') {
+            return $this->getCrochetAboutUsContent($name);
+        }
+        
         return $this->getRecipeAboutUsContent($name);
+    }
+
+    /**
+     * Get About Us content for Crochet theme
+     */
+    private function getCrochetAboutUsContent(string $name): string
+    {
+        return <<<HTML
+<!-- Hero Section -->
+<div style="background: linear-gradient(135deg, #3A5A40 0%, #588157 100%); padding: 60px 40px; border-radius: 30px; margin-bottom: 40px; text-align: center; color: white;">
+    <h1 style="font-size: 2.5rem; margin-bottom: 20px; font-weight: 900;">Welcome to {$name}</h1>
+    <p style="font-size: 1.25rem; opacity: 0.95; max-width: 600px; margin: 0 auto;">Master the art of crochet with our expertly crafted patterns and guides. Your journey into creative stitching starts here.</p>
+</div>
+
+<!-- Our Story Section -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 50px; align-items: center;">
+    <div>
+        <h2 style="color: #3A5A40; font-size: 1.8rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+            <span style="background: #A3B18A; color: white; width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;">🧶</span>
+            Our Creative Journey
+        </h2>
+        <p style="color: #344E41; line-height: 1.8; font-size: 1.1rem;">
+            {$name} was born from a simple love for yarn and hooks. What started as a personal passion project has evolved into a global community of makers, dedicated to preserving and innovating the art of crochet.
+        </p>
+        <p style="color: #344E41; line-height: 1.8; font-size: 1.1rem; margin-top: 15px;">
+            We believe that every stitch tells a story. Our mission is to provide high-quality, accessible patterns that empower everyone—from absolute beginners to master artisans—to create something beautiful with their own hands.
+        </p>
+    </div>
+    <div style="background: linear-gradient(135deg, #F0F4EF 0%, #D8E2DC 100%); padding: 40px; border-radius: 30px; border: 2px solid #A3B18A;">
+        <div style="text-align: center;">
+            <div style="font-size: 3rem; font-weight: 900; color: #3A5A40;">800+</div>
+            <div style="color: #588157; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Free Patterns</div>
+        </div>
+        <div style="text-align: center; margin-top: 30px;">
+            <div style="font-size: 3rem; font-weight: 900; color: #3A5A40;">25K+</div>
+            <div style="color: #588157; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Active Makers</div>
+        </div>
+    </div>
+</div>
+
+<!-- Our Values Section -->
+<div style="background: white; padding: 50px 40px; border-radius: 30px; margin-bottom: 50px; border: 1px solid #E0E7E0;">
+    <h2 style="text-align: center; color: #3A5A40; font-size: 1.8rem; margin-bottom: 40px; font-weight: 900;">Why Hook Vibes?</h2>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px;">
+        <div style="text-align: center; padding: 30px; background: #F0F4EF; border-radius: 24px;">
+            <div style="font-size: 2.5rem; margin-bottom: 15px;">✨</div>
+            <h3 style="color: #3A5A40; font-size: 1.2rem; margin-bottom: 10px; font-weight: 700;">Hand-Tested</h3>
+            <p style="color: #588157; font-size: 0.95rem;">Every pattern is triple-checked by our expert team to ensure your success.</p>
+        </div>
+        <div style="text-align: center; padding: 30px; background: #FFD7BA; border-radius: 24px;">
+            <div style="font-size: 2.5rem; margin-bottom: 15px;">📚</div>
+            <h3 style="color: #8B5E3C; font-size: 1.2rem; margin-bottom: 10px; font-weight: 700;">Deep Learning</h3>
+            <p style="color: #8B5E3C; font-size: 0.95rem;">Beyond patterns, we provide stitch dictionaries and technique guides.</p>
+        </div>
+        <div style="text-align: center; padding: 30px; background: #FCE1E4; border-radius: 24px;">
+            <div style="font-size: 2.5rem; margin-bottom: 15px;">🤝</div>
+            <h3 style="color: #A44A3F; font-size: 1.2rem; margin-bottom: 10px; font-weight: 700;">Community First</h3>
+            <p style="color: #A44A3F; font-size: 0.95rem;">Join thousands of passionate makers sharing their latest projects.</p>
+        </div>
+    </div>
+</div>
+
+<!-- CTA Section -->
+<div style="background: #3A5A40; padding: 50px 40px; border-radius: 30px; text-align: center; color: white;">
+    <h2 style="font-size: 1.8rem; margin-bottom: 15px; font-weight: 900;">Ready to Start Stitching?</h2>
+    <p style="opacity: 0.9; margin-bottom: 25px; max-width: 500px; margin-left: auto; margin-right: auto;">Explore our library of free patterns and find your next masterpiece today.</p>
+    <a href="/" style="display: inline-block; background: #A44A3F; color: white; padding: 16px 36px; border-radius: 50px; text-decoration: none; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; transition: transform 0.3s;">Explore Patterns →</a>
+</div>
+HTML;
     }
 
     /**
@@ -418,7 +491,103 @@ HTML;
             return $this->getHomeDecorContactUsContent($name, $email);
         }
         
+        if ($themeSlug === 'crochet') {
+            return $this->getCrochetContactUsContent($name, $email);
+        }
+        
         return $this->getRecipeContactUsContent($name, $email);
+    }
+
+    /**
+     * Get Contact Us content for Crochet theme
+     */
+    private function getCrochetContactUsContent(string $name, string $email): string
+    {
+        return <<<HTML
+<!-- Hero Section -->
+<div style="background: linear-gradient(135deg, #3A5A40 0%, #588157 100%); padding: 50px 40px; border-radius: 30px; margin-bottom: 40px; text-align: center; color: white;">
+    <h1 style="font-size: 2.5rem; margin-bottom: 15px; font-weight: 900;">Get in Touch</h1>
+    <p style="font-size: 1.15rem; opacity: 0.95;">Have a question about a pattern or want to share your latest creation? We're here to help!</p>
+</div>
+
+<!-- Main Content Grid -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 50px;">
+    
+    <!-- Contact Form -->
+    <div style="background: white; padding: 40px; border-radius: 30px; border: 1px solid #E0E7E0;">
+        <h2 style="color: #3A5A40; font-size: 1.5rem; margin-bottom: 25px; display: flex; align-items: center; gap: 10px; font-weight: 900;">
+            <span style="font-size: 1.3rem;">✉️</span> Send a Message
+        </h2>
+        
+        <form id="contact-form" style="display: flex; flex-direction: column; gap: 20px;">
+            <div>
+                <label style="display: block; color: #344E41; font-weight: 700; margin-bottom: 8px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Your Name</label>
+                <input type="text" name="name" required placeholder="Jessica Harper" style="width: 100%; padding: 14px 20px; border: 2px solid #F0F4EF; border-radius: 15px; font-size: 1rem; transition: border-color 0.3s; outline: none; box-sizing: border-box; background: #F0F4EF;" onfocus="this.style.borderColor='#A3B18A'" onblur="this.style.borderColor='#F0F4EF'">
+            </div>
+            
+            <div>
+                <label style="display: block; color: #344E41; font-weight: 700; margin-bottom: 8px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Email Address</label>
+                <input type="email" name="email" required placeholder="jessica@example.com" style="width: 100%; padding: 14px 20px; border: 2px solid #F0F4EF; border-radius: 15px; font-size: 1rem; transition: border-color 0.3s; outline: none; box-sizing: border-box; background: #F0F4EF;" onfocus="this.style.borderColor='#A3B18A'" onblur="this.style.borderColor='#F0F4EF'">
+            </div>
+            
+            <div>
+                <label style="display: block; color: #344E41; font-weight: 700; margin-bottom: 8px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Subject</label>
+                <select name="subject" required style="width: 100%; padding: 14px 20px; border: 2px solid #F0F4EF; border-radius: 15px; font-size: 1rem; background: #F0F4EF; cursor: pointer; outline: none; box-sizing: border-box;">
+                    <option value="">Select a topic...</option>
+                    <option value="pattern">Pattern Question</option>
+                    <option value="suggestion">New Pattern Idea</option>
+                    <option value="bug">Website Issue</option>
+                    <option value="partnership">Collaboration</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            
+            <div>
+                <label style="display: block; color: #344E41; font-weight: 700; margin-bottom: 8px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Your Message</label>
+                <textarea name="message" required rows="5" placeholder="Tell us what's on your mind..." style="width: 100%; padding: 14px 20px; border: 2px solid #F0F4EF; border-radius: 15px; font-size: 1rem; resize: vertical; font-family: inherit; transition: border-color 0.3s; outline: none; box-sizing: border-box; background: #F0F4EF;" onfocus="this.style.borderColor='#A3B18A'" onblur="this.style.borderColor='#F0F4EF'"></textarea>
+            </div>
+            
+            <button type="submit" style="background: #3A5A40; color: white; padding: 16px 32px; border: none; border-radius: 50px; font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 20px rgba(58,90,64,0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                Send Message
+            </button>
+        </form>
+    </div>
+    
+    <!-- Contact Info -->
+    <div>
+        <div style="background: #D8E2DC; padding: 30px; border-radius: 24px; margin-bottom: 25px; border: 2px solid #A3B18A;">
+            <h3 style="color: #3A5A40; font-size: 1.2rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; font-weight: 800;">
+                <span>📧</span> Direct Email
+            </h3>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="background: white; width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">🧶</div>
+                <div>
+                    <div style="color: #588157; font-size: 0.85rem; font-weight: 700; text-transform: uppercase;">Email Us</div>
+                    <a href="mailto:{$email}" style="color: #3A5A40; font-weight: 800; text-decoration: none;">{$email}</a>
+                </div>
+            </div>
+        </div>
+        
+        <div style="background: #FFD7BA; padding: 30px; border-radius: 24px; margin-bottom: 25px; border: 2px solid #E9C46A;">
+            <h3 style="color: #8B5E3C; font-size: 1.2rem; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; font-weight: 800;">
+                <span>⏰</span> Response Time
+            </h3>
+            <p style="color: #8B5E3C; font-size: 0.95rem; line-height: 1.6;">
+                Our team of artisans aims to respond to all inquiries within <strong>24-48 business hours</strong>. We appreciate your patience!
+            </p>
+        </div>
+        
+        <div style="background: #FCE1E4; padding: 30px; border-radius: 24px; border: 2px solid #E76F51;">
+            <h3 style="color: #A44A3F; font-size: 1.2rem; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; font-weight: 800;">
+                <span>📸</span> Share Your Work
+            </h3>
+            <p style="color: #A44A3F; font-size: 0.95rem; line-height: 1.6;">
+                Tag us on social media using <strong>#HookVibes</strong> for a chance to be featured in our community gallery!
+            </p>
+        </div>
+    </div>
+</div>
+HTML;
     }
 
     /**

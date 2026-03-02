@@ -150,21 +150,54 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Theme
                             </label>
-                            <div class="bg-gray-50 border-2 border-teal-500 rounded-lg p-4">
-                                <div class="flex items-center">
-                                    <input
-                                        type="radio"
-                                        id="solushcooks"
-                                        value="solushcooks"
-                                        v-model="form.theme"
-                                        checked
-                                        class="mr-3"
-                                    />
-                                    <label for="solushcooks" class="flex-1">
-                                        <span class="font-semibold text-gray-900">Solushcooks Theme</span>
-                                        <span class="block text-sm text-gray-600">Modern, clean design perfect for food blogs and recipe websites</span>
-                                    </label>
-                                    <span class="bg-teal-100 text-teal-800 text-xs font-semibold px-2 py-1 rounded">Default</span>
+                            <div class="space-y-4">
+                                <div :class="['border-2 rounded-lg p-4 transition-all cursor-pointer', form.theme === 'solushcooks' ? 'bg-teal-50 border-teal-500' : 'bg-white border-gray-200 hover:border-teal-200']" @click="form.theme = 'solushcooks'">
+                                    <div class="flex items-center">
+                                        <input
+                                            type="radio"
+                                            id="solushcooks"
+                                            value="solushcooks"
+                                            v-model="form.theme"
+                                            class="mr-3 text-teal-600 focus:ring-teal-500"
+                                        />
+                                        <label for="solushcooks" class="flex-1 cursor-pointer">
+                                            <span class="font-semibold text-gray-900">Solushcooks Theme</span>
+                                            <span class="block text-sm text-gray-600">Modern, clean design perfect for food blogs and recipe websites</span>
+                                        </label>
+                                        <span class="bg-teal-100 text-teal-800 text-xs font-semibold px-2 py-1 rounded">Default</span>
+                                    </div>
+                                </div>
+
+                                <div :class="['border-2 rounded-lg p-4 transition-all cursor-pointer', form.theme === 'home-decor' ? 'bg-orange-50 border-orange-500' : 'bg-white border-gray-200 hover:border-orange-200']" @click="form.theme = 'home-decor'">
+                                    <div class="flex items-center">
+                                        <input
+                                            type="radio"
+                                            id="home-decor"
+                                            value="home-decor"
+                                            v-model="form.theme"
+                                            class="mr-3 text-orange-600 focus:ring-orange-500"
+                                        />
+                                        <label for="home-decor" class="flex-1 cursor-pointer">
+                                            <span class="font-semibold text-gray-900">Home Decor Theme</span>
+                                            <span class="block text-sm text-gray-600">Warm, bohemian-inspired theme for home decor and lifestyle blogs</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div :class="['border-2 rounded-lg p-4 transition-all cursor-pointer', form.theme === 'crochet' ? 'bg-emerald-50 border-emerald-500' : 'bg-white border-gray-200 hover:border-emerald-200']" @click="form.theme = 'crochet'">
+                                    <div class="flex items-center">
+                                        <input
+                                            type="radio"
+                                            id="crochet"
+                                            value="crochet"
+                                            v-model="form.theme"
+                                            class="mr-3 text-emerald-600 focus:ring-emerald-500"
+                                        />
+                                        <label for="crochet" class="flex-1 cursor-pointer">
+                                            <span class="font-semibold text-gray-900">Crochet Theme (Hook Vibes)</span>
+                                            <span class="block text-sm text-gray-600">Cozy, creative theme with soft greens and modern layouts for craft blogs</span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -193,7 +226,7 @@
                 <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
                     <h3 class="text-lg font-semibold text-blue-900 mb-2">📝 What happens next?</h3>
                     <ul class="list-disc list-inside text-blue-800 space-y-2">
-                        <li>Your website will be created with the Solushcooks theme</li>
+                        <li>Your website will be created with your selected theme</li>
                         <li>You can add categories from the Content Management section</li>
                         <li>You can start adding articles immediately after creation</li>
                         <li>Articles (both AI-generated and manual) will be published to this website</li>

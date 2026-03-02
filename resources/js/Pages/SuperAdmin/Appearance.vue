@@ -19,6 +19,18 @@ const availableThemes = [
         name: 'Solushcooks',
         description: 'Modern, clean theme perfect for food blogs and recipe websites',
         preview: '🍽️'
+    },
+    {
+        id: 'home-decor',
+        name: 'Home Decor',
+        description: 'Warm, bohemian-inspired theme for home decor and lifestyle blogs',
+        preview: '🏠'
+    },
+    {
+        id: 'crochet',
+        name: 'Crochet (Hook Vibes)',
+        description: 'Cozy, creative theme with soft greens and modern layouts for craft blogs',
+        preview: '🧶'
     }
 ];
 

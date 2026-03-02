@@ -149,6 +149,10 @@ class PublicWebsiteController extends Controller
             $viewComponent = 'Public/Website/ArticleHomeDecor';
         }
 
+        if ($websiteTheme && $websiteTheme->slug === 'crochet') {
+            $viewComponent = 'Public/Website/ArticleCrochet';
+        }
+
         return Inertia::render($viewComponent, [
             'website' => $website,
             'article' => $article,
@@ -207,7 +211,20 @@ class PublicWebsiteController extends Controller
             ->with('category')
             ->paginate(12);
 
-        return Inertia::render('Public/Website/Category', [
+        // Load the website's theme to determine which template to use
+        $websiteTheme = $website->theme()->first();
+        
+        // Determine which article template to use based on theme
+        $viewComponent = 'Public/Website/Category';
+        if ($websiteTheme && $websiteTheme->slug === 'home-decor') {
+            $viewComponent = 'Public/Website/CategoryHomeDecor';
+        }
+
+        if ($websiteTheme && $websiteTheme->slug === 'crochet') {
+            $viewComponent = 'Public/Website/CategoryCrochet';
+        }
+
+        return Inertia::render($viewComponent, [
             'website' => $website,
             'category' => $category,
             'articles' => $articles,
@@ -261,7 +278,20 @@ class PublicWebsiteController extends Controller
             ->where('is_active', true)
             ->firstOrFail();
 
-        return Inertia::render('Public/Website/Page', [
+        // Load the website's theme to determine which template to use
+        $websiteTheme = $website->theme()->first();
+        
+        // Determine which article template to use based on theme
+        $viewComponent = 'Public/Website/Page';
+        if ($websiteTheme && $websiteTheme->slug === 'home-decor') {
+            $viewComponent = 'Public/Website/PageHomeDecor';
+        }
+
+        if ($websiteTheme && $websiteTheme->slug === 'crochet') {
+            $viewComponent = 'Public/Website/PageCrochet';
+        }
+
+        return Inertia::render($viewComponent, [
             'website' => $website,
             'page' => $page,
         ]);
@@ -398,6 +428,10 @@ class PublicWebsiteController extends Controller
             $viewComponent = 'Public/Website/ArticleHomeDecor';
         }
 
+        if ($websiteTheme && $websiteTheme->slug === 'crochet') {
+            $viewComponent = 'Public/Website/ArticleCrochet';
+        }
+
         return Inertia::render($viewComponent, [
             'website' => $website,
             'article' => $article,
@@ -454,7 +488,20 @@ class PublicWebsiteController extends Controller
             ->with('category')
             ->paginate(12);
 
-        return Inertia::render('Public/Website/Category', [
+        // Load the website's theme to determine which template to use
+        $websiteTheme = $website->theme()->first();
+        
+        // Determine which article template to use based on theme
+        $viewComponent = 'Public/Website/Category';
+        if ($websiteTheme && $websiteTheme->slug === 'home-decor') {
+            $viewComponent = 'Public/Website/CategoryHomeDecor';
+        }
+
+        if ($websiteTheme && $websiteTheme->slug === 'crochet') {
+            $viewComponent = 'Public/Website/CategoryCrochet';
+        }
+
+        return Inertia::render($viewComponent, [
             'website' => $website,
             'category' => $category,
             'articles' => $articles,
@@ -514,7 +561,20 @@ class PublicWebsiteController extends Controller
             ->paginate(12)
             ->withQueryString();
 
-        return Inertia::render('Public/Website/AllArticles', [
+        // Load the website's theme to determine which template to use
+        $websiteTheme = $website->theme()->first();
+        
+        // Determine which article template to use based on theme
+        $viewComponent = 'Public/Website/AllArticles';
+        if ($websiteTheme && $websiteTheme->slug === 'home-decor') {
+            $viewComponent = 'Public/Website/AllArticlesHomeDecor';
+        }
+
+        if ($websiteTheme && $websiteTheme->slug === 'crochet') {
+            $viewComponent = 'Public/Website/AllArticlesCrochet';
+        }
+
+        return Inertia::render($viewComponent, [
             'website' => $website,
             'articles' => $articles,
             'searchQuery' => $query,
@@ -549,7 +609,20 @@ class PublicWebsiteController extends Controller
             ->where('is_active', true)
             ->firstOrFail();
 
-        return Inertia::render('Public/Website/Page', [
+        // Load the website's theme to determine which template to use
+        $websiteTheme = $website->theme()->first();
+        
+        // Determine which article template to use based on theme
+        $viewComponent = 'Public/Website/Page';
+        if ($websiteTheme && $websiteTheme->slug === 'home-decor') {
+            $viewComponent = 'Public/Website/PageHomeDecor';
+        }
+
+        if ($websiteTheme && $websiteTheme->slug === 'crochet') {
+            $viewComponent = 'Public/Website/PageCrochet';
+        }
+
+        return Inertia::render($viewComponent, [
             'website' => $website,
             'page' => $page,
         ]);
@@ -595,7 +668,20 @@ class PublicWebsiteController extends Controller
             ->paginate(12)
             ->withQueryString();
 
-        return Inertia::render('Public/Website/AllArticles', [
+        // Load the website's theme to determine which template to use
+        $websiteTheme = $website->theme()->first();
+        
+        // Determine which article template to use based on theme
+        $viewComponent = 'Public/Website/AllArticles';
+        if ($websiteTheme && $websiteTheme->slug === 'home-decor') {
+            $viewComponent = 'Public/Website/AllArticlesHomeDecor';
+        }
+
+        if ($websiteTheme && $websiteTheme->slug === 'crochet') {
+            $viewComponent = 'Public/Website/AllArticlesCrochet';
+        }
+
+        return Inertia::render($viewComponent, [
             'website' => $website,
             'articles' => $articles,
             'searchQuery' => $query,
@@ -623,7 +709,20 @@ class PublicWebsiteController extends Controller
             ->orderBy('published_at', 'desc')
             ->paginate(12);
 
-        return Inertia::render('Public/Website/AllArticles', [
+        // Load the website's theme to determine which template to use
+        $websiteTheme = $website->theme()->first();
+        
+        // Determine which article template to use based on theme
+        $viewComponent = 'Public/Website/AllArticles';
+        if ($websiteTheme && $websiteTheme->slug === 'home-decor') {
+            $viewComponent = 'Public/Website/AllArticlesHomeDecor';
+        }
+
+        if ($websiteTheme && $websiteTheme->slug === 'crochet') {
+            $viewComponent = 'Public/Website/AllArticlesCrochet';
+        }
+
+        return Inertia::render($viewComponent, [
             'website' => $website,
             'articles' => $articles,
         ]);
@@ -705,6 +804,10 @@ class PublicWebsiteController extends Controller
         
         if ($websiteTheme && $websiteTheme->slug === 'home-decor') {
             $viewComponent = 'Public/Website/HomeDecor';
+        }
+        
+        if ($websiteTheme && $websiteTheme->slug === 'crochet') {
+            $viewComponent = 'Public/Website/Crochet';
         }
 
         return Inertia::render($viewComponent, [
