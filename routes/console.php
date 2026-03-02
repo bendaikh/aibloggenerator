@@ -11,3 +11,7 @@ Artisan::command('inspire', function () {
 // Schedule automatic cleanup of stuck article generation jobs
 // Runs every 5 minutes to quickly catch and fix any stuck jobs
 Schedule::command('articles:fix-stuck-jobs --force')->everyFiveMinutes();
+
+// Process queue jobs (articles AND images)
+// Runs every minute and processes all pending jobs in the queue
+Schedule::command('queue:work --stop-when-empty')->everyMinute();
