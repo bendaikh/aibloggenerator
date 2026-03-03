@@ -22,12 +22,6 @@ class GenerateAIImagesJob implements ShouldQueue
     public $timeout = 1800; // 30 minutes - image generation can be slow in production
     public $maxExceptions = 2; // Allow some failures before marking job as failed
     public $backoff = [60, 120, 300]; // Retry after 1min, 2min, 5min
-    
-    /**
-     * The queue this job should run on.
-     * Using a separate queue for images to avoid blocking article generation.
-     */
-    public $queue = 'images';
 
     protected int $articleId;
     protected int $userId;
@@ -60,6 +54,9 @@ class GenerateAIImagesJob implements ShouldQueue
         $this->size = $size;
         $this->quality = $quality;
         $this->style = $style;
+        
+        // Set the queue for image jobs (separate from article jobs)
+        $this->onQueue('images');
     }
 
     /**
