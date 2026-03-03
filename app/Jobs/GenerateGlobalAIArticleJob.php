@@ -2046,11 +2046,14 @@ PROMPT;
             Log::info("AI Image Generation: Dispatching job for home decor article", [
                 'article_id' => $article->id,
                 'website_id' => $website->id,
+                'user_id' => $user->id,
                 'items_count' => count($items),
-                'estimated_cost' => count($items) * 0.04 // Standard quality cost per image
+                'estimated_cost' => count($items) * 0.04, // Standard quality cost per image
+                'queue_connection' => config('queue.default'),
+                'has_openai_key' => !empty($user->openai_api_key)
             ]);
 
-            // Dispatch the image generation job
+            // Dispatch the image generation job with a small delay to ensure article is fully saved
             GenerateAIImagesJob::dispatch(
                 $article->id,
                 $user->id,
@@ -2058,7 +2061,7 @@ PROMPT;
                 '1024x1024', // Standard size for article images
                 'standard',  // Standard quality to control costs
                 'natural'    // Natural style for home decor
-            )->onQueue('images');
+            )->delay(now()->addSeconds(5)); // Small delay to ensure DB transaction is committed
 
         } catch (\Exception $e) {
             Log::error("AI Image Generation: Failed to dispatch job", [

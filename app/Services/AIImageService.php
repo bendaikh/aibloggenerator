@@ -137,10 +137,21 @@ class AIImageService
 
         foreach ($items as $index => $item) {
             try {
+                Log::info('AIImageService: Starting image generation for item', [
+                    'index' => $index + 1,
+                    'total' => count($items),
+                    'title' => $item['title'] ?? 'N/A'
+                ]);
+
                 // Build a detailed prompt for each item
                 $prompt = $this->buildImagePrompt($item, $articleContext, $index + 1);
                 
                 $result = $this->generateImage($prompt, $size, $quality, $style);
+
+                Log::info('AIImageService: Image generated successfully for item', [
+                    'index' => $index + 1,
+                    'title' => $item['title'] ?? 'N/A'
+                ]);
                 
                 // gpt-image-1 may return base64 image data instead of a URL.
                 $localPath = null;

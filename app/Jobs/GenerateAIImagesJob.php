@@ -11,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Support\Facades\Log;
 
 class GenerateAIImagesJob implements ShouldQueue
@@ -18,7 +19,15 @@ class GenerateAIImagesJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3;
-    public $timeout = 600; // 10 minutes
+    public $timeout = 1800; // 30 minutes - image generation can be slow in production
+    public $maxExceptions = 2; // Allow some failures before marking job as failed
+    public $backoff = [60, 120, 300]; // Retry after 1min, 2min, 5min
+    
+    /**
+     * The queue this job should run on.
+     * Using a separate queue for images to avoid blocking article generation.
+     */
+    public $queue = 'images';
 
     protected int $articleId;
     protected int $userId;
@@ -54,10 +63,34 @@ class GenerateAIImagesJob implements ShouldQueue
     }
 
     /**
+     * Get the middleware the job should pass through.
+     * This prevents too many image jobs from running simultaneously per user.
+     *
+     * @return array<int, object>
+     */
+    public function middleware(): array
+    {
+        return [
+            // Only allow 2 concurrent image generation jobs per user to avoid OpenAI rate limits
+            (new WithoutOverlapping('ai-images-user-' . $this->userId))
+                ->releaseAfter(300) // Release lock after 5 minutes if stuck
+                ->expireAfter(1800), // Lock expires after 30 minutes max
+        ];
+    }
+
+    /**
      * Execute the job.
      */
     public function handle(): void
     {
+        Log::info('GenerateAIImagesJob: Job started - picked up by worker', [
+            'article_id' => $this->articleId,
+            'user_id' => $this->userId,
+            'items_count' => count($this->items),
+            'attempt' => $this->attempts(),
+            'memory_usage' => memory_get_usage(true) / 1024 / 1024 . ' MB'
+        ]);
+
         $article = Article::find($this->articleId);
         $user = User::find($this->userId);
 
@@ -202,9 +235,24 @@ class GenerateAIImagesJob implements ShouldQueue
         } catch (\Exception $e) {
             Log::error('GenerateAIImagesJob: Failed', [
                 'article_id' => $this->articleId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             throw $e;
         }
+    }
+
+    /**
+     * Handle a job failure.
+     */
+    public function failed(\Throwable $exception): void
+    {
+        Log::error('GenerateAIImagesJob: Job permanently failed after all retries', [
+            'article_id' => $this->articleId,
+            'user_id' => $this->userId,
+            'items_count' => count($this->items),
+            'error' => $exception->getMessage(),
+            'exception_class' => get_class($exception)
+        ]);
     }
 }
