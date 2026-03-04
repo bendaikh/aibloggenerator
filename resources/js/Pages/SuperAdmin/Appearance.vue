@@ -162,41 +162,6 @@ const getFontFamily = (fontId) => {
             </div>
 
             <form @submit.prevent="submit" class="space-y-6">
-                <!-- Available Themes -->
-                <div class="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6">
-                    <h3 class="text-lg font-semibold text-white mb-4">Available Themes</h3>
-                    <p class="text-gray-400 text-sm mb-4">Choose a theme for your website</p>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div
-                            v-for="theme in availableThemes"
-                            :key="theme.id"
-                            @click="form.theme = theme.id"
-                            :class="[
-                                'relative p-4 rounded-xl border-2 cursor-pointer transition-all',
-                                form.theme === theme.id
-                                    ? 'border-emerald-500 bg-emerald-500/10'
-                                    : 'border-[#3a3a3a] bg-[#252525] hover:border-[#4a4a4a]'
-                            ]"
-                        >
-                            <div class="flex items-center gap-3 mb-2">
-                                <div class="text-3xl">{{ theme.preview }}</div>
-                                <div>
-                                    <h4 class="text-white font-semibold">{{ theme.name }}</h4>
-                                </div>
-                            </div>
-                            <p class="text-gray-400 text-xs">{{ theme.description }}</p>
-                            <div v-if="form.theme === theme.id" class="absolute top-2 right-2">
-                                <div class="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
-                                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Theme Customization -->
                 <div class="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6">
                     <h3 class="text-lg font-semibold text-white mb-4">CTA Blocks Customization</h3>

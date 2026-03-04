@@ -1,10 +1,21 @@
 <script setup>
 import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage, router } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
-defineProps({
+const props = defineProps({
     themes: Array,
 });
+
+const page = usePage();
+const user = computed(() => page.props.auth?.user);
+const isSuperAdmin = computed(() => user.value?.role === 'superadmin');
+
+const togglePublic = (theme) => {
+    router.put(route('organization.themes.toggle-public', theme.id), {}, {
+        preserveScroll: true,
+    });
+};
 </script>
 
 <template>
@@ -26,20 +37,36 @@ defineProps({
                         </svg>
                     </div>
                     <div>
-                        <h4 class="text-white font-semibold mb-2">How to Select a Theme</h4>
+                        <h4 class="text-white font-semibold mb-2">{{ isSuperAdmin ? 'Theme Management' : 'How to Select a Theme' }}</h4>
                         <ul class="text-gray-300 text-sm space-y-2">
-                            <li class="flex items-start gap-2">
-                                <span class="text-blue-400 flex-shrink-0">•</span>
-                                <span>Each website can have its <strong>own theme</strong> - themes are selected per website, not organization-wide</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <span class="text-blue-400 flex-shrink-0">•</span>
-                                <span>To select a theme: Go to <strong>Websites → Create New Website</strong> or edit an existing website</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <span class="text-blue-400 flex-shrink-0">•</span>
-                                <span>You'll see a theme selector during website creation/editing</span>
-                            </li>
+                            <template v-if="isSuperAdmin">
+                                <li class="flex items-start gap-2">
+                                    <span class="text-blue-400 flex-shrink-0">•</span>
+                                    <span><strong>Public themes</strong> are visible to all users when creating websites</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-blue-400 flex-shrink-0">•</span>
+                                    <span><strong>Private themes</strong> are only visible to you (superadmin)</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-blue-400 flex-shrink-0">•</span>
+                                    <span>Click the badge on each theme card to toggle between public/private</span>
+                                </li>
+                            </template>
+                            <template v-else>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-blue-400 flex-shrink-0">•</span>
+                                    <span>Each website can have its <strong>own theme</strong> - themes are selected per website, not organization-wide</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-blue-400 flex-shrink-0">•</span>
+                                    <span>To select a theme: Go to <strong>Websites → Create New Website</strong> or edit an existing website</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-blue-400 flex-shrink-0">•</span>
+                                    <span>You'll see a theme selector during website creation/editing</span>
+                                </li>
+                            </template>
                         </ul>
                     </div>
                 </div>
@@ -52,6 +79,28 @@ defineProps({
                     :key="theme.id"
                     class="relative rounded-2xl border-2 border-[#2a2a2a] bg-[#1a1a1a] overflow-hidden"
                 >
+                    <!-- Superadmin: Public/Private Toggle Badge (Top Right) -->
+                    <div v-if="isSuperAdmin" class="absolute top-4 right-4 z-10">
+                        <button
+                            @click="togglePublic(theme)"
+                            :class="[
+                                'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                                theme.is_public
+                                    ? 'bg-blue-500/20 text-blue-300 border border-blue-500/50 hover:bg-blue-500/30'
+                                    : 'bg-orange-500/20 text-orange-300 border border-orange-500/50 hover:bg-orange-500/30'
+                            ]"
+                            :title="theme.is_public ? 'Click to make private' : 'Click to make public'"
+                        >
+                            <svg v-if="theme.is_public" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            {{ theme.is_public ? 'Public' : 'Private' }}
+                        </button>
+                    </div>
+
                     <div class="p-6">
                         <!-- Theme Icon -->
                         <div class="mb-4">

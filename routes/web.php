@@ -94,6 +94,13 @@ $registerMainAppRoutes = function () {
         // Themes Routes (Read-Only - just view available themes)
         Route::get('/themes', [OrganizationController::class, 'themes'])->name('organization.themes');
         
+        // Theme Management Routes (Superadmin only) - auth check handled in controller
+        Route::put('/themes/{theme}/toggle-public', [\App\Http\Controllers\ThemeController::class, 'togglePublic'])->name('organization.themes.toggle-public');
+        Route::get('/themes/manage', [\App\Http\Controllers\ThemeController::class, 'index'])->name('organization.themes.manage');
+        Route::post('/themes', [\App\Http\Controllers\ThemeController::class, 'store'])->name('organization.themes.store');
+        Route::put('/themes/{theme}', [\App\Http\Controllers\ThemeController::class, 'update'])->name('organization.themes.update');
+        Route::delete('/themes/{theme}', [\App\Http\Controllers\ThemeController::class, 'destroy'])->name('organization.themes.destroy');
+        
         Route::get('/websites', [OrganizationController::class, 'websitesIndex'])->name('organization.websites.index');
         Route::get('/websites/create', [OrganizationController::class, 'websitesCreate'])->name('organization.websites.create');
         Route::post('/websites', [OrganizationController::class, 'websitesStore'])->name('organization.websites.store');

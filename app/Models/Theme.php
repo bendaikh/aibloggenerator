@@ -13,11 +13,13 @@ class Theme extends Model
         'description',
         'show_recipe_sections',
         'is_active',
+        'is_public',
     ];
 
     protected $casts = [
         'show_recipe_sections' => 'boolean',
         'is_active' => 'boolean',
+        'is_public' => 'boolean',
     ];
 
     /**

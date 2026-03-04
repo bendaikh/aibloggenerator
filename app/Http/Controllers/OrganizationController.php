@@ -226,8 +226,15 @@ class OrganizationController extends Controller
             ->withCount(['articles', 'categories'])
             ->get();
 
-        // Get all available themes
-        $themes = \App\Models\Theme::where('is_active', true)->get();
+        // Get themes based on user role
+        // Superadmins can see all themes, regular users only see public themes
+        $themesQuery = \App\Models\Theme::where('is_active', true);
+        
+        if (!$user->isSuperAdmin()) {
+            $themesQuery->where('is_public', true);
+        }
+        
+        $themes = $themesQuery->get();
 
         return Inertia::render('Organization/Themes', [
             'themes' => $themes,
@@ -390,8 +397,15 @@ class OrganizationController extends Controller
             ->withCount(['articles', 'categories'])
             ->get();
 
-        // Get all available themes
-        $themes = \App\Models\Theme::where('is_active', true)->get();
+        // Get themes based on user role
+        // Superadmins can see all themes, regular users only see public themes
+        $themesQuery = \App\Models\Theme::where('is_active', true);
+        
+        if (!$user->isSuperAdmin()) {
+            $themesQuery->where('is_public', true);
+        }
+        
+        $themes = $themesQuery->get();
 
         return Inertia::render('Organization/Websites/Create', [
             'websites' => $websites,

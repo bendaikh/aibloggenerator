@@ -39,7 +39,10 @@
                         </div>
                         
                         <!-- Title -->
-                        <h1 class="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-[#2D2D2D] mb-6 leading-tight">
+                        <h1 
+                            class="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-[#2D2D2D] mb-6 leading-tight"
+                            :style="{ fontFamily: articleTitleFontFamily }"
+                        >
                             {{ article.title }}
                         </h1>
                         
@@ -162,7 +165,11 @@
                         <!-- Main Article Content -->
                         <main class="lg:col-span-9 order-1 lg:order-2">
                             <!-- First Letter Drop Cap Intro -->
-                            <div class="prose prose-lg max-w-none article-content-homedecor" v-html="processedContent"></div>
+                            <div 
+                                class="prose prose-lg max-w-none article-content-homedecor" 
+                                :style="{ '--article-body-font': articleFontFamily, '--article-title-font': articleTitleFontFamily }"
+                                v-html="processedContent"
+                            ></div>
 
                             <!-- Image Generation Status -->
                             <div v-if="isImageGenerationPending" class="mt-8 p-4 rounded-xl bg-[#F9F7F4] border border-[#E5D5C3] text-[#6B6B6B] text-sm">
@@ -347,6 +354,51 @@ const props = defineProps({
         type: Array,
         default: () => []
     }
+});
+
+// Get font families from website theme settings
+const articleTitleFontFamily = computed(() => {
+    const fontId = props.website?.theme_settings?.article_title_font_family || 'playfair-display';
+    const fontMap = {
+        'default': "'Plus Jakarta Sans', sans-serif",
+        'inter': "'Inter', sans-serif",
+        'roboto': "'Roboto', sans-serif",
+        'open-sans': "'Open Sans', sans-serif",
+        'lato': "'Lato', sans-serif",
+        'montserrat': "'Montserrat', sans-serif",
+        'poppins': "'Poppins', sans-serif",
+        'raleway': "'Raleway', sans-serif",
+        'bebas-neue': "'Bebas Neue', cursive",
+        'playfair-display': "'Playfair Display', serif",
+        'merriweather': "'Merriweather', serif",
+        'lora': "'Lora', serif",
+        'dancing-script': "'Dancing Script', cursive",
+        'pacifico': "'Pacifico', cursive",
+        'great-vibes': "'Great Vibes', cursive",
+    };
+    return fontMap[fontId] || fontMap['playfair-display'];
+});
+
+const articleFontFamily = computed(() => {
+    const fontId = props.website?.theme_settings?.article_font_family || 'default';
+    const fontMap = {
+        'default': "'Plus Jakarta Sans', sans-serif",
+        'inter': "'Inter', sans-serif",
+        'roboto': "'Roboto', sans-serif",
+        'open-sans': "'Open Sans', sans-serif",
+        'lato': "'Lato', sans-serif",
+        'montserrat': "'Montserrat', sans-serif",
+        'poppins': "'Poppins', sans-serif",
+        'raleway': "'Raleway', sans-serif",
+        'bebas-neue': "'Bebas Neue', cursive",
+        'playfair-display': "'Playfair Display', serif",
+        'merriweather': "'Merriweather', serif",
+        'lora': "'Lora', serif",
+        'dancing-script': "'Dancing Script', cursive",
+        'pacifico': "'Pacifico', cursive",
+        'great-vibes': "'Great Vibes', cursive",
+    };
+    return fontMap[fontId] || fontMap['default'];
 });
 
 const imagePollingActive = ref(false);
@@ -696,16 +748,16 @@ onBeforeUnmount(() => {
 </script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700&family=Source+Sans+3:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;600;700&family=Lato:wght@300;400;700&family=Montserrat:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&family=Raleway:wght@300;400;600;700&family=Bebas+Neue&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,600;1,400&family=Dancing+Script:wght@400;600;700&family=Pacifico&family=Great+Vibes&display=swap');
 
 .article-content-homedecor {
-    font-family: 'Source Sans 3', sans-serif;
+    font-family: var(--article-body-font, 'Source Sans 3', sans-serif);
     color: #3D3D3D;
     line-height: 1.8;
 }
 
 .article-content-homedecor h2 {
-    font-family: 'Playfair Display', serif;
+    font-family: var(--article-title-font, 'Playfair Display', serif);
     font-size: 2rem;
     font-weight: 600;
     color: #2D2D2D;
@@ -715,7 +767,7 @@ onBeforeUnmount(() => {
 }
 
 .article-content-homedecor h3 {
-    font-family: 'Playfair Display', serif;
+    font-family: var(--article-title-font, 'Playfair Display', serif);
     font-size: 1.5rem;
     font-weight: 600;
     color: #2D2D2D;
@@ -731,7 +783,7 @@ onBeforeUnmount(() => {
 /* Drop cap for first paragraph */
 .article-content-homedecor > p:first-of-type::first-letter {
     float: left;
-    font-family: 'Playfair Display', serif;
+    font-family: var(--article-title-font, 'Playfair Display', serif);
     font-size: 4.5rem;
     line-height: 0.8;
     padding-right: 0.75rem;
@@ -769,7 +821,7 @@ onBeforeUnmount(() => {
     margin: 2rem 0;
     font-style: italic;
     color: #5D5D5D;
-    font-family: 'Playfair Display', serif;
+    font-family: var(--article-title-font, 'Playfair Display', serif);
     font-size: 1.25rem;
 }
 
