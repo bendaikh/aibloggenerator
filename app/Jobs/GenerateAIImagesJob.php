@@ -175,6 +175,16 @@ class GenerateAIImagesJob implements ShouldQueue
                 }
             }
 
+            // Re-verify article still exists before saving (it may have been deleted during generation)
+            $article = Article::find($this->articleId);
+            if (!$article) {
+                Log::warning('GenerateAIImagesJob: Article was deleted during image generation, images generated but not saved', [
+                    'article_id' => $this->articleId,
+                    'images_generated' => count($allGeneratedImages)
+                ]);
+                return;
+            }
+
             // Save generated images to database
             $savedImagesCount = 0;
             foreach ($allGeneratedImages as $position => $imageData) {

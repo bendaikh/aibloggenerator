@@ -198,18 +198,90 @@ class AIImageService
 
     /**
      * Build an optimized image prompt for home decor items
+     * Creates highly realistic professional interior photography prompts
      */
     protected function buildImagePrompt(array $item, string $articleContext, int $position): string
     {
         $title = $item['title'] ?? '';
         $description = $item['description'] ?? '';
+        $isHero = !empty($item['is_hero']);
         
-        // Base style for home decor images
-        $styleGuide = "Professional interior design photography style, high-end home decor magazine quality, " .
-                      "warm natural lighting, clean composition, modern aesthetic, inviting atmosphere, " .
-                      "no text or watermarks, photorealistic";
+        // Build the core subject
+        $subject = $title;
+        if (!empty($description)) {
+            $subject .= ". {$description}";
+        }
+        
+        // Construct the professional interior photography prompt
+        $prompt = <<<PROMPT
+Create a highly realistic professional interior design photograph illustrating: "{$subject}".
 
-        // Build the prompt
+The scene must look completely natural and logical like a real home photographed by an interior design magazine.
+
+Style: modern, elegant, minimal, stylish home decoration.
+
+Scene requirements:
+- realistic furniture placement
+- balanced composition
+- natural color palette
+- modern decor objects
+- natural lighting from large windows
+- soft shadows
+- real materials (wood, marble, fabric, glass, ceramic, metal)
+- clean organized space
+- no clutter
+- livable, inviting atmosphere
+
+Camera:
+Professional real estate photography.
+Camera model: Canon EOS R5 Mark II
+Lens: 35mm
+Aperture: f/2.8
+ISO: 100
+Ultra sharp focus
+HDR photography
+High dynamic range
+Natural sunlight
+
+Quality:
+ultra realistic
+photorealistic
+8k resolution
+magazine quality
+no CGI
+no 3D render
+no artificial look
+no text or watermarks
+no people
+
+Composition:
+interior architecture photography
+wide angle interior shot
+perfect perspective
+balanced lighting
+PROMPT;
+
+        // Add hero-specific instructions for featured images
+        if ($isHero) {
+            $prompt .= "\n\nThis is the hero/featured image - make it especially stunning and eye-catching, showcasing the best angle and lighting.";
+        }
+
+        return $prompt;
+    }
+
+    /**
+     * Build a simplified prompt for non-home-decor themes
+     * Can be extended for other themes like crochet, food, etc.
+     */
+    protected function buildGenericImagePrompt(array $item, string $articleContext, int $position): string
+    {
+        $title = $item['title'] ?? '';
+        $description = $item['description'] ?? '';
+        
+        $styleGuide = "Professional photography style, high quality, " .
+                      "natural lighting, clean composition, " .
+                      "no text or watermarks, photorealistic, 8k resolution";
+
         $prompt = "Create a stunning photograph of: {$title}. ";
         
         if (!empty($description)) {
