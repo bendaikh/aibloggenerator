@@ -1090,16 +1090,31 @@ UNIQUENESS REQUIREMENT (Variation #{$variationIndex}, Seed: {$randomSeed}):
 - Use different examples, metaphors, and explanations than typical articles
 - Create a fresh, original perspective that stands out
 
-⚠️ CRITICAL STRUCTURE FOR LIST ARTICLES ⚠️
-If this is a "list" article (e.g., "Top 10 Homes", "Best 15 Living Rooms", etc.):
-- EACH ITEM in the list MUST have its own <h2> header with a descriptive, unique title
-- Example for "Top 10 Homes in the World":
-  - <h2>1. Villa Savoye - The Modernist Masterpiece in Poissy, France</h2>
-  - <h2>2. Fallingwater - Frank Lloyd Wright's Architectural Wonder</h2>
-  - <h2>3. Casa Batlló - Gaudí's Dreamlike Barcelona Residence</h2>
+⚠️ CRITICAL STRUCTURE FOR LIST ARTICLES - READ VERY CAREFULLY ⚠️
+If this is a "list" article (e.g., "Top 8 Villas", "Best 15 Living Rooms", "10 Luxury Bedrooms", etc.):
+
+IMPORTANT COUNTING RULE:
+- If the title says "Top 8", you MUST have EXACTLY 8 numbered items (not 7, not 9 - exactly 8!)
+- If the title says "15 Best", you MUST have EXACTLY 15 numbered items
+- The Introduction paragraphs DO NOT count as one of the numbered items
+- The Conclusion/FAQ sections DO NOT count as numbered items
+- ONLY the numbered H2 sections (1., 2., 3., etc.) count toward the total
+
+STRUCTURE EXAMPLE for "Top 8 Luxury Villas":
+1. Introduction (2-3 paragraphs) - NO H2 header, just paragraphs at the start
+2. Then EXACTLY 8 numbered H2 sections:
+   - <h2>1. Villa Name One - Descriptive Subtitle</h2> (3-5 paragraphs)
+   - <h2>2. Villa Name Two - Descriptive Subtitle</h2> (3-5 paragraphs)
+   - <h2>3. Villa Name Three - Descriptive Subtitle</h2> (3-5 paragraphs)
+   - ... continue until ...
+   - <h2>8. Villa Name Eight - Descriptive Subtitle</h2> (3-5 paragraphs)
+3. Optional: FAQ section, Conclusion, etc. (these don't count toward the 8)
+
+- EACH numbered item MUST have its own <h2> header with the number, name, and a descriptive subtitle
 - Each item section should have 3-5 paragraphs describing the home/space in vivid detail
 - Include details like: location, architectural style, designer/architect, key features, why it's special
-- This structure is CRITICAL because AI will generate images based on these H2 headers
+- This structure is CRITICAL because AI will generate images based on these numbered H2 headers
+- COUNT YOUR ITEMS BEFORE SUBMITTING - if the title says 8, you need exactly 8 numbered H2 sections!
 
 MOST CRITICAL RULE - BOLD TITLES ON ALL CONTENT (DO NOT SKIP THIS):
 **EVERY SINGLE PARAGRAPH AND LIST ITEM** in the article MUST begin with a bold title. This is NON-NEGOTIABLE.
@@ -1127,7 +1142,9 @@ CRITICAL WRITING STYLE RULES - DO NOT VIOLATE THESE:
 6. REMEMBER: Every <p> AND <li> tag MUST have <strong>Title:</strong> at the start!
 
 HOW TO WRITE THIS (follow this closely):
-- Start with a captivating introduction (3-4 paragraphs) that sets the scene and builds anticipation
+- Start with a captivating introduction (2-3 paragraphs WITHOUT an H2 header) that sets the scene and builds anticipation
+- DO NOT use <h2>Introduction</h2> - just start with <p> paragraphs directly
+- Then write ALL the numbered items with their H2 headers (1., 2., 3., etc.)
 - Write with passion about design, architecture, and the emotional impact of beautiful spaces
 - Use sensory language - describe textures, colors, light, and atmosphere
 - Each home/space should feel like a mini-story with its own character
@@ -1144,15 +1161,14 @@ REMINDER - BOLD TITLES ON EVERY PARAGRAPH AND LIST ITEM (MANDATORY):
 - NO EXCEPTIONS. Check every paragraph and list item before submitting.
 
 CONTENT DEPTH REQUIREMENTS FOR HOME DECOR ARTICLES:
-- Include a rich introduction section (3-4 paragraphs) setting the context for your list
-- For each item in the list, include:
-  - A detailed <h2> header with the item name and a descriptive subtitle
+- Start with introduction paragraphs (2-3 paragraphs) - NO H2 header for introduction, just <p> tags
+- For EACH numbered item in the list (if title says 8, you need 8 items):
+  - A numbered <h2> header like: <h2>1. Item Name - Descriptive Subtitle</h2>
   - 3-5 paragraphs with vivid descriptions
   - Design highlights and architectural features
   - What makes it unique or noteworthy
-- Include a "Design Inspiration" or "Key Takeaways" section with actionable insights
-- Include a "Frequently Asked Questions" section with at least 5 Q&As
-- End with a concluding section that ties everything together (2-3 paragraphs)
+- VERIFY: Count your numbered H2 headers - they MUST match the number in the title!
+- Optional: Include a FAQ section or conclusion at the end (these don't count toward the list number)
 
 Requirements:
 - Length: MINIMUM {$wordCount} words. This is a MINIMUM - feel free to write more! Be as detailed and comprehensive as possible. DO NOT stop early.
@@ -1180,7 +1196,7 @@ YOU MUST RESPOND WITH A VALID JSON OBJECT. The JSON structure must be EXACTLY as
   "notes": ["Design tip 1", "Design tip 2", "Design tip 3"],
   "ingredients": [],
   "instructions": [],
-  "content": "<h2>Introduction</h2><p><strong>Opening Title:</strong> Your engaging introduction...</p>..."
+  "content": "<p><strong>Welcome:</strong> Introduction paragraph 1...</p><p><strong>Overview:</strong> Introduction paragraph 2...</p><h2>1. First Item - Subtitle</h2><p><strong>Detail:</strong> Content...</p><h2>2. Second Item - Subtitle</h2><p><strong>Detail:</strong> Content...</p>..."
 }
 
 REQUIRED JSON FIELDS (ALL MUST BE PRESENT):
@@ -1964,6 +1980,152 @@ PROMPT;
     }
 
     /**
+     * Generate theme-based items when the title specifies a count but content doesn't have enough items.
+     * For example, if title is "26 Luxe Home Decor" but content only has 10 H2 headers,
+     * this generates 16 more items based on the "luxe home decor" theme.
+     */
+    private function generateThemeBasedItems(string $theme, string $styleKeywords, int $startIndex, int $endIndex, string $articleTitle): array
+    {
+        $items = [];
+        
+        // Theme-specific item variations for home decor
+        $themeVariations = $this->getThemeVariations($theme);
+        
+        for ($i = $startIndex; $i <= $endIndex; $i++) {
+            // Rotate through variations to create diverse but theme-consistent items
+            $variationIndex = ($i - 1) % count($themeVariations);
+            $variation = $themeVariations[$variationIndex];
+            
+            $items[] = [
+                'title' => "{$variation} - {$theme} Design #{$i}",
+                'description' => "A stunning example of {$theme} featuring {$styleKeywords}. Perfect representation of the style showcased in: {$articleTitle}",
+                'position' => $i,
+                'generated_from_theme' => true
+            ];
+        }
+        
+        return $items;
+    }
+    
+    /**
+     * Get theme-specific variations for generating diverse items.
+     */
+    private function getThemeVariations(string $theme): array
+    {
+        $themeLower = strtolower($theme);
+        
+        // Luxe/Luxury variations
+        if (str_contains($themeLower, 'luxe') || str_contains($themeLower, 'luxury')) {
+            return [
+                'Grand Living Room with Crystal Chandelier',
+                'Opulent Master Bedroom Suite',
+                'Marble-Clad Luxury Bathroom',
+                'Designer Kitchen with Gold Accents',
+                'Elegant Formal Dining Room',
+                'Lavish Home Office with Library',
+                'Stunning Entrance Foyer',
+                'Sophisticated Wine Cellar',
+                'Glamorous Walk-in Closet',
+                'Exclusive Spa-like Retreat',
+                'Premium Entertainment Room',
+                'Majestic Staircase Design',
+                'Refined Breakfast Nook',
+                'Prestigious Home Bar',
+                'Sumptuous Guest Suite',
+                'Elite Outdoor Living Space',
+                'Magnificent Fireplace Setting',
+                'Exquisite Powder Room',
+                'Regal Sitting Room',
+                'Distinguished Study Room',
+                'Palatial Master Suite',
+                'Aristocratic Drawing Room',
+                'Upscale Media Room',
+                'Noble Library Space',
+                'Imperial Balcony Design',
+                'Prestigious Conservatory',
+            ];
+        }
+        
+        // Minimalist variations
+        if (str_contains($themeLower, 'minimalist') || str_contains($themeLower, 'scandinavian')) {
+            return [
+                'Clean-Lined Living Space',
+                'Serene Minimalist Bedroom',
+                'Simple Functional Kitchen',
+                'Uncluttered Bathroom Design',
+                'Zen-Inspired Workspace',
+                'Nordic-Style Dining Area',
+                'Airy Open-Plan Space',
+                'Calm Meditation Corner',
+                'Streamlined Entryway',
+                'Peaceful Reading Nook',
+            ];
+        }
+        
+        // Bohemian variations
+        if (str_contains($themeLower, 'boho') || str_contains($themeLower, 'bohemian')) {
+            return [
+                'Eclectic Living Room Mix',
+                'Layered Textile Bedroom',
+                'Artistic Kitchen Space',
+                'Worldly Bathroom Design',
+                'Creative Studio Space',
+                'Global-Inspired Dining',
+                'Cozy Reading Corner',
+                'Plant-Filled Sanctuary',
+                'Vintage Treasure Collection',
+                'Free-Spirit Outdoor Space',
+            ];
+        }
+        
+        // Coastal variations
+        if (str_contains($themeLower, 'coastal') || str_contains($themeLower, 'beach')) {
+            return [
+                'Breezy Living Room',
+                'Seaside Bedroom Retreat',
+                'Nautical Kitchen Design',
+                'Ocean-Inspired Bathroom',
+                'Beachy Sunroom',
+                'Relaxed Dining Space',
+                'Coastal Porch Design',
+                'Maritime Home Office',
+                'Driftwood Accent Wall',
+                'Hampton-Style Elegance',
+            ];
+        }
+        
+        // Default modern home decor variations
+        return [
+            'Contemporary Living Room Design',
+            'Modern Bedroom Sanctuary',
+            'Sleek Kitchen Interior',
+            'Spa-Like Bathroom',
+            'Stylish Home Office',
+            'Elegant Dining Space',
+            'Cozy Reading Corner',
+            'Sophisticated Entry',
+            'Inviting Family Room',
+            'Chic Outdoor Living',
+            'Refined Guest Room',
+            'Modern Nursery Design',
+            'Trendy Teen Bedroom',
+            'Functional Mudroom',
+            'Beautiful Breakfast Area',
+            'Impressive Home Bar',
+            'Relaxing Patio Space',
+            'Gorgeous Fireplace Wall',
+            'Stunning Walk-in Closet',
+            'Artful Gallery Wall',
+            'Serene Master Bath',
+            'Charming Window Seat',
+            'Dramatic Accent Wall',
+            'Welcoming Front Porch',
+            'Sophisticated Den',
+            'Peaceful Garden Room',
+        ];
+    }
+
+    /**
      * Check if the website uses home-decor theme and dispatch AI image generation if needed.
      * This automatically generates images for "list" articles (e.g., "Top 10 Homes").
      */
@@ -2002,46 +2164,95 @@ PROMPT;
             $imageService = new AIImageService($user);
             $items = [];
             
+            // ENHANCED: Extract the number from the title first
+            // For "26 Luxe Home Decor in the World" → we need exactly 26 images
+            $titleCount = AIImageService::extractNumberFromTitle($this->topic);
+            $theme = $listAnalysis['theme'] ?? 'modern elegant home decor';
+            $styleKeywords = $listAnalysis['style_keywords'] ?? 'modern, elegant, sophisticated';
+            
+            Log::info("AI Image Generation: Title analysis", [
+                'article_id' => $article->id,
+                'title_count' => $titleCount,
+                'theme' => $theme,
+                'style_keywords' => $styleKeywords
+            ]);
+            
             if ($listAnalysis['is_list'] && $listAnalysis['needs_images']) {
-                // For list articles, generate images for each item
+                // For list articles, first try to extract from content H2 headers
                 $items = $imageService->generatePromptsForListItems($content, $this->topic);
+            }
+            
+            // ENHANCED: If title specifies a count but we don't have enough items from content,
+            // generate theme-based items to reach the required count
+            if ($titleCount > 0 && count($items) < $titleCount) {
+                $existingCount = count($items);
+                $neededCount = $titleCount - $existingCount;
+                
+                Log::info("AI Image Generation: Generating additional theme-based items", [
+                    'article_id' => $article->id,
+                    'existing_items' => $existingCount,
+                    'needed_items' => $neededCount,
+                    'theme' => $theme
+                ]);
+                
+                // Generate theme-based items to fill the gap
+                $themeItems = $this->generateThemeBasedItems($theme, $styleKeywords, $existingCount + 1, $titleCount, $this->topic);
+                $items = array_merge($items, $themeItems);
             }
             
             // ALWAYS add a hero/featured image as the first item
             // This ensures we have a thumbnail for the article
             $heroItem = [
                 'title' => $article->title,
-                'description' => 'Featured hero image representing the main topic of the article. This will be used as the article thumbnail.',
+                'description' => "Featured hero image representing {$theme}. This will be used as the article thumbnail.",
                 'position' => 0,
                 'is_hero' => true
             ];
 
-            // If no list items found from content, just use the hero image
+            // If no list items found from content, generate items based on title count
             if (empty($items)) {
-                Log::info("AI Image Generation: No list items found, generating single featured image", [
-                    'article_id' => $article->id,
-                    'topic' => $this->topic
-                ]);
-                $items = [$heroItem];
-            } else {
-                // Prepend hero image to the list of items
-                // Re-index positions for list items starting from 1
-                foreach ($items as $index => &$item) {
-                    $item['position'] = $index + 1;
+                if ($titleCount > 0) {
+                    // Generate items based on the title count and theme
+                    Log::info("AI Image Generation: No content items found, generating from title count", [
+                        'article_id' => $article->id,
+                        'title_count' => $titleCount,
+                        'theme' => $theme
+                    ]);
+                    $items = $this->generateThemeBasedItems($theme, $styleKeywords, 1, $titleCount, $this->topic);
+                } else {
+                    Log::info("AI Image Generation: No list items found, generating single featured image", [
+                        'article_id' => $article->id,
+                        'topic' => $this->topic
+                    ]);
                 }
-                unset($item);
-                
-                // Add hero at position 0
-                array_unshift($items, $heroItem);
-                
-                Log::info("AI Image Generation: Added hero image, total images to generate", [
-                    'article_id' => $article->id,
-                    'total_items' => count($items)
-                ]);
             }
+            
+            // Re-index positions for list items starting from 1
+            foreach ($items as $index => &$item) {
+                $item['position'] = $index + 1;
+            }
+            unset($item);
+            
+            // Add hero at position 0
+            array_unshift($items, $heroItem);
+            
+            Log::info("AI Image Generation: Final items prepared", [
+                'article_id' => $article->id,
+                'total_items' => count($items),
+                'title_count' => $titleCount
+            ]);
 
-            // Limit to reasonable number of images (max 15 to control costs)
-            $items = array_slice($items, 0, 15);
+            // Determine max images: use title count if available (+ 1 for hero), otherwise limit to 50
+            $maxImages = $titleCount > 0 ? min($titleCount + 1, 51) : min(count($items), 50);
+            
+            $items = array_slice($items, 0, $maxImages);
+            
+            Log::info("AI Image Generation: Image count determined", [
+                'article_id' => $article->id,
+                'title_count' => $titleCount,
+                'max_images' => $maxImages,
+                'actual_items' => count($items)
+            ]);
 
             Log::info("AI Image Generation: Dispatching job for home decor article", [
                 'article_id' => $article->id,

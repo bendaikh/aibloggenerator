@@ -197,8 +197,13 @@ class AIImageService
     }
 
     /**
-     * Build an optimized image prompt for home decor items
-     * Creates highly realistic professional interior photography prompts
+     * Build an optimized image prompt for home decor items.
+     * Creates highly realistic professional photography prompts.
+     * 
+     * ENHANCED: Now uses the article title context to:
+     * 1. Understand the theme (e.g., "luxe", "minimalist", "coastal")
+     * 2. Extract the specific subject (villa, apartment, bedroom, etc.)
+     * 3. Generate images that show EXACTLY what the article is about
      */
     protected function buildImagePrompt(array $item, string $articleContext, int $position): string
     {
@@ -206,42 +211,61 @@ class AIImageService
         $description = $item['description'] ?? '';
         $isHero = !empty($item['is_hero']);
         
-        // Build the core subject
+        // ENHANCED: Analyze the article title to understand the theme AND subject
+        $themeAnalysis = self::analyzeArticleTitleStatic($articleContext);
+        $primarySubject = self::extractPrimarySubjectPhrase($articleContext);
+        
+        // Build the core subject - use item title but ensure it relates to the subject type
         $subject = $title;
         if (!empty($description)) {
             $subject .= ". {$description}";
         }
         
-        // Construct the professional interior photography prompt
+        // Build theme-specific style description
+        $themeStyle = "{$themeAnalysis['primary_theme']}, {$themeAnalysis['mood']} atmosphere";
+        $materials = $themeAnalysis['materials'];
+        $colorPalette = $themeAnalysis['color_palette'];
+        $styleKeywords = $themeAnalysis['style_keywords'];
+        
+        // Determine broad shot direction from the detected subject phrase.
+        $shotType = self::getShotTypeForSubject($primarySubject);
+        
+        // Construct the professional photography prompt with SUBJECT AWARENESS
         $prompt = <<<PROMPT
-Create a highly realistic professional interior design photograph illustrating: "{$subject}".
+Create a highly realistic professional photograph illustrating: "{$subject}".
 
-The scene must look completely natural and logical like a real home photographed by an interior design magazine.
+CRITICAL SUBJECT LOCK:
+- Article title context: "{$articleContext}"
+- Primary topic extracted from title: "{$primarySubject}"
+- This image MUST clearly depict "{$primarySubject}".
+- Do NOT replace the subject with a generic interior design scene.
+- Keep the exact subject intent from the title; use the section title as a specific example within that subject.
 
-Style: modern, elegant, minimal, stylish home decoration.
+{$shotType}
+
+Style: {$themeStyle}
+Style keywords: {$styleKeywords}
 
 Scene requirements:
-- realistic furniture placement
+- This MUST visually match the topic "{$primarySubject}"
+- {$themeAnalysis['primary_theme']} aesthetic
 - balanced composition
-- natural color palette
-- modern decor objects
-- natural lighting from large windows
+- color palette: {$colorPalette}
+- real materials: {$materials}
+- natural lighting
 - soft shadows
-- real materials (wood, marble, fabric, glass, ceramic, metal)
 - clean organized space
-- no clutter
-- livable, inviting atmosphere
+- {$themeAnalysis['mood']} atmosphere
 
 Camera:
-Professional real estate photography.
+Professional architectural/real estate photography.
 Camera model: Canon EOS R5 Mark II
-Lens: 35mm
+Lens: 24mm wide angle for exteriors, 35mm for interiors
 Aperture: f/2.8
 ISO: 100
 Ultra sharp focus
 HDR photography
-High dynamic range
-Natural sunlight
+Natural lighting
 
 Quality:
 ultra realistic
@@ -255,18 +279,214 @@ no text or watermarks
 no people
 
 Composition:
-interior architecture photography
-wide angle interior shot
+professional architecture photography
 perfect perspective
 balanced lighting
 PROMPT;
 
         // Add hero-specific instructions for featured images
         if ($isHero) {
-            $prompt .= "\n\nThis is the hero/featured image - make it especially stunning and eye-catching, showcasing the best angle and lighting.";
+            $prompt .= "\n\nThis is the hero/featured image - make it especially stunning and eye-catching, clearly representing the title topic \"{$primarySubject}\".";
         }
 
         return $prompt;
+    }
+    
+    /**
+     * Extract the specific subject type from the article title.
+     * This ensures images show exactly what the article is about.
+     */
+    public static function extractSubjectType(string $articleTitle): string
+    {
+        $title = strtolower($articleTitle);
+        $compact = preg_replace('/[^a-z]/', '', $title) ?? '';
+        
+        // Villas and houses
+        if (preg_match('/\b(villa|villas)\b/i', $title)) {
+            return 'luxury villa with exterior view showing the full property, gardens, and architecture';
+        }
+        if (preg_match('/\b(mansion|mansions)\b/i', $title)) {
+            return 'grand mansion with exterior and interior views';
+        }
+        if (preg_match('/\b(house|houses|home|homes)\b/i', $title)) {
+            return 'beautiful house showing exterior architecture and surroundings';
+        }
+        if (preg_match('/\b(cottage|cottages)\b/i', $title)) {
+            return 'charming cottage with exterior view';
+        }
+        if (preg_match('/\b(cabin|cabins)\b/i', $title)) {
+            return 'cozy cabin in natural setting';
+        }
+        if (preg_match('/\b(chalet|chalets)\b/i', $title)) {
+            return 'mountain chalet with exterior view';
+        }
+        if (preg_match('/\b(penthouse|penthouses)\b/i', $title)) {
+            return 'luxury penthouse interior with city views';
+        }
+        
+        // Apartments and condos
+        if (
+            preg_match('/\b(apartment|apartments|appartment|appartments|apartement|apartements|appartement|appartements|flat|flats)\b/i', $title) ||
+            str_contains($compact, 'apartment') ||
+            str_contains($compact, 'apartement') ||
+            str_contains($compact, 'appartement') ||
+            str_contains($compact, 'appart')
+        ) {
+            return 'apartment building or apartment unit with clear apartment context, urban setting, and residential architecture';
+        }
+        if (preg_match('/\b(condo|condos|condominium)\b/i', $title)) {
+            return 'contemporary condominium interior';
+        }
+        if (preg_match('/\b(loft|lofts)\b/i', $title)) {
+            return 'industrial loft apartment with high ceilings';
+        }
+        if (preg_match('/\b(studio|studios)\b/i', $title)) {
+            return 'stylish studio apartment';
+        }
+        
+        // Specific rooms
+        if (preg_match('/\b(bedroom|bedrooms)\b/i', $title)) {
+            return 'bedroom interior with bed, furniture, and decor';
+        }
+        if (preg_match('/\b(living room|living rooms|lounge|lounges)\b/i', $title)) {
+            return 'living room interior with sofa, furniture, and decor';
+        }
+        if (preg_match('/\b(kitchen|kitchens)\b/i', $title)) {
+            return 'kitchen interior with counters, appliances, and dining area';
+        }
+        if (preg_match('/\b(bathroom|bathrooms)\b/i', $title)) {
+            return 'bathroom interior with fixtures and elegant finishes';
+        }
+        if (preg_match('/\b(dining room|dining rooms)\b/i', $title)) {
+            return 'dining room with table, chairs, and elegant setting';
+        }
+        if (preg_match('/\b(office|offices|workspace)\b/i', $title)) {
+            return 'home office or workspace interior';
+        }
+        if (preg_match('/\b(nursery|nurseries)\b/i', $title)) {
+            return 'baby nursery room interior';
+        }
+        if (preg_match('/\b(closet|closets|wardrobe)\b/i', $title)) {
+            return 'walk-in closet or wardrobe interior';
+        }
+        
+        // Outdoor spaces
+        if (preg_match('/\b(garden|gardens)\b/i', $title)) {
+            return 'beautiful garden landscape with plants and design';
+        }
+        if (preg_match('/\b(patio|patios)\b/i', $title)) {
+            return 'outdoor patio with furniture and decor';
+        }
+        if (preg_match('/\b(pool|pools)\b/i', $title)) {
+            return 'swimming pool with surrounding deck and landscape';
+        }
+        if (preg_match('/\b(terrace|terraces|balcony|balconies)\b/i', $title)) {
+            return 'terrace or balcony with outdoor furniture and views';
+        }
+        if (preg_match('/\b(backyard|backyards)\b/i', $title)) {
+            return 'backyard outdoor living space';
+        }
+        
+        // Decor and design elements
+        if (preg_match('/\b(decor|decoration|decorating)\b/i', $title)) {
+            return 'interior decor and design elements in a room setting';
+        }
+        if (preg_match('/\b(furniture)\b/i', $title)) {
+            return 'furniture piece in a styled room setting';
+        }
+        if (preg_match('/\b(lighting|lights|lamp)\b/i', $title)) {
+            return 'interior lighting design in a room';
+        }
+        
+        // Default
+        return 'interior space with beautiful design and decor';
+    }
+
+    /**
+     * Extract the primary subject phrase directly from the article title/context.
+     * This is intent-first and avoids hardcoded category dependency.
+     *
+     * Examples:
+     * - "Top 5 Luxury Hotels" => "luxury hotels"
+     * - "5 top appartements" => "appartements"
+     * - "Top 8 Luxury Villas in Europe" => "luxury villas"
+     */
+    public static function extractPrimarySubjectPhrase(string $articleContext): string
+    {
+        $title = trim($articleContext);
+
+        // Handle context wrapper: "For an article titled: XYZ"
+        if (preg_match('/for an article titled:\s*(.+)$/i', $title, $m)) {
+            $title = trim($m[1]);
+        }
+
+        $title = trim($title, " \t\n\r\0\x0B\"'“”");
+        $title = preg_replace('/\s+/', ' ', $title) ?? $title;
+        $lower = strtolower($title);
+
+        // Remove common list prefixes/suffixes while preserving the core subject.
+        $patterns = [
+            '/^(top|best|most|amazing|beautiful|stunning|gorgeous|incredible)\s+\d+\s+/i',
+            '/^\d+\s+(top|best|most|amazing|beautiful|stunning|gorgeous|incredible)\s+/i',
+            '/^\d+\s+/i',
+            '/\s+for\s+\d{4}\b/i',
+            '/\s+in\s+the\s+world\b/i',
+            '/\s+around\s+the\s+world\b/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            $lower = trim((string) preg_replace($pattern, ' ', $lower));
+        }
+
+        // Keep a concise phrase for stronger prompt focus.
+        $tokens = preg_split('/\s+/', $lower) ?: [];
+        $stopWords = [
+            'top', 'best', 'most', 'amazing', 'beautiful', 'stunning', 'gorgeous', 'incredible',
+            'the', 'a', 'an', 'in', 'of', 'for', 'to', 'and', 'with', 'ideas', 'design', 'designs'
+        ];
+        $core = array_values(array_filter($tokens, static fn ($w) => !in_array($w, $stopWords, true)));
+
+        if (empty($core)) {
+            return trim($lower) !== '' ? trim($lower) : 'the exact article topic';
+        }
+
+        // Limit for concise, high-signal prompt anchor.
+        return implode(' ', array_slice($core, 0, 4));
+    }
+    
+    /**
+     * Get the appropriate shot type description for a subject.
+     */
+    public static function getShotTypeForSubject(string $subjectType): string
+    {
+        // Exterior shots for villas, houses, mansions
+        if (str_contains($subjectType, 'exterior') || str_contains($subjectType, 'villa') || 
+            str_contains($subjectType, 'house') || str_contains($subjectType, 'mansion') ||
+            str_contains($subjectType, 'cottage') || str_contains($subjectType, 'cabin') ||
+            str_contains($subjectType, 'chalet')) {
+            return "Shot type: Wide exterior photograph showing the full property, architecture, landscaping, and surroundings. Include sky, driveway or pathway, and any gardens or pools if applicable.";
+        }
+
+        // Apartment/condo shots should show the apartment context, not generic decor-only scenes
+        if (str_contains($subjectType, 'apartment') || str_contains($subjectType, 'condominium') ||
+            str_contains($subjectType, 'condo') || str_contains($subjectType, 'loft') ||
+            str_contains($subjectType, 'studio') || str_contains($subjectType, 'penthouse')) {
+            return "Shot type: Professional real-estate style image that clearly shows an apartment context (building facade, skyline, balcony, or unmistakable apartment unit layout). Avoid generic staged living-room-only shots without apartment identity.";
+        }
+        
+        // Pool shots
+        if (str_contains($subjectType, 'pool')) {
+            return "Shot type: Exterior photograph showing the swimming pool, deck area, loungers, and surrounding landscape. Include the pool water reflection.";
+        }
+        
+        // Garden/outdoor shots
+        if (str_contains($subjectType, 'garden') || str_contains($subjectType, 'patio') || 
+            str_contains($subjectType, 'terrace') || str_contains($subjectType, 'backyard')) {
+            return "Shot type: Exterior/outdoor photograph showing the outdoor living space with natural lighting and surrounding greenery.";
+        }
+        
+        // Interior shots
+        return "Shot type: Wide angle interior photograph showing the full room with furniture, decor, and architectural details. Natural lighting from windows.";
     }
 
     /**
@@ -404,14 +624,36 @@ PROMPT;
     }
 
     /**
-     * Analyze article content to detect if it's a "list" article that needs multiple images
+     * Analyze article content to detect if it's a "list" article that needs multiple images.
+     * 
+     * ENHANCED: Now intelligently parses the article title to:
+     * 1. Extract the exact number of items from the title (e.g., "26 Luxe Home Decor" → 26)
+     * 2. Understand the theme/topic for contextually relevant images
+     * 3. Return the count directly from the title when specified
+     * 
      * Returns the list items found in the content
      */
     public static function detectListArticle(string $topic, string $content = ''): array
     {
         $items = [];
+        $themeAnalysis = self::analyzeArticleTitleStatic($topic);
         
-        // Check if topic contains a number pattern like "Top 10", "Best 5", "10 Best", etc.
+        // ENHANCED: First try to extract number directly from the title
+        // This handles patterns like "26 Luxe Home Decor", "Top 10 Bedrooms", "Best 15 Living Rooms"
+        $extractedCount = self::extractNumberFromTitle($topic);
+        
+        if ($extractedCount > 0) {
+            return [
+                'is_list' => true,
+                'count' => $extractedCount,
+                'needs_images' => true,
+                'theme' => $themeAnalysis['primary_theme'],
+                'style_keywords' => $themeAnalysis['style_keywords'],
+                'extracted_from_title' => true
+            ];
+        }
+        
+        // Fallback: Check if topic contains a number pattern like "Top 10", "Best 5", "10 Best", etc.
         if (preg_match('/\b(\d+)\s*(best|top|most|amazing|beautiful|stunning|gorgeous|incredible|favorite|popular)\b/i', $topic, $matches) ||
             preg_match('/\b(best|top|most|amazing|beautiful|stunning|gorgeous|incredible|favorite|popular)\s*(\d+)\b/i', $topic, $matches)) {
             
@@ -420,7 +662,10 @@ PROMPT;
             return [
                 'is_list' => true,
                 'count' => $count,
-                'needs_images' => true
+                'needs_images' => true,
+                'theme' => $themeAnalysis['primary_theme'],
+                'style_keywords' => $themeAnalysis['style_keywords'],
+                'extracted_from_title' => true
             ];
         }
 
@@ -441,8 +686,184 @@ PROMPT;
             'is_list' => count($items) >= 3,
             'count' => count($items),
             'items' => $items,
-            'needs_images' => count($items) >= 3
+            'needs_images' => count($items) >= 3,
+            'theme' => $themeAnalysis['primary_theme'],
+            'style_keywords' => $themeAnalysis['style_keywords'],
+            'extracted_from_title' => false
         ];
+    }
+    
+    /**
+     * Extract a number from the article title.
+     * Handles various patterns like:
+     * - "26 Luxe Home Decor in the World"
+     * - "Top 10 Best Bedrooms"
+     * - "15 Most Beautiful Living Rooms"
+     * - "The Best 20 Kitchen Designs"
+     */
+    public static function extractNumberFromTitle(string $title): int
+    {
+        // Pattern 1: Number at the start - "26 Luxe Home Decor", "10 Best Kitchens"
+        if (preg_match('/^(\d+)\s+/i', trim($title), $matches)) {
+            return (int) $matches[1];
+        }
+        
+        // Pattern 2: "Top/Best X" - "Top 10 Homes", "Best 15 Designs"
+        if (preg_match('/\b(top|best|most|amazing)\s+(\d+)\b/i', $title, $matches)) {
+            return (int) $matches[2];
+        }
+        
+        // Pattern 3: "X Top/Best" - "10 Top Homes", "15 Best Designs"
+        if (preg_match('/\b(\d+)\s+(top|best|most|amazing|beautiful|stunning|gorgeous|incredible|luxe|luxury)\b/i', $title, $matches)) {
+            return (int) $matches[1];
+        }
+        
+        // Pattern 4: Any number in the title as fallback
+        if (preg_match('/\b(\d+)\b/', $title, $matches)) {
+            $num = (int) $matches[1];
+            // Only return if it's a reasonable list count (between 3 and 100)
+            if ($num >= 3 && $num <= 100) {
+                return $num;
+            }
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Static version of analyzeArticleTheme for use in static methods.
+     * Analyze the article title to extract theme, style, and relevant keywords.
+     */
+    public static function analyzeArticleTitleStatic(string $articleTitle): array
+    {
+        $title = strtolower($articleTitle);
+        
+        // Default theme values
+        $analysis = [
+            'primary_theme' => 'modern elegant home decor',
+            'style_keywords' => 'modern, elegant, sophisticated, stylish',
+            'materials' => 'wood, marble, fabric, glass, ceramic, metal',
+            'mood' => 'inviting and sophisticated',
+            'color_palette' => 'neutral with accent colors',
+        ];
+        
+        // Luxe/Luxury theme detection
+        if (preg_match('/\b(luxe|luxury|luxurious|opulent|lavish|high-end|premium|exclusive)\b/i', $title)) {
+            $analysis['primary_theme'] = 'luxury high-end home decor';
+            $analysis['style_keywords'] = 'luxurious, opulent, premium, exclusive, sophisticated, lavish';
+            $analysis['materials'] = 'marble, velvet, gold accents, crystal, rich wood, silk, cashmere';
+            $analysis['mood'] = 'opulent and exclusive';
+            $analysis['color_palette'] = 'rich jewel tones, gold accents, deep colors with metallic touches';
+        }
+        
+        // Minimalist theme detection
+        if (preg_match('/\b(minimalist|minimal|simple|clean|scandinavian|nordic)\b/i', $title)) {
+            $analysis['primary_theme'] = 'minimalist Scandinavian design';
+            $analysis['style_keywords'] = 'minimalist, clean lines, simple, uncluttered, functional';
+            $analysis['materials'] = 'light wood, white surfaces, natural fabrics, concrete, matte finishes';
+            $analysis['mood'] = 'calm and serene';
+            $analysis['color_palette'] = 'white, light grey, natural wood tones, soft pastels';
+        }
+        
+        // Bohemian theme detection
+        if (preg_match('/\b(boho|bohemian|eclectic|artistic|free-spirit)\b/i', $title)) {
+            $analysis['primary_theme'] = 'bohemian eclectic style';
+            $analysis['style_keywords'] = 'bohemian, eclectic, layered, artistic, worldly, free-spirited';
+            $analysis['materials'] = 'rattan, macrame, textured fabrics, plants, natural fibers, woven textiles';
+            $analysis['mood'] = 'warm and inviting with collected character';
+            $analysis['color_palette'] = 'earthy tones, terracotta, mustard, teal, warm neutrals';
+        }
+        
+        // Rustic/Farmhouse theme detection
+        if (preg_match('/\b(rustic|farmhouse|country|cottage|barn|rural|vintage)\b/i', $title)) {
+            $analysis['primary_theme'] = 'rustic farmhouse style';
+            $analysis['style_keywords'] = 'rustic, cozy, charming, vintage, country, farmhouse';
+            $analysis['materials'] = 'reclaimed wood, distressed finishes, wrought iron, natural stone, linen';
+            $analysis['mood'] = 'warm and nostalgic';
+            $analysis['color_palette'] = 'cream, sage green, warm browns, muted blues, natural tones';
+        }
+        
+        // Industrial theme detection
+        if (preg_match('/\b(industrial|loft|urban|warehouse|raw|exposed)\b/i', $title)) {
+            $analysis['primary_theme'] = 'industrial loft style';
+            $analysis['style_keywords'] = 'industrial, raw, urban, edgy, exposed elements, warehouse-inspired';
+            $analysis['materials'] = 'exposed brick, steel, concrete, reclaimed wood, metal pipes, raw finishes';
+            $analysis['mood'] = 'urban and edgy';
+            $analysis['color_palette'] = 'grey, black, rust, exposed brick red, weathered metals';
+        }
+        
+        // Mid-Century Modern theme detection
+        if (preg_match('/\b(mid-century|midcentury|retro|60s|70s|atomic|eames)\b/i', $title)) {
+            $analysis['primary_theme'] = 'mid-century modern design';
+            $analysis['style_keywords'] = 'mid-century modern, retro, atomic age, sleek, iconic';
+            $analysis['materials'] = 'teak, walnut, molded plastic, brass, leather, terrazzo';
+            $analysis['mood'] = 'retro-chic and timeless';
+            $analysis['color_palette'] = 'mustard yellow, avocado green, burnt orange, teak brown, cream';
+        }
+        
+        // Contemporary/Modern theme detection
+        if (preg_match('/\b(contemporary|modern|current|trendy|cutting-edge|sleek)\b/i', $title)) {
+            $analysis['primary_theme'] = 'contemporary modern design';
+            $analysis['style_keywords'] = 'contemporary, sleek, current trends, sophisticated, clean';
+            $analysis['materials'] = 'glass, chrome, lacquered surfaces, leather, polished concrete';
+            $analysis['mood'] = 'fresh and sophisticated';
+            $analysis['color_palette'] = 'monochromatic with bold accents, black and white, metallic touches';
+        }
+        
+        // Coastal/Beach theme detection
+        if (preg_match('/\b(coastal|beach|nautical|seaside|ocean|marine|hamptons)\b/i', $title)) {
+            $analysis['primary_theme'] = 'coastal beach house style';
+            $analysis['style_keywords'] = 'coastal, breezy, relaxed, nautical, beachy, fresh';
+            $analysis['materials'] = 'whitewashed wood, rattan, linen, seagrass, driftwood, natural rope';
+            $analysis['mood'] = 'relaxed and breezy';
+            $analysis['color_palette'] = 'white, navy blue, sandy beige, soft aqua, coral accents';
+        }
+        
+        // Traditional/Classic theme detection
+        if (preg_match('/\b(traditional|classic|timeless|elegant|formal|refined)\b/i', $title)) {
+            $analysis['primary_theme'] = 'traditional classic elegance';
+            $analysis['style_keywords'] = 'traditional, timeless, elegant, refined, formal, classic';
+            $analysis['materials'] = 'dark wood, silk, velvet, brass, crown molding, ornate details';
+            $analysis['mood'] = 'refined and sophisticated';
+            $analysis['color_palette'] = 'navy, burgundy, forest green, gold, cream, rich wood tones';
+        }
+        
+        // Art Deco theme detection
+        if (preg_match('/\b(art deco|deco|gatsby|glamour|glam|hollywood)\b/i', $title)) {
+            $analysis['primary_theme'] = 'art deco glamour';
+            $analysis['style_keywords'] = 'art deco, glamorous, geometric, bold, luxurious, theatrical';
+            $analysis['materials'] = 'lacquered surfaces, brass, mirrors, velvet, marble, geometric patterns';
+            $analysis['mood'] = 'dramatic and glamorous';
+            $analysis['color_palette'] = 'black, gold, emerald green, deep purple, blush pink';
+        }
+        
+        // Japandi/Japanese theme detection
+        if (preg_match('/\b(japandi|japanese|zen|wabi-sabi|asian|oriental)\b/i', $title)) {
+            $analysis['primary_theme'] = 'Japandi zen style';
+            $analysis['style_keywords'] = 'zen, peaceful, harmonious, balanced, organic, mindful';
+            $analysis['materials'] = 'light wood, paper screens, bamboo, natural stone, ceramic, linen';
+            $analysis['mood'] = 'peaceful and harmonious';
+            $analysis['color_palette'] = 'off-white, soft grey, natural wood, black accents, sage green';
+        }
+        
+        // Specific room type detection
+        if (preg_match('/\b(bedroom|sleeping|master suite)\b/i', $title)) {
+            $analysis['room_focus'] = 'bedroom';
+        } elseif (preg_match('/\b(living room|lounge|sitting room|family room)\b/i', $title)) {
+            $analysis['room_focus'] = 'living room';
+        } elseif (preg_match('/\b(kitchen|cooking|culinary)\b/i', $title)) {
+            $analysis['room_focus'] = 'kitchen';
+        } elseif (preg_match('/\b(bathroom|bath|powder room|ensuite)\b/i', $title)) {
+            $analysis['room_focus'] = 'bathroom';
+        } elseif (preg_match('/\b(office|workspace|study|home office)\b/i', $title)) {
+            $analysis['room_focus'] = 'home office';
+        } elseif (preg_match('/\b(outdoor|patio|garden|terrace|balcony)\b/i', $title)) {
+            $analysis['room_focus'] = 'outdoor space';
+        } else {
+            $analysis['room_focus'] = 'interior space';
+        }
+        
+        return $analysis;
     }
 
     /**
