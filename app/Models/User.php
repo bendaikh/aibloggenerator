@@ -25,6 +25,9 @@ class User extends Authenticatable
         'status',
         'theme_id',
         'openai_api_key',
+        'gemini_api_key',
+        'ideogram_api_key',
+        'image_generation_provider',
         'ai_model',
         'ai_default_tone',
         'article_generation_mode',
@@ -151,6 +154,8 @@ class User extends Authenticatable
         'password',
         'remember_token',
         'openai_api_key',
+        'gemini_api_key',
+        'ideogram_api_key',
     ];
 
     /**
@@ -164,6 +169,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'openai_api_key' => 'encrypted',
+            'gemini_api_key' => 'encrypted',
+            'ideogram_api_key' => 'encrypted',
         ];
     }
 }

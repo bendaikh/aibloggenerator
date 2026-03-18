@@ -83,6 +83,8 @@ $registerMainAppRoutes = function () {
         // API Keys Routes
         Route::get('/api-keys', [OrganizationController::class, 'apiKeys'])->name('organization.api-keys');
         Route::post('/api-keys', [OrganizationController::class, 'updateApiKeys'])->name('organization.api-keys.update');
+        Route::post('/api-keys/test-gemini', [OrganizationController::class, 'testGeminiConnection'])->name('organization.api-keys.test-gemini');
+        Route::post('/api-keys/test-ideogram', [OrganizationController::class, 'testIdeogramConnection'])->name('organization.api-keys.test-ideogram');
         
         // Agent Rewrite Routes
         Route::get('/agent-rewrite', [OrganizationController::class, 'agentRewrite'])->name('organization.agent-rewrite');

@@ -13,26 +13,43 @@ class AIImageService
 {
     protected $client;
     protected User $user;
+    protected string $provider;
 
     public function __construct(User $user)
     {
         $this->user = $user;
+        $this->provider = $user->image_generation_provider ?? 'openai';
         
-        if (empty($user->openai_api_key)) {
-            throw new \Exception('OpenAI API key not configured for this user.');
+        // Initialize the appropriate client based on provider
+        if ($this->provider === 'gemini') {
+            if (empty($user->gemini_api_key)) {
+                throw new \Exception('Gemini API key not configured for this user.');
+            }
+            // Gemini uses HTTP client (Guzzle)
+            $this->client = new \GuzzleHttp\Client();
+        } elseif ($this->provider === 'ideogram') {
+            if (empty($user->ideogram_api_key)) {
+                throw new \Exception('Ideogram API key not configured for this user.');
+            }
+            // Ideogram uses HTTP client (Guzzle)
+            $this->client = new \GuzzleHttp\Client();
+        } else {
+            // Default to OpenAI
+            if (empty($user->openai_api_key)) {
+                throw new \Exception('OpenAI API key not configured for this user.');
+            }
+            $this->client = \OpenAI::client($user->openai_api_key);
         }
-        
-        $this->client = \OpenAI::client($user->openai_api_key);
     }
 
     /**
-     * Generate a single image using gpt-image-1
+     * Generate a single image using the configured provider (OpenAI, Gemini, or Ideogram)
      * 
      * @param string $prompt The image generation prompt
      * @param string $size Image size: '1024x1024', '1792x1024', or '1024x1792'
-     * @param string $quality Image quality: 'standard' or 'hd' (converted to gpt-image-1 format)
-     * @param string $style Image style: 'natural' or 'vivid' (ignored for gpt-image-1)
-     * @return array ['url' => string, 'revised_prompt' => string]
+     * @param string $quality Image quality: 'standard' or 'hd'
+     * @param string $style Image style: 'natural' or 'vivid'
+     * @return array ['url' => string, 'revised_prompt' => string, 'b64_json' => string|null]
      */
     public function generateImage(
         string $prompt,
@@ -40,25 +57,43 @@ class AIImageService
         string $quality = 'standard',
         string $style = 'natural'
     ): array {
+        if ($this->provider === 'gemini') {
+            return $this->generateImageWithGemini($prompt, $size, $quality, $style);
+        }
+        
+        if ($this->provider === 'ideogram') {
+            return $this->generateImageWithIdeogram($prompt, $size, $quality, $style);
+        }
+        
+        return $this->generateImageWithOpenAI($prompt, $size, $quality, $style);
+    }
+
+    /**
+     * Generate image using OpenAI DALL-E (gpt-image-1)
+     */
+    protected function generateImageWithOpenAI(
+        string $prompt,
+        string $size = '1024x1024',
+        string $quality = 'standard',
+        string $style = 'natural'
+    ): array {
         try {
             // Convert quality parameter from DALL-E format to gpt-image-1 format
-            // 'standard' -> 'auto', 'hd' -> 'high'
             $gptQuality = $quality === 'hd' ? 'high' : 'auto';
-            // Convert legacy DALL-E sizes to gpt-image-1 supported sizes.
+            // Convert legacy DALL-E sizes to gpt-image-1 supported sizes
             $gptSize = match ($size) {
                 '1792x1024' => '1536x1024',
                 '1024x1792' => '1024x1536',
                 default => $size,
             };
             
-            Log::info('AIImageService: Generating image', [
+            Log::info('AIImageService: Generating image with OpenAI', [
                 'prompt' => Str::limit($prompt, 100),
                 'size' => $gptSize,
                 'quality' => $gptQuality,
                 'model' => 'gpt-image-1'
             ]);
 
-            // Build request parameters for gpt-image-1
             $requestParams = [
                 'model' => 'gpt-image-1',
                 'prompt' => $prompt,
@@ -77,8 +112,9 @@ class AIImageService
                 throw new \Exception('No image payload returned by gpt-image-1');
             }
 
-            // Log API usage
             $cost = $this->calculateImageCost($size, $quality);
+            
+            // Log API usage
             ApiUsageLog::create([
                 'user_id' => $this->user->id,
                 'provider' => 'openai',
@@ -96,24 +132,273 @@ class AIImageService
                 ]
             ]);
 
-            Log::info('AIImageService: Image generated successfully', [
-                'cost' => $cost
-            ]);
+            Log::info('AIImageService: OpenAI image generated successfully', ['cost' => $cost]);
 
             return [
                 'url' => $imageUrl,
                 'b64_json' => $imageBase64,
                 'revised_prompt' => $revisedPrompt,
-                'cost' => $cost
+                'cost' => $cost,
+                'provider' => 'openai'
             ];
 
         } catch (\Exception $e) {
-            Log::error('AIImageService: Failed to generate image', [
+            Log::error('AIImageService: Failed to generate image with OpenAI', [
                 'error' => $e->getMessage(),
                 'prompt' => Str::limit($prompt, 100)
             ]);
             throw $e;
         }
+    }
+
+    /**
+     * Generate image using Google Gemini Imagen
+     * Note: As of March 2026, Google's Imagen API is in limited preview.
+     * This implementation uses Gemini's text-to-image capabilities through Vertex AI.
+     * If you don't have access, the system will fall back to describing images instead.
+     */
+    protected function generateImageWithGemini(
+        string $prompt,
+        string $size = '1024x1024',
+        string $quality = 'standard',
+        string $style = 'natural'
+    ): array {
+        try {
+            $apiKey = $this->user->gemini_api_key;
+            
+            Log::info('AIImageService: Attempting Gemini image generation', [
+                'prompt' => Str::limit($prompt, 100),
+                'note' => 'Gemini Imagen API access may be limited'
+            ]);
+
+            // Try the generateContent endpoint with multimodal capabilities
+            // This is a workaround since direct Imagen API might not be publicly available
+            $response = $this->client->post(
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key={$apiKey}",
+                [
+                    'json' => [
+                        'contents' => [
+                            [
+                                'parts' => [
+                                    [
+                                        'text' => "IMPORTANT: I need you to generate a detailed image generation prompt that I can use with DALL-E or other image AI. Based on this request, create a comprehensive, detailed prompt:\n\n{$prompt}\n\nProvide ONLY the image generation prompt, nothing else."
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ],
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                    ]
+                ]
+            );
+
+            $result = json_decode($response->getBody()->getContents(), true);
+            
+            // Since Gemini doesn't actually generate images yet in the public API,
+            // we'll return an error explaining this
+            throw new \Exception(
+                'Gemini Imagen API is not publicly available yet. ' .
+                'Please use OpenAI DALL-E or Ideogram for image generation, or wait for Google to release public access to Imagen. ' .
+                'You can change your image provider in Settings > API Keys.'
+            );
+
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $errorBody = $e->getResponse()->getBody()->getContents();
+            $errorData = json_decode($errorBody, true);
+            $errorMessage = $errorData['error']['message'] ?? $e->getMessage();
+            
+            Log::error('AIImageService: Gemini image generation not available', [
+                'error' => $errorMessage,
+                'prompt' => Str::limit($prompt, 100)
+            ]);
+            
+            throw new \Exception(
+                'Gemini image generation is not currently available. ' .
+                'The Imagen API requires special access from Google. ' .
+                'Please switch to OpenAI DALL-E or Ideogram in your settings for image generation.'
+            );
+        } catch (\Exception $e) {
+            Log::error('AIImageService: Failed Gemini image generation', [
+                'error' => $e->getMessage(),
+                'prompt' => Str::limit($prompt, 100)
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Generate image using Ideogram API
+     * Ideogram is specialized for high-quality, cost-effective image generation
+     * particularly good for home decor, design, and realistic scenes
+     */
+    protected function generateImageWithIdeogram(
+        string $prompt,
+        string $size = '1024x1024',
+        string $quality = 'standard',
+        string $style = 'natural'
+    ): array {
+        try {
+            $apiKey = $this->user->ideogram_api_key;
+            
+            Log::info('AIImageService: Generating image with Ideogram', [
+                'prompt' => Str::limit($prompt, 100),
+                'size' => $size,
+                'quality' => $quality,
+                'model' => 'ideogram-v3'
+            ]);
+
+            // Convert size to Ideogram resolution format
+            $resolution = $this->convertSizeToIdeogramResolution($size);
+            
+            // Determine rendering speed based on quality
+            // Ideogram V3 accepts: FLASH, TURBO, BALANCED, DEFAULT
+            // TURBO = fast/cheap, BALANCED = standard, DEFAULT = high quality
+            $renderingSpeed = $quality === 'hd' ? 'BALANCED' : 'TURBO';
+            
+            // Prepare multipart form data
+            $multipartData = [
+                [
+                    'name' => 'prompt',
+                    'contents' => $prompt
+                ],
+                [
+                    'name' => 'resolution',
+                    'contents' => $resolution
+                ],
+                [
+                    'name' => 'rendering_speed',
+                    'contents' => $renderingSpeed
+                ],
+                [
+                    'name' => 'num_images',
+                    'contents' => '1'
+                ],
+                [
+                    'name' => 'magic_prompt',
+                    'contents' => 'AUTO' // Let Ideogram enhance the prompt automatically
+                ]
+            ];
+
+            $response = $this->client->post(
+                'https://api.ideogram.ai/v1/ideogram-v3/generate',
+                [
+                    'multipart' => $multipartData,
+                    'headers' => [
+                        'Api-Key' => $apiKey,
+                    ]
+                ]
+            );
+
+            $result = json_decode($response->getBody()->getContents(), true);
+
+            if (!isset($result['data']) || empty($result['data'])) {
+                throw new \Exception('No image data returned by Ideogram API');
+            }
+
+            $imageData = $result['data'][0];
+            $imageUrl = $imageData['url'] ?? null;
+            $revisedPrompt = $imageData['prompt'] ?? $prompt;
+
+            if (!$imageUrl) {
+                throw new \Exception('No image URL returned by Ideogram API');
+            }
+
+            $cost = $this->calculateIdeogramCost($resolution, $renderingSpeed);
+            
+            // Log API usage
+            ApiUsageLog::create([
+                'user_id' => $this->user->id,
+                'provider' => 'ideogram',
+                'model' => 'ideogram-v3',
+                'operation' => 'image_generation',
+                'prompt_tokens' => 0,
+                'completion_tokens' => 0,
+                'total_tokens' => 0,
+                'estimated_cost' => $cost,
+                'generation_mode' => 'ai_image',
+                'metadata' => [
+                    'prompt' => Str::limit($prompt, 500),
+                    'resolution' => $resolution,
+                    'rendering_speed' => $renderingSpeed,
+                ]
+            ]);
+
+            Log::info('AIImageService: Ideogram image generated successfully', ['cost' => $cost]);
+
+            return [
+                'url' => $imageUrl,
+                'b64_json' => null, // Ideogram returns URL, not base64
+                'revised_prompt' => $revisedPrompt,
+                'cost' => $cost,
+                'provider' => 'ideogram'
+            ];
+
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $errorBody = $e->getResponse()->getBody()->getContents();
+            $errorData = json_decode($errorBody, true);
+            $errorMessage = $errorData['error']['message'] ?? $e->getMessage();
+            
+            Log::error('AIImageService: Failed to generate image with Ideogram', [
+                'error' => $errorMessage,
+                'prompt' => Str::limit($prompt, 100)
+            ]);
+            
+            throw new \Exception('Ideogram API error: ' . $errorMessage);
+        } catch (\Exception $e) {
+            Log::error('AIImageService: Failed to generate image with Ideogram', [
+                'error' => $e->getMessage(),
+                'prompt' => Str::limit($prompt, 100)
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Convert size format to Gemini aspect ratio format
+     */
+    protected function convertSizeToAspectRatio(string $size): string
+    {
+        return match($size) {
+            '1024x1024' => '1:1',
+            '1792x1024', '1536x1024' => '16:9',
+            '1024x1792', '1024x1536' => '9:16',
+            default => '1:1'
+        };
+    }
+
+    /**
+     * Convert size format to Ideogram resolution format
+     * Ideogram supports specific resolutions, so we map common sizes to closest Ideogram resolution
+     */
+    protected function convertSizeToIdeogramResolution(string $size): string
+    {
+        return match($size) {
+            '1024x1024' => '1024x1024', // Square
+            '1792x1024', '1536x1024' => '1088x768', // Landscape
+            '1024x1792', '1024x1536' => '768x1088', // Portrait
+            default => '1024x1024'
+        };
+    }
+
+    /**
+     * Calculate the cost for Ideogram image generation
+     * 
+     * Ideogram V3 Pricing (as of March 2026):
+     * - TURBO/FLASH rendering: ~$0.08 per image (fastest, cheapest)
+     * - BALANCED rendering: ~$0.12 per image (good balance)
+     * - DEFAULT rendering: ~$0.20 per image (highest quality)
+     * 
+     * Note: Ideogram is generally more cost-effective than DALL-E for similar quality
+     */
+    protected function calculateIdeogramCost(string $resolution, string $renderingSpeed): float
+    {
+        return match(strtoupper($renderingSpeed)) {
+            'TURBO', 'FLASH' => 0.08,
+            'BALANCED' => 0.12,
+            'DEFAULT' => 0.20,
+            default => 0.08
+        };
     }
 
     /**

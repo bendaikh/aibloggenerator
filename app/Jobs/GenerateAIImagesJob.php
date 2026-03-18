@@ -99,13 +99,36 @@ class GenerateAIImagesJob implements ShouldQueue
             return;
         }
 
-        if (empty($user->openai_api_key)) {
-            Log::error('GenerateAIImagesJob: User has no OpenAI API key');
+        // Check if user has configured the selected image generation provider
+        $provider = $user->image_generation_provider ?? 'openai';
+        
+        if ($provider === 'gemini' && empty($user->gemini_api_key)) {
+            Log::error('GenerateAIImagesJob: User selected Gemini but has no API key configured');
+            return;
+        }
+        
+        if ($provider === 'ideogram' && empty($user->ideogram_api_key)) {
+            Log::error('GenerateAIImagesJob: User selected Ideogram but has no API key configured');
+            return;
+        }
+        
+        if ($provider === 'openai' && empty($user->openai_api_key)) {
+            Log::error('GenerateAIImagesJob: User selected OpenAI but has no API key configured');
             return;
         }
 
+        Log::info('GenerateAIImagesJob: Using provider', [
+            'provider' => $provider,
+            'article_id' => $this->articleId,
+            'has_ideogram_key' => !empty($user->ideogram_api_key),
+            'has_openai_key' => !empty($user->openai_api_key),
+            'has_gemini_key' => !empty($user->gemini_api_key),
+        ]);
+
         try {
+            Log::info('GenerateAIImagesJob: Initializing AIImageService...');
             $imageService = new AIImageService($user);
+            Log::info('GenerateAIImagesJob: AIImageService initialized successfully');
 
             Log::info('GenerateAIImagesJob: Starting image generation', [
                 'article_id' => $this->articleId,

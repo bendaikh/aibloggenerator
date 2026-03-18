@@ -146,6 +146,11 @@ class OrganizationController extends Controller
             'settings' => [
                 'openai_api_key_set' => !empty($user->openai_api_key),
                 'openai_api_key_masked' => $user->openai_api_key ? 'sk-....' . substr($user->openai_api_key, -4) : null,
+                'gemini_api_key_set' => !empty($user->gemini_api_key),
+                'gemini_api_key_masked' => $user->gemini_api_key ? substr($user->gemini_api_key, 0, 7) . '....' . substr($user->gemini_api_key, -4) : null,
+                'ideogram_api_key_set' => !empty($user->ideogram_api_key),
+                'ideogram_api_key_masked' => $user->ideogram_api_key ? substr($user->ideogram_api_key, 0, 7) . '....' . substr($user->ideogram_api_key, -4) : null,
+                'image_generation_provider' => $user->image_generation_provider ?? 'openai',
                 'ai_model' => $user->ai_model ?? 'gpt-4o',
                 'ai_default_tone' => $user->ai_default_tone ?? 'conversational',
             ],
@@ -162,17 +167,29 @@ class OrganizationController extends Controller
 
         $validated = $request->validate([
             'openai_api_key' => 'nullable|string',
+            'gemini_api_key' => 'nullable|string',
+            'ideogram_api_key' => 'nullable|string',
+            'image_generation_provider' => 'required|in:openai,gemini,ideogram',
             'ai_model' => 'required|in:gpt-4o,gpt-4-turbo,gpt-3.5-turbo',
             'ai_default_tone' => 'required|in:conversational,professional,casual,friendly,formal',
         ]);
 
         $updateData = [
+            'image_generation_provider' => $validated['image_generation_provider'],
             'ai_model' => $validated['ai_model'],
             'ai_default_tone' => $validated['ai_default_tone'],
         ];
 
         if (!empty($validated['openai_api_key'])) {
             $updateData['openai_api_key'] = $validated['openai_api_key'];
+        }
+
+        if (!empty($validated['gemini_api_key'])) {
+            $updateData['gemini_api_key'] = $validated['gemini_api_key'];
+        }
+
+        if (!empty($validated['ideogram_api_key'])) {
+            $updateData['ideogram_api_key'] = $validated['ideogram_api_key'];
         }
 
         $user->update($updateData);
@@ -368,6 +385,175 @@ class OrganizationController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Connection failed: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Test Gemini AI Connection
+     */
+    public function testGeminiConnection()
+    {
+        $user = Auth::user();
+
+        if (empty($user->gemini_api_key)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No Gemini API key configured'
+            ]);
+        }
+
+        try {
+            $apiKey = $user->gemini_api_key;
+            $client = new \GuzzleHttp\Client();
+            
+            // First, try to list available models to find the right one
+            try {
+                $listResponse = $client->get("https://generativelanguage.googleapis.com/v1beta/models?key={$apiKey}");
+                $models = json_decode($listResponse->getBody()->getContents(), true);
+                
+                // Find a model that supports generateContent
+                $availableModel = null;
+                if (isset($models['models'])) {
+                    foreach ($models['models'] as $model) {
+                        $supportedMethods = $model['supportedGenerationMethods'] ?? [];
+                        if (in_array('generateContent', $supportedMethods)) {
+                            $availableModel = $model['name'];
+                            break;
+                        }
+                    }
+                }
+                
+                if (!$availableModel) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No suitable Gemini model found that supports generateContent'
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // If listing fails, try with a default model
+                $availableModel = 'models/gemini-1.5-pro-latest';
+            }
+            
+            // Test the Gemini API with a simple text generation request
+            $response = $client->post("https://generativelanguage.googleapis.com/v1beta/{$availableModel}:generateContent?key={$apiKey}", [
+                'json' => [
+                    'contents' => [
+                        [
+                            'parts' => [
+                                ['text' => 'Say "Connection successful!" in exactly those words.']
+                            ]
+                        ]
+                    ]
+                ],
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                ]
+            ]);
+
+            $result = json_decode($response->getBody()->getContents(), true);
+
+            if (isset($result['candidates'][0]['content'])) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Gemini connection successful! API key is valid. Using model: ' . basename($availableModel),
+                    'response' => $result['candidates'][0]['content']['parts'][0]['text'] ?? ''
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unexpected response from Gemini API'
+            ]);
+
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $errorBody = $e->getResponse()->getBody()->getContents();
+            $errorData = json_decode($errorBody, true);
+            $errorMessage = $errorData['error']['message'] ?? $e->getMessage();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Gemini connection failed: ' . $errorMessage
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gemini connection failed: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Test Ideogram AI Connection
+     */
+    public function testIdeogramConnection()
+    {
+        $user = Auth::user();
+
+        if (empty($user->ideogram_api_key)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No Ideogram API key configured'
+            ]);
+        }
+
+        try {
+            $apiKey = $user->ideogram_api_key;
+            $client = new \GuzzleHttp\Client();
+            
+            // Test the Ideogram API with a simple image generation request
+            // We'll use a minimal prompt to test the connection
+            $response = $client->post('https://api.ideogram.ai/v1/ideogram-v3/generate', [
+                'multipart' => [
+                    [
+                        'name' => 'prompt',
+                        'contents' => 'A simple test image: a red square on white background'
+                    ],
+                    [
+                        'name' => 'resolution',
+                        'contents' => '1024x1024'
+                    ],
+                    [
+                        'name' => 'rendering_speed',
+                        'contents' => 'TURBO'
+                    ],
+                    [
+                        'name' => 'num_images',
+                        'contents' => '1'
+                    ]
+                ],
+                'headers' => [
+                    'Api-Key' => $apiKey,
+                ]
+            ]);
+
+            $result = json_decode($response->getBody()->getContents(), true);
+
+            if (isset($result['data']) && !empty($result['data'])) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Ideogram connection successful! API key is valid and working. Model: Ideogram V3',
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unexpected response from Ideogram API'
+            ]);
+
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $errorBody = $e->getResponse()->getBody()->getContents();
+            $errorData = json_decode($errorBody, true);
+            $errorMessage = $errorData['error']['message'] ?? $e->getMessage();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Ideogram connection failed: ' . $errorMessage
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ideogram connection failed: ' . $e->getMessage()
             ]);
         }
     }

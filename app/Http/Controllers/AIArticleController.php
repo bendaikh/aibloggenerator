@@ -577,12 +577,31 @@ PROMPT;
         $this->authorize('update', $website);
 
         $user = auth()->user();
-
-        if (empty($user->openai_api_key)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'OpenAI API key not configured. Please add your API key in settings.'
-            ], 400);
+        
+        // Check the user's selected image generation provider
+        $provider = $user->image_generation_provider ?? 'openai';
+        
+        if ($provider === 'gemini') {
+            if (empty($user->gemini_api_key)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gemini API key not configured. Please add your Gemini API key in settings.'
+                ], 400);
+            }
+        } elseif ($provider === 'ideogram') {
+            if (empty($user->ideogram_api_key)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ideogram API key not configured. Please add your Ideogram API key in settings.'
+                ], 400);
+            }
+        } else {
+            if (empty($user->openai_api_key)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'OpenAI API key not configured. Please add your API key in settings.'
+                ], 400);
+            }
         }
 
         $validated = $request->validate([
@@ -624,11 +643,17 @@ PROMPT;
         );
 
         $itemsCount = count($items);
+        $providerName = match($provider) {
+            'gemini' => 'Google Gemini',
+            'ideogram' => 'Ideogram',
+            default => 'OpenAI DALL-E'
+        };
         
         return response()->json([
             'success' => true,
-            'message' => "Image generation started for {$itemsCount} items. Images will appear in the article once generated.",
+            'message' => "Image generation started for {$itemsCount} items using {$providerName}. Images will appear in the article once generated.",
             'items_count' => $itemsCount,
+            'provider' => $provider,
             'estimated_cost' => $this->estimateImageCost($itemsCount, $size, $quality)
         ]);
     }
