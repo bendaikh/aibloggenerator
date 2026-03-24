@@ -293,6 +293,9 @@ $registerMainAppRoutes = function () {
     
     // Auth routes
     require __DIR__.'/auth.php';
+    
+    // Diagnostics route (can be removed after verifying fix)
+    Route::get('/diagnostics/inertia', [\App\Http\Controllers\DiagnosticsController::class, 'index'])->name('diagnostics.inertia');
 };
 
 // Register main app routes with or without domain constraint

@@ -67,7 +67,7 @@ class PublicWebsiteController extends Controller
             })
             ->where('status', 'published')
             ->where('published_at', '<=', now())
-            ->with(['category', 'user', 'author'])
+            ->with(['category', 'user', 'author', 'articleImages'])
             ->firstOrFail();
 
         // Increment views
@@ -80,13 +80,40 @@ class PublicWebsiteController extends Controller
             ->take(3)
             ->get();
 
-        // Load the website's theme to determine if recipe sections should be shown
+        // Load the website's theme to determine which template to use
         $websiteTheme = $website->theme()->first();
 
-        return Inertia::render('Public/Website/Article', [
-            'website' => $website,
-            'article' => $article,
-            'relatedArticles' => $relatedArticles,
+        // Determine which article template to use based on theme
+        $viewComponent = 'Public/Website/Article';
+        if ($websiteTheme && $websiteTheme->slug === 'home-decor') {
+            $viewComponent = 'Public/Website/ArticleHomeDecor';
+        }
+
+        if ($websiteTheme && $websiteTheme->slug === 'crochet') {
+            $viewComponent = 'Public/Website/ArticleCrochet';
+        }
+
+        // Ensure article images collection exists
+        $articleImages = $article->articleImages ?? collect();
+
+        return Inertia::render($viewComponent, [
+            'website' => $website->toArray(),
+            'article' => $article->toArray(),
+            'relatedArticles' => $relatedArticles->toArray(),
+            'articleImages' => $articleImages
+                ->map(fn ($image) => [
+                    'id' => $image->id,
+                    'url' => $image->url,
+                    'local_path' => $image->local_path,
+                    'title' => $image->title,
+                    'alt_text' => $image->alt_text,
+                    'caption' => $image->caption,
+                    'position' => $image->position,
+                    'generation_type' => $image->generation_type,
+                    'metadata' => $image->metadata,
+                ])
+                ->values()
+                ->all(),
             'showRecipeSections' => $websiteTheme ? $websiteTheme->show_recipe_sections : true,
         ]);
     }
@@ -153,11 +180,14 @@ class PublicWebsiteController extends Controller
             $viewComponent = 'Public/Website/ArticleCrochet';
         }
 
+        // Ensure article images collection exists
+        $articleImages = $article->articleImages ?? collect();
+
         return Inertia::render($viewComponent, [
-            'website' => $website,
-            'article' => $article,
-            'relatedArticles' => $relatedArticles,
-            'articleImages' => ($article->articleImages ?? collect())
+            'website' => $website->toArray(),
+            'article' => $article->toArray(),
+            'relatedArticles' => $relatedArticles->toArray(),
+            'articleImages' => $articleImages
                 ->values()
                 ->map(fn ($image) => [
                     'id' => $image->id,
@@ -165,10 +195,10 @@ class PublicWebsiteController extends Controller
                     'url' => $image->url,
                     'local_path' => $image->local_path,
                     'position' => $image->position,
-                    'size' => $image->size,
-                    'quality' => $image->quality,
-                    'style' => $image->style,
-                    'cost' => $image->cost,
+                    'size' => $image->size ?? null,
+                    'quality' => $image->quality ?? null,
+                    'style' => $image->style ?? null,
+                    'cost' => $image->cost ?? null,
                     'generation_type' => $image->generation_type,
                     'metadata' => $image->metadata,
                 ])
@@ -348,7 +378,7 @@ class PublicWebsiteController extends Controller
             })
             ->where('status', 'published')
             ->where('published_at', '<=', now())
-            ->with(['category', 'user', 'author'])
+            ->with(['category', 'user', 'author', 'articleImages'])
             ->firstOrFail();
 
         // Increment views
@@ -361,13 +391,36 @@ class PublicWebsiteController extends Controller
             ->take(3)
             ->get();
 
-        // Load the website's theme to determine if recipe sections should be shown
+        // Load the website's theme to determine which template to use
         $websiteTheme = $website->theme()->first();
 
-        return Inertia::render('Public/Website/Article', [
+        // Determine which article template to use based on theme
+        $viewComponent = 'Public/Website/Article';
+        if ($websiteTheme && $websiteTheme->slug === 'home-decor') {
+            $viewComponent = 'Public/Website/ArticleHomeDecor';
+        }
+
+        if ($websiteTheme && $websiteTheme->slug === 'crochet') {
+            $viewComponent = 'Public/Website/ArticleCrochet';
+        }
+
+        return Inertia::render($viewComponent, [
             'website' => $website,
             'article' => $article,
             'relatedArticles' => $relatedArticles,
+            'articleImages' => $article->articleImages
+                ->map(fn ($image) => [
+                    'id' => $image->id,
+                    'url' => $image->url,
+                    'local_path' => $image->local_path,
+                    'title' => $image->title,
+                    'alt_text' => $image->alt_text,
+                    'caption' => $image->caption,
+                    'position' => $image->position,
+                    'generation_type' => $image->generation_type,
+                    'metadata' => $image->metadata,
+                ])
+                ->all(),
             'showRecipeSections' => $websiteTheme ? $websiteTheme->show_recipe_sections : true,
         ]);
     }
