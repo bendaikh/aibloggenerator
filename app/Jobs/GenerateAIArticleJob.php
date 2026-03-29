@@ -284,11 +284,68 @@ PROMPT;
     }
 
     /**
+     * Detect the language of the title based on common patterns and characters.
+     */
+    private function detectLanguage(string $text): string
+    {
+        // Check for French-specific characters and common words
+        $frenchPatterns = [
+            '/[àâäæçéèêëïîôùûüÿœ]/ui', // French accents
+            '/\b(le|la|les|un|une|des|pour|avec|dans|sur|de|du|et|est|sont|au|aux|ce|cette|ces)\b/ui', // Common French words
+        ];
+        
+        foreach ($frenchPatterns as $pattern) {
+            if (preg_match($pattern, $text)) {
+                return 'French';
+            }
+        }
+        
+        // Check for Spanish-specific characters
+        if (preg_match('/[áéíóúñü¿¡]/ui', $text)) {
+            return 'Spanish';
+        }
+        
+        // Check for German-specific characters
+        if (preg_match('/[äöüß]/ui', $text)) {
+            return 'German';
+        }
+        
+        // Check for Italian-specific characters and common words
+        if (preg_match('/[àèéìíîòóùú]/ui', $text) && preg_match('/\b(il|la|lo|gli|le|dei|delle|per|con|come)\b/ui', $text)) {
+            return 'Italian';
+        }
+        
+        // Check for Portuguese-specific characters
+        if (preg_match('/[ãõâêôçáéíóú]/ui', $text)) {
+            return 'Portuguese';
+        }
+        
+        // Default to English
+        return 'English';
+    }
+
+    /**
      * Build the AI prompt.
      */
     private function buildPrompt(string $wordCount, string $category): string
     {
         $keywordsText = !empty($this->keywords) ? "\n- Naturally weave in these keywords: {$this->keywords}" : '';
+        
+        // Detect language from the title
+        $detectedLanguage = $this->detectLanguage($this->topic);
+        $languageInstruction = '';
+        
+        if ($detectedLanguage !== 'English') {
+            $languageInstruction = <<<LANGUAGE
+
+CRITICAL LANGUAGE REQUIREMENT:
+- The title is in {$detectedLanguage}, so you MUST write the ENTIRE article in {$detectedLanguage}
+- ALL content including: article content, excerpt, meta_title, meta_description, tags, notes, prep_time, cook_time, ingredients, and instructions MUST be in {$detectedLanguage}
+- Use natural, authentic {$detectedLanguage} language - not translated from English
+- Write as if you are a native {$detectedLanguage} speaker
+
+LANGUAGE;
+        }
         
         $ingredientsPrompt = "";
         if ($this->articleType === 'recipe') {
@@ -301,7 +358,7 @@ PROMPT;
 You are a professional food blogger and recipe writer who creates authentic, engaging content that reads like it was written by a passionate home cook sharing their personal experience.
 
 Write a detailed, comprehensive blog post about: "{$this->topic}"
-
+{$languageInstruction}
 CRITICAL TITLE RULE:
 - The TITLE field below is pre-filled with the exact title the user wants. DO NOT CHANGE IT. Use it exactly as written - no additions, no modifications, no "improvements".
 

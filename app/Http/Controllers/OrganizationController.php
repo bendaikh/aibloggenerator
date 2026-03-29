@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\Page;
 use App\Models\ArticleGenerationJob;
 use App\Models\Subscriber;
+use App\Models\Theme;
 use App\Jobs\GenerateGlobalAIArticleJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -1413,12 +1414,22 @@ HTML;
     public function globalArticlesThemeSelect()
     {
         $user = Auth::user();
-        $websites = Website::where('user_id', $user->id)
-            ->withCount(['articles', 'categories'])
-            ->get();
+        
+        // Fetch themes based on user role
+        // Superadmin sees all themes, regular users see only public themes
+        $themesQuery = Theme::query();
+        
+        if (!$user->isSuperAdmin()) {
+            $themesQuery->where('is_public', true);
+        }
+        
+        $themes = $themesQuery->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'description', 'is_public']);
 
         return Inertia::render('Organization/GlobalArticlesThemeSelect', [
-            'websites' => $websites,
+            'themes' => $themes,
+            'isSuperAdmin' => $user->isSuperAdmin(),
         ]);
     }
 

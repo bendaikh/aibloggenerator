@@ -927,11 +927,68 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
     }
 
     /**
+     * Detect the language of the title based on common patterns and characters.
+     */
+    private function detectLanguage(string $text): string
+    {
+        // Check for French-specific characters and common words
+        $frenchPatterns = [
+            '/[àâäæçéèêëïîôùûüÿœ]/ui', // French accents
+            '/\b(le|la|les|un|une|des|pour|avec|dans|sur|de|du|et|est|sont|au|aux|ce|cette|ces)\b/ui', // Common French words
+        ];
+        
+        foreach ($frenchPatterns as $pattern) {
+            if (preg_match($pattern, $text)) {
+                return 'French';
+            }
+        }
+        
+        // Check for Spanish-specific characters
+        if (preg_match('/[áéíóúñü¿¡]/ui', $text)) {
+            return 'Spanish';
+        }
+        
+        // Check for German-specific characters
+        if (preg_match('/[äöüß]/ui', $text)) {
+            return 'German';
+        }
+        
+        // Check for Italian-specific characters and common words
+        if (preg_match('/[àèéìíîòóùú]/ui', $text) && preg_match('/\b(il|la|lo|gli|le|dei|delle|per|con|come)\b/ui', $text)) {
+            return 'Italian';
+        }
+        
+        // Check for Portuguese-specific characters
+        if (preg_match('/[ãõâêôçáéíóú]/ui', $text)) {
+            return 'Portuguese';
+        }
+        
+        // Default to English
+        return 'English';
+    }
+
+    /**
      * Build the AI prompt with variation for unique articles.
      */
     private function buildPrompt(string $wordCount, Website $website, int $variationIndex): string
     {
         $keywordsText = !empty($this->keywords) ? "\n- Naturally weave in these keywords: {$this->keywords}" : '';
+        
+        // Detect language from the title
+        $detectedLanguage = $this->detectLanguage($this->topic);
+        $languageInstruction = '';
+        
+        if ($detectedLanguage !== 'English') {
+            $languageInstruction = <<<LANGUAGE
+
+CRITICAL LANGUAGE REQUIREMENT:
+- The title is in {$detectedLanguage}, so you MUST write the ENTIRE article in {$detectedLanguage}
+- ALL content including: article content, excerpt, meta_title, meta_description, tags, notes, ingredients, and instructions MUST be in {$detectedLanguage}
+- Use natural, authentic {$detectedLanguage} language - not translated from English
+- Write as if you are a native {$detectedLanguage} speaker
+
+LANGUAGE;
+        }
         
         // Check if website uses home-decor theme - if so, use home decor prompt regardless of article_type
         // Use theme() method to get the relationship, not the theme column (which is a string)
@@ -1002,7 +1059,7 @@ INGREDIENTS_INSTRUCTION;
 You are a professional blog writer who creates authentic, engaging content.
 
 Write a DETAILED, COMPREHENSIVE and COMPLETELY UNIQUE blog post about: "{$this->topic}"
-
+{$languageInstruction}
 CRITICAL TITLE RULE:
 - The TITLE field below is pre-filled with the exact title the user wants. DO NOT CHANGE IT. Use it exactly as written - no additions, no modifications, no "improvements".
 
@@ -1136,6 +1193,22 @@ PROMPT;
      */
     private function buildHomeDecorPrompt(string $wordCount, string $variationStyle, int $randomSeed, int $variationIndex, string $keywordsText): string
     {
+        // Detect language from the title
+        $detectedLanguage = $this->detectLanguage($this->topic);
+        $languageInstruction = '';
+        
+        if ($detectedLanguage !== 'English') {
+            $languageInstruction = <<<LANGUAGE
+
+CRITICAL LANGUAGE REQUIREMENT:
+- The title is in {$detectedLanguage}, so you MUST write the ENTIRE article in {$detectedLanguage}
+- ALL content including: article content, excerpt, meta_title, meta_description, tags, and notes MUST be in {$detectedLanguage}
+- Use natural, authentic {$detectedLanguage} language - not translated from English
+- Write as if you are a native {$detectedLanguage} speaker
+
+LANGUAGE;
+        }
+        
         // Check if we have multi-image with titles (for home-decor theme)
         $hasImageTitles = !empty($this->featuredImages) && 
                          is_array($this->featuredImages[0] ?? null) && 
@@ -1159,7 +1232,7 @@ PROMPT;
 You are a professional home decor and lifestyle blog writer who creates stunning, visually-inspiring content.
 
 Write a DETAILED, COMPREHENSIVE and COMPLETELY UNIQUE blog post about: "{$this->topic}"
-
+{$languageInstruction}
 CRITICAL TITLE RULE:
 - The TITLE field below is pre-filled with the exact title the user wants. DO NOT CHANGE IT. Use it exactly as written - no additions, no modifications, no "improvements".
 
