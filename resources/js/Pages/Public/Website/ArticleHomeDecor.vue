@@ -465,6 +465,16 @@ const subscribeNewsletter = async () => {
 const articleImages = computed(() => props.articleImages || []);
 
 const isImageGenerationPending = computed(() => {
+    // Never show "generating" state if article has user-uploaded featured images
+    const hasUserUploadedImage = props.article?.featured_image || props.article?.processed_featured_image;
+    if (hasUserUploadedImage) {
+        return false;
+    }
+    // Never show "generating" state if article has user-uploaded image sections
+    const hasUserUploadedSections = props.article?.variation_metadata?.image_sections?.length > 0;
+    if (hasUserUploadedSections) {
+        return false;
+    }
     return imagePollingActive.value && articleImages.value.length === 0;
 });
 
@@ -475,7 +485,22 @@ const heroImage = computed(() => {
 });
 
 // Get only non-hero images for embedding in content
+// First check for user-uploaded image_sections in variation_metadata, then fall back to articleImages
 const contentImages = computed(() => {
+    // Check for user-uploaded image sections in variation_metadata
+    const imageSections = props.article?.variation_metadata?.image_sections;
+    if (imageSections && Array.isArray(imageSections) && imageSections.length > 0) {
+        // Convert image sections to the format expected by the content processor
+        return imageSections.map((img, index) => ({
+            id: `user-upload-${index}`,
+            url: img.url,
+            title: img.title,
+            position: index,
+            is_user_uploaded: true
+        }));
+    }
+    
+    // Fall back to AI-generated articleImages
     const images = props.articleImages || [];
     return images
         .filter(img => !img.metadata?.is_hero && img.generation_type !== 'ai_hero')
@@ -782,7 +807,12 @@ const stopImagePolling = () => {
 
 const startImagePollingIfNeeded = () => {
     // Only poll if no images yet; this component is home-decor specific.
-    if ((props.articleImages || []).length > 0 || imagePollingTimer) {
+    // Skip polling if article has user-uploaded featured images or image sections
+    const hasArticleImages = (props.articleImages || []).length > 0;
+    const hasUserUploadedImage = props.article?.featured_image || props.article?.processed_featured_image;
+    const hasUserUploadedSections = props.article?.variation_metadata?.image_sections?.length > 0;
+    
+    if (hasArticleImages || hasUserUploadedImage || hasUserUploadedSections || imagePollingTimer) {
         return;
     }
 

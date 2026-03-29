@@ -3,9 +3,19 @@
 
     <OrganizationLayout>
         <div class="p-8">
-            <div class="mb-8">
-                <h1 class="text-3xl font-bold text-white mb-2">Global Article Generator</h1>
-                <p class="text-gray-400">Generate an article once and push it automatically to multiple websites</p>
+            <div class="mb-8 flex items-center justify-between">
+                <div>
+                    <div class="flex items-center gap-3 mb-2">
+                        <Link :href="route('organization.global-articles.theme-select')" class="text-gray-400 hover:text-white transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                        </Link>
+                        <h1 class="text-3xl font-bold text-white">Global Article Generator</h1>
+                        <span v-if="themeName" class="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-sm font-medium">{{ themeName }}</span>
+                    </div>
+                    <p class="text-gray-400">Generate an article once and push it automatically to multiple websites</p>
+                </div>
             </div>
 
             <!-- API Key Warning -->
@@ -122,8 +132,8 @@
                                 <p class="mt-1 text-xs text-gray-500">Separate keywords with commas</p>
                             </div>
 
-                            <!-- Article Type Selection -->
-                            <div>
+                            <!-- Article Type Selection - Hidden for Home Decor -->
+                            <div v-if="selectedTheme !== 'home-decor'">
                                 <label class="block text-sm font-medium text-gray-300 mb-2">
                                     Article Type
                                 </label>
@@ -174,8 +184,8 @@
                                 <p class="mt-2 text-xs text-gray-500">Recipe articles appear at /recipes/slug, while regular articles appear directly at /slug</p>
                             </div>
 
-                            <!-- Ingredients -->
-                            <div>
+                            <!-- Ingredients - Hidden for Home Decor -->
+                            <div v-if="selectedTheme !== 'home-decor'">
                                 <label class="block text-sm font-medium text-gray-300 mb-2">
                                     Ingredients (Optional)
                                 </label>
@@ -188,82 +198,183 @@
                                 <p class="mt-1 text-xs text-gray-500">Enter ingredients manually, or leave empty for AI to generate them</p>
                             </div>
 
-                            <!-- Multiple Featured Images -->
-                            <div class="space-y-4">
-                                <label class="block text-sm font-medium text-gray-300">
-                                    Featured Images (Optional)
-                                </label>
-                                <p class="text-xs text-gray-500">Upload multiple images at once. These images will be distributed sequentially to the selected websites.</p>
-                                
-                                <!-- Multiple Image Upload with Label -->
-                                <label 
-                                    for="multipleImageUpload"
-                                    @dragover.prevent="isDragging = true"
-                                    @dragleave.prevent="isDragging = false"
-                                    @drop.prevent="handleMultipleDrop"
-                                    :class="[
-                                        'border-2 border-dashed rounded-lg p-8 text-center transition-all block',
-                                        isUploading ? 'cursor-wait opacity-70' : 'cursor-pointer',
-                                        isDragging ? 'border-emerald-500 bg-emerald-900/20' : 'border-[#3a3a3a] hover:border-[#4a4a4a]'
-                                    ]"
-                                >
-                                    <input
-                                        id="multipleImageUpload"
-                                        type="file"
-                                        accept="image/jpeg,image/png,image/gif,image/webp"
-                                        multiple
-                                        class="sr-only"
-                                        @change="handleMultipleFileSelect"
-                                        :disabled="isUploading"
+            <!-- Multiple Featured Images -->
+            <div class="space-y-4">
+                <label class="block text-sm font-medium text-gray-300">
+                    Featured Images (Optional)
+                </label>
+                
+                <!-- Home Decor: Multi-image with titles -->
+                <div v-if="selectedTheme === 'home-decor'">
+                    <p class="text-xs text-gray-500 mb-4">Upload multiple images for your home decor article. Each image will have its own title and AI-generated paragraph.</p>
+                    
+                    <!-- Upload Button -->
+                    <label 
+                        for="multipleImageUpload"
+                        @dragover.prevent="isDragging = true"
+                        @dragleave.prevent="isDragging = false"
+                        @drop.prevent="handleMultipleDrop"
+                        :class="[
+                            'border-2 border-dashed rounded-lg p-8 text-center transition-all block',
+                            isUploading ? 'cursor-wait opacity-70' : 'cursor-pointer',
+                            isDragging ? 'border-amber-500 bg-amber-900/20' : 'border-[#3a3a3a] hover:border-[#4a4a4a]'
+                        ]"
+                    >
+                        <input
+                            id="multipleImageUpload"
+                            type="file"
+                            accept="image/jpeg,image/png,image/gif,image/webp"
+                            multiple
+                            class="sr-only"
+                            @change="handleMultipleFileSelect"
+                            :disabled="isUploading"
+                        />
+                        <div class="flex flex-col items-center">
+                            <div v-if="isUploading" class="w-12 h-12 bg-[#252525] rounded-lg flex items-center justify-center mb-3">
+                                <svg class="animate-spin w-6 h-6 text-amber-500" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </div>
+                            <div v-else class="w-12 h-12 bg-[#252525] rounded-lg flex items-center justify-center mb-3">
+                                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <p class="text-white text-sm font-medium mb-1">
+                                {{ isUploading ? 'Uploading images...' : 'Drop images here or click to browse' }}
+                            </p>
+                            <p class="text-gray-500 text-xs">
+                                PNG, JPG, WebP up to 5MB each
+                            </p>
+                        </div>
+                    </label>
+                    
+                    <!-- Upload Error -->
+                    <div v-if="uploadError" class="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg text-sm mt-4">
+                        {{ uploadError }}
+                    </div>
+                    
+                    <!-- Uploaded Images with Title Inputs -->
+                    <div v-if="uploadedImagesWithTitles.length > 0" class="mt-6 space-y-4">
+                        <h4 class="text-sm font-medium text-gray-300">Uploaded Images ({{ uploadedImagesWithTitles.length }})</h4>
+                        <div 
+                            v-for="(item, index) in uploadedImagesWithTitles" 
+                            :key="index"
+                            class="bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg p-4"
+                        >
+                            <div class="flex gap-4">
+                                <!-- Image Preview -->
+                                <div class="relative shrink-0 group">
+                                    <img 
+                                        :src="item.url" 
+                                        :alt="`Image ${index + 1}`"
+                                        class="w-32 h-32 object-cover rounded-lg border border-[#3a3a3a]"
                                     />
-                                    <div class="flex flex-col items-center">
-                                        <div v-if="isUploading" class="w-12 h-12 bg-[#252525] rounded-lg flex items-center justify-center mb-3">
-                                            <svg class="animate-spin w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                        </div>
-                                        <div v-else class="w-12 h-12 bg-[#252525] rounded-lg flex items-center justify-center mb-3">
-                                            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                            </svg>
-                                        </div>
-                                        <p class="text-white text-sm font-medium mb-1">
-                                            {{ isUploading ? 'Uploading images...' : 'Drop multiple images here or click to browse' }}
-                                        </p>
-                                        <p class="text-gray-500 text-xs">
-                                            PNG, JPG, WebP up to 5MB each
-                                        </p>
-                                    </div>
-                                </label>
-                                
-                                <!-- Upload Error -->
-                                <div v-if="uploadError" class="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg text-sm">
-                                    {{ uploadError }}
+                                    <button 
+                                        type="button"
+                                        @click="removeImageAt(index)"
+                                        class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
                                 </div>
                                 
-                                <!-- Uploaded Images Preview -->
-                                <div v-if="uploadedImages.length > 0" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                    <div v-for="(img, index) in uploadedImages" :key="index" class="relative group">
-                                        <div class="absolute -top-2 -right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button 
-                                                type="button"
-                                                @click="removeImageAt(index)"
-                                                class="w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg"
-                                            >
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                        <img 
-                                            :src="img" 
-                                            :alt="`Featured image ${index + 1}`"
-                                            class="w-full h-32 object-cover rounded-lg border border-[#3a3a3a]"
-                                        />
-                                    </div>
+                                <!-- Title Input -->
+                                <div class="flex-1">
+                                    <label class="block text-sm font-medium text-gray-400 mb-2">
+                                        Image {{ index + 1 }} Title *
+                                    </label>
+                                    <input
+                                        v-model="item.title"
+                                        type="text"
+                                        required
+                                        placeholder="e.g., 'Modern Living Room Design' or 'Cozy Bedroom Setup'"
+                                        class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:ring-2 focus:ring-amber-500"
+                                    />
+                                    <p class="mt-1 text-xs text-gray-500">AI will generate a descriptive paragraph for this image based on the title</p>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recipe/Crochet: Simple multi-image upload -->
+                <div v-else>
+                    <p class="text-xs text-gray-500 mb-4">Upload multiple images at once. These images will be distributed sequentially to the selected websites.</p>
+                    
+                    <!-- Multiple Image Upload with Label -->
+                    <label 
+                        for="multipleImageUpload"
+                        @dragover.prevent="isDragging = true"
+                        @dragleave.prevent="isDragging = false"
+                        @drop.prevent="handleMultipleDrop"
+                        :class="[
+                            'border-2 border-dashed rounded-lg p-8 text-center transition-all block',
+                            isUploading ? 'cursor-wait opacity-70' : 'cursor-pointer',
+                            isDragging ? 'border-emerald-500 bg-emerald-900/20' : 'border-[#3a3a3a] hover:border-[#4a4a4a]'
+                        ]"
+                    >
+                        <input
+                            id="multipleImageUpload"
+                            type="file"
+                            accept="image/jpeg,image/png,image/gif,image/webp"
+                            multiple
+                            class="sr-only"
+                            @change="handleMultipleFileSelect"
+                            :disabled="isUploading"
+                        />
+                        <div class="flex flex-col items-center">
+                            <div v-if="isUploading" class="w-12 h-12 bg-[#252525] rounded-lg flex items-center justify-center mb-3">
+                                <svg class="animate-spin w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </div>
+                            <div v-else class="w-12 h-12 bg-[#252525] rounded-lg flex items-center justify-center mb-3">
+                                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <p class="text-white text-sm font-medium mb-1">
+                                {{ isUploading ? 'Uploading images...' : 'Drop multiple images here or click to browse' }}
+                            </p>
+                            <p class="text-gray-500 text-xs">
+                                PNG, JPG, WebP up to 5MB each
+                            </p>
+                        </div>
+                    </label>
+                    
+                    <!-- Upload Error -->
+                    <div v-if="uploadError" class="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg text-sm mt-4">
+                        {{ uploadError }}
+                    </div>
+                    
+                    <!-- Uploaded Images Preview -->
+                    <div v-if="uploadedImages.length > 0" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+                        <div v-for="(img, index) in uploadedImages" :key="index" class="relative group">
+                            <div class="absolute -top-2 -right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button 
+                                    type="button"
+                                    @click="removeImageAt(index)"
+                                    class="w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg"
+                                >
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <img 
+                                :src="img" 
+                                :alt="`Featured image ${index + 1}`"
+                                class="w-full h-32 object-cover rounded-lg border border-[#3a3a3a]"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
 
                             <!-- Submit Button -->
                             <div class="flex justify-end pt-4 border-t border-[#2a2a2a]">
@@ -375,6 +486,14 @@ const props = defineProps({
     defaultTone: {
         type: String,
         default: 'conversational'
+    },
+    selectedTheme: {
+        type: String,
+        default: null
+    },
+    themeName: {
+        type: String,
+        default: ''
     }
 });
 
@@ -382,7 +501,9 @@ const selectedWebsites = ref([]);
 const isDragging = ref(false);
 const isUploading = ref(false);
 const uploadError = ref('');
-const uploadedImages = ref([]); // Separate reactive array for images
+const uploadedImages = ref([]); // For recipe/crochet: simple array of image URLs
+const uploadedImagesWithTitles = ref([]); // For home-decor: array of {url, title}
+const selectedTheme = ref(props.selectedTheme || null);
 
 const form = useForm({
     topic: '',
@@ -438,7 +559,16 @@ const uploadMultipleImages = async (files) => {
             });
             
             if (response.data && response.data.success) {
-                uploadedImages.value.push(response.data.url);
+                // Home decor: store with title placeholder
+                if (selectedTheme.value === 'home-decor') {
+                    uploadedImagesWithTitles.value.push({
+                        url: response.data.url,
+                        title: ''
+                    });
+                } else {
+                    // Recipe/Crochet: store URL only
+                    uploadedImages.value.push(response.data.url);
+                }
             } else {
                 errors.push(file.name + ': Upload failed');
             }
@@ -456,7 +586,11 @@ const uploadMultipleImages = async (files) => {
 };
 
 const removeImageAt = (index) => {
-    uploadedImages.value.splice(index, 1);
+    if (selectedTheme.value === 'home-decor') {
+        uploadedImagesWithTitles.value.splice(index, 1);
+    } else {
+        uploadedImages.value.splice(index, 1);
+    }
 };
 
 const toggleWebsite = (id) => {
@@ -478,10 +612,26 @@ const deselectAllWebsites = () => {
 
 const submitForm = () => {
     form.website_ids = selectedWebsites.value;
+    
+    // Prepare featured images data based on theme
+    let featuredImagesData;
+    if (selectedTheme.value === 'home-decor') {
+        // Validate that all images have titles
+        const missingTitles = uploadedImagesWithTitles.value.some(item => !item.title || item.title.trim() === '');
+        if (missingTitles) {
+            uploadError.value = 'Please provide titles for all uploaded images';
+            return;
+        }
+        featuredImagesData = uploadedImagesWithTitles.value;
+    } else {
+        featuredImagesData = uploadedImages.value;
+    }
+    
     form.transform((data) => ({
         ...data,
-        featured_images: uploadedImages.value,
-        article_type: form.article_type, // Explicitly include article_type
+        featured_images: featuredImagesData,
+        article_type: form.article_type,
+        theme: selectedTheme.value,
     })).post(route('organization.global-articles.generate'), {
         onSuccess: () => {
             // Reset form fields
@@ -489,15 +639,19 @@ const submitForm = () => {
             form.tone = props.defaultTone;
             form.length = 'medium';
             form.auto_publish = false;
-            form.article_type = 'recipe'; // Reset article type to default
+            form.article_type = 'recipe';
             
             // Clear uploaded images
             uploadedImages.value = [];
+            uploadedImagesWithTitles.value = [];
             
             // Clear selected websites
             selectedWebsites.value = [];
             
             // Flash message handled by inertia
+        },
+        onError: () => {
+            // Error handled by form.errors
         }
     });
 };

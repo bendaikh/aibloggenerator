@@ -42,6 +42,7 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
     protected array $featuredImages = [];
     protected string $articleType = 'recipe';
     protected ?int $variationIndex = null;
+    protected ?string $theme = null;
 
     /**
      * Create a new job instance.
@@ -58,7 +59,8 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
         bool $autoPublish = false,
         array $featuredImages = [],
         string $articleType = 'recipe',
-        ?int $variationIndex = null
+        ?int $variationIndex = null,
+        ?string $theme = null
     ) {
         $this->generationJobIds = $generationJobIds;
         $this->websiteIds = $websiteIds;
@@ -72,6 +74,7 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
         $this->featuredImages = $featuredImages;
         $this->articleType = $articleType;
         $this->variationIndex = $variationIndex;
+        $this->theme = $theme;
     }
 
     /**
@@ -289,10 +292,19 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                 $featuredImage = null;
                 $secondaryImage = null;
                 if ($imageCount > 0) {
-                    $featuredImage = $this->featuredImages[$vIndex % $imageCount];
-                    // If there are at least 2 images, use the next one as secondary
-                    if ($imageCount >= 2) {
-                        $secondaryImage = $this->featuredImages[($vIndex + 1) % $imageCount];
+                    // For home-decor with multi-image titles, extract URLs
+                    if ($this->theme === 'home-decor' && is_array($this->featuredImages[0] ?? null) && isset($this->featuredImages[0]['url'])) {
+                        // Extract just the URLs for featured/secondary images
+                        $featuredImage = $this->featuredImages[$vIndex % $imageCount]['url'] ?? null;
+                        if ($imageCount >= 2) {
+                            $secondaryImage = $this->featuredImages[($vIndex + 1) % $imageCount]['url'] ?? null;
+                        }
+                    } else {
+                        // Regular image handling (recipe/crochet themes)
+                        $featuredImage = $this->featuredImages[$vIndex % $imageCount];
+                        if ($imageCount >= 2) {
+                            $secondaryImage = $this->featuredImages[($vIndex + 1) % $imageCount];
+                        }
                     }
                 }
 
@@ -327,6 +339,16 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                     ]);
                 }
 
+                // Prepare variation metadata with image sections for home decor
+                $variationMetadata = [];
+                if ($this->theme === 'home-decor' && !empty($this->featuredImages) && is_array($this->featuredImages[0] ?? null) && isset($this->featuredImages[0]['url'])) {
+                    $variationMetadata['image_sections'] = $this->featuredImages;
+                    Log::info("Storing image sections in variation_metadata", [
+                        'website_id' => $websiteId,
+                        'image_count' => count($this->featuredImages)
+                    ]);
+                }
+
                 // Create the article
                 $article = Article::create([
                     'website_id' => $website->id,
@@ -355,6 +377,7 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                     'generation_type' => 'ai',
                     'generation_mode' => 'full_ai',
                     'article_type' => $effectiveArticleType,
+                    'variation_metadata' => !empty($variationMetadata) ? $variationMetadata : null,
                 ]);
 
                 if ($generationJob) {
@@ -542,6 +565,13 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                         
                         try {
                             $articleData = $variationEngine->createVariation($masterParsed, $index);
+                            
+                            // For home-decor with multi-image titles: shuffle the order of image sections in content
+                            if ($this->theme === 'home-decor' && !empty($this->featuredImages) && is_array($this->featuredImages[0] ?? null) && isset($this->featuredImages[0]['title'])) {
+                                $articleData['content'] = $this->shuffleHomeDecorImageSections($articleData['content'], $index);
+                                Log::info("Shuffled image sections for home decor variation {$index}");
+                            }
+                            
                             Log::info("Variation {$index} created successfully for website {$websiteId}");
                         } catch (\Exception $variationError) {
                             // If variation fails, use master content as fallback
@@ -565,9 +595,18 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                     $featuredImage = null;
                     $secondaryImage = null;
                     if ($imageCount > 0) {
-                        $featuredImage = $this->featuredImages[$index % $imageCount];
-                        if ($imageCount >= 2) {
-                            $secondaryImage = $this->featuredImages[($index + 1) % $imageCount];
+                        // For home-decor with multi-image titles, extract URLs
+                        if ($this->theme === 'home-decor' && is_array($this->featuredImages[0] ?? null) && isset($this->featuredImages[0]['url'])) {
+                            $featuredImage = $this->featuredImages[$index % $imageCount]['url'] ?? null;
+                            if ($imageCount >= 2) {
+                                $secondaryImage = $this->featuredImages[($index + 1) % $imageCount]['url'] ?? null;
+                            }
+                        } else {
+                            // Regular image handling
+                            $featuredImage = $this->featuredImages[$index % $imageCount];
+                            if ($imageCount >= 2) {
+                                $secondaryImage = $this->featuredImages[($index + 1) % $imageCount];
+                            }
                         }
                     }
 
@@ -606,6 +645,30 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                         ]);
                     }
 
+                    // Prepare variation metadata with image sections for home decor
+                    $variationMetadata = [];
+                    if ($this->theme === 'home-decor' && !empty($this->featuredImages) && is_array($this->featuredImages[0] ?? null) && isset($this->featuredImages[0]['url'])) {
+                        // For variations, shuffle the image order (must match the content section order)
+                        $imageSections = $this->featuredImages;
+                        if (!$isMaster && $index > 0) {
+                            // Shuffle images for variations based on index - use same seed as shuffleHomeDecorImageSections
+                            $imageSections = $this->getShuffledImageSections($index);
+                        }
+                        $variationMetadata['image_sections'] = $imageSections;
+                        Log::info("Storing image sections in variation_metadata (Hybrid)", [
+                            'website_id' => $websiteId,
+                            'is_master' => $isMaster,
+                            'image_count' => count($imageSections),
+                            'image_order' => array_map(fn($img) => $img['title'] ?? 'no-title', $imageSections)
+                        ]);
+                    }
+                    
+                    if (!$isMaster) {
+                        $variationMetadata['rewritten_locally'] = true;
+                        $variationMetadata['variation_index'] = $index;
+                        $variationMetadata['created_at'] = now()->toISOString();
+                    }
+
                     // Create article
                     $article = Article::create([
                         'website_id' => $website->id,
@@ -636,11 +699,7 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                         'generation_mode' => 'hybrid_rewrite',
                         'article_type' => $effectiveArticleType,
                         'variation_index' => $isMaster ? null : $index,
-                        'variation_metadata' => $isMaster ? null : [
-                            'rewritten_locally' => true,
-                            'variation_index' => $index,
-                            'created_at' => now()->toISOString(),
-                        ],
+                        'variation_metadata' => !empty($variationMetadata) ? $variationMetadata : null,
                     ]);
 
                     // Link variations to master
@@ -1077,6 +1136,25 @@ PROMPT;
      */
     private function buildHomeDecorPrompt(string $wordCount, string $variationStyle, int $randomSeed, int $variationIndex, string $keywordsText): string
     {
+        // Check if we have multi-image with titles (for home-decor theme)
+        $hasImageTitles = !empty($this->featuredImages) && 
+                         is_array($this->featuredImages[0] ?? null) && 
+                         isset($this->featuredImages[0]['title']);
+        
+        $imageTitlesSection = '';
+        if ($hasImageTitles && $this->theme === 'home-decor') {
+            $imageTitlesSection = "\n\nIMAGE SECTIONS (CRITICAL - MUST INCLUDE):\n";
+            $imageTitlesSection .= "The user has uploaded " . count($this->featuredImages) . " images with specific titles. You MUST create a section for EACH image with its exact title as an H2 header:\n\n";
+            
+            foreach ($this->featuredImages as $index => $imageData) {
+                $imageTitle = $imageData['title'] ?? '';
+                $imageTitlesSection .= ($index + 1) . ". <h2>{$imageTitle}</h2> - Write 3-4 detailed paragraphs about this specific design/space. Each paragraph MUST start with <strong>Title:</strong>\n";
+            }
+            
+            $imageTitlesSection .= "\n⚠️ CRITICAL: You MUST include ALL " . count($this->featuredImages) . " image sections in order with their exact titles as H2 headers.\n";
+            $imageTitlesSection .= "Structure: Introduction (2-3 paragraphs without H2) → Image Section 1 → Image Section 2 → ... → Image Section " . count($this->featuredImages) . " → Optional FAQ/Conclusion\n";
+        }
+        
         return <<<PROMPT
 You are a professional home decor and lifestyle blog writer who creates stunning, visually-inspiring content.
 
@@ -1089,7 +1167,7 @@ UNIQUENESS REQUIREMENT (Variation #{$variationIndex}, Seed: {$randomSeed}):
 - {$variationStyle}
 - Use different examples, metaphors, and explanations than typical articles
 - Create a fresh, original perspective that stands out
-
+{$imageTitlesSection}
 ⚠️ CRITICAL STRUCTURE FOR LIST ARTICLES - READ VERY CAREFULLY ⚠️
 If this is a "list" article (e.g., "Top 8 Villas", "Best 15 Living Rooms", "10 Luxury Bedrooms", etc.):
 
@@ -2128,10 +2206,20 @@ PROMPT;
     /**
      * Check if the website uses home-decor theme and dispatch AI image generation if needed.
      * This automatically generates images for "list" articles (e.g., "Top 10 Homes").
+     * SKIPS if user has provided their own images.
      */
     private function dispatchAIImageGenerationIfNeeded(Article $article, Website $website, User $user, string $content): void
     {
         try {
+            // SKIP AI image generation if user has uploaded their own images
+            if (!empty($this->featuredImages)) {
+                Log::info("AI Image Generation: Skipping - user provided images", [
+                    'article_id' => $article->id,
+                    'user_images_count' => count($this->featuredImages)
+                ]);
+                return;
+            }
+            
             // Check if website uses home-decor theme
             // Use theme() method to get the relationship, not the theme column (which is a string)
             $websiteTheme = $website->theme()->first();
@@ -2280,6 +2368,131 @@ PROMPT;
                 'website_id' => $website->id,
                 'error' => $e->getMessage()
             ]);
+        }
+    }
+
+    /**
+     * Get the shuffled order of image sections for a given variation index
+     * This ensures consistency between content section order and image_sections in variation_metadata
+     */
+    private function getShuffledImageSections(int $variationIndex): array
+    {
+        $imageSections = $this->featuredImages;
+        
+        if (count($imageSections) < 2) {
+            return $imageSections;
+        }
+        
+        // Extract titles to determine shuffle order
+        $imageTitles = array_map(fn($img) => $img['title'] ?? '', $imageSections);
+        $originalTitles = $imageTitles;
+        
+        // Use same seed as shuffleHomeDecorImageSections for consistency
+        mt_srand($variationIndex * 54321);
+        shuffle($imageTitles);
+        mt_srand();
+        
+        // If shuffle resulted in same order, rotate by 1
+        if ($imageTitles === $originalTitles) {
+            $first = array_shift($imageTitles);
+            $imageTitles[] = $first;
+        }
+        
+        // Reorder imageSections based on shuffled titles
+        $shuffledSections = [];
+        foreach ($imageTitles as $title) {
+            foreach ($imageSections as $section) {
+                if (($section['title'] ?? '') === $title) {
+                    $shuffledSections[] = $section;
+                    break;
+                }
+            }
+        }
+        
+        return $shuffledSections;
+    }
+
+    /**
+     * Shuffle the order of image sections in home decor articles for variation
+     * This reorders the H2 sections that correspond to uploaded images with titles
+     * Uses simple regex-based approach instead of DOM parsing for reliability
+     */
+    private function shuffleHomeDecorImageSections(string $content, int $variationIndex): string
+    {
+        try {
+            // Extract image section titles from the uploaded images
+            $imageTitles = array_map(fn($img) => $img['title'] ?? '', $this->featuredImages);
+            $imageTitles = array_filter($imageTitles);
+            $imageTitles = array_values($imageTitles); // Re-index
+            
+            if (count($imageTitles) < 2) {
+                return $content; // Need at least 2 sections to shuffle
+            }
+            
+            // Get shuffled order (same algorithm as getShuffledImageSections)
+            $originalTitles = $imageTitles;
+            mt_srand($variationIndex * 54321);
+            $shuffledTitles = $imageTitles;
+            shuffle($shuffledTitles);
+            mt_srand();
+            
+            // If shuffle resulted in same order, rotate by 1
+            if ($shuffledTitles === $originalTitles) {
+                $first = array_shift($shuffledTitles);
+                $shuffledTitles[] = $first;
+            }
+            
+            Log::info("Shuffling home decor image sections", [
+                'variation_index' => $variationIndex,
+                'original_order' => $originalTitles,
+                'new_order' => $shuffledTitles
+            ]);
+            
+            // Extract each section using regex
+            $sections = [];
+            foreach ($originalTitles as $title) {
+                $escapedTitle = preg_quote($title, '/');
+                // Match H2 with this title and everything until next H2 or end
+                $pattern = '/(<h2[^>]*>.*?' . $escapedTitle . '.*?<\/h2>)(.*?)(?=<h2|$)/is';
+                if (preg_match($pattern, $content, $matches)) {
+                    $sections[$title] = $matches[1] . $matches[2];
+                }
+            }
+            
+            if (count($sections) < 2) {
+                Log::warning("Could not extract enough sections for shuffling", [
+                    'found_sections' => count($sections),
+                    'expected' => count($originalTitles)
+                ]);
+                return $content;
+            }
+            
+            // Find intro (content before first image section)
+            $firstTitle = $originalTitles[0];
+            $escapedFirstTitle = preg_quote($firstTitle, '/');
+            $introPattern = '/^(.*?)(?=<h2[^>]*>.*?' . $escapedFirstTitle . ')/is';
+            $intro = '';
+            if (preg_match($introPattern, $content, $introMatch)) {
+                $intro = $introMatch[1];
+            }
+            
+            // Rebuild content with shuffled sections
+            $newContent = $intro;
+            foreach ($shuffledTitles as $title) {
+                if (isset($sections[$title])) {
+                    $newContent .= $sections[$title];
+                }
+            }
+            
+            Log::info("Successfully shuffled image sections for variation {$variationIndex}");
+            return $newContent;
+            
+        } catch (\Exception $e) {
+            Log::warning("Failed to shuffle image sections, using original content", [
+                'variation_index' => $variationIndex,
+                'error' => $e->getMessage()
+            ]);
+            return $content;
         }
     }
 }

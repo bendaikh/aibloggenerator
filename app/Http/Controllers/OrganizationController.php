@@ -1408,12 +1408,45 @@ HTML;
     }
 
     /**
-     * Global Articles Index
+     * Global Articles Theme Selection
      */
-    public function globalArticlesIndex()
+    public function globalArticlesThemeSelect()
     {
         $user = Auth::user();
         $websites = Website::where('user_id', $user->id)
+            ->withCount(['articles', 'categories'])
+            ->get();
+
+        return Inertia::render('Organization/GlobalArticlesThemeSelect', [
+            'websites' => $websites,
+        ]);
+    }
+
+    /**
+     * Global Articles Index
+     */
+    public function globalArticlesIndex(Request $request)
+    {
+        $user = Auth::user();
+        
+        // Get theme filter from query parameter
+        $themeSlug = $request->query('theme');
+        
+        // If no theme selected, redirect to theme selection
+        if (!$themeSlug) {
+            return redirect()->route('organization.global-articles.theme-select');
+        }
+        
+        // Get the theme
+        $theme = \App\Models\Theme::where('slug', $themeSlug)->first();
+        if (!$theme) {
+            return redirect()->route('organization.global-articles.theme-select')
+                ->withErrors(['error' => 'Invalid theme selected']);
+        }
+        
+        // Get websites filtered by theme
+        $websites = Website::where('user_id', $user->id)
+            ->where('theme_id', $theme->id)
             ->withCount(['articles', 'categories'])
             ->get();
 
@@ -1421,6 +1454,8 @@ HTML;
             'websites' => $websites,
             'hasApiKey' => !empty($user->openai_api_key),
             'defaultTone' => $user->ai_default_tone ?? 'conversational',
+            'selectedTheme' => $themeSlug,
+            'themeName' => $theme->name,
         ]);
     }
 
@@ -1442,11 +1477,11 @@ HTML;
             'keywords' => 'nullable|string',
             'ingredients' => 'nullable|string|max:2000',
             'featured_images' => 'nullable|array',
-            'featured_images.*' => 'nullable|string|max:1000',
             'auto_publish' => 'boolean',
             'website_ids' => 'required|array|min:1',
             'website_ids.*' => 'exists:websites,id',
             'article_type' => 'nullable|in:recipe,article',
+            'theme' => 'nullable|string|in:recipe,home-decor,crochet',
         ]);
 
         // Replace hyphens with spaces in the topic (title)
@@ -1491,7 +1526,14 @@ HTML;
         }
 
         // Filter out empty images
-        $featuredImages = array_filter($validated['featured_images'] ?? [], fn($img) => !empty($img));
+        $featuredImages = array_filter($validated['featured_images'] ?? [], function($img) {
+            // For home-decor theme, images are {url, title} objects
+            // For other themes, images are just URL strings
+            if (is_array($img)) {
+                return !empty($img['url']);
+            }
+            return !empty($img);
+        });
 
         // Check the user's generation mode
         $generationMode = $user->article_generation_mode ?? 'full_ai';
@@ -1512,7 +1554,8 @@ HTML;
                 $validated['auto_publish'] ?? false,
                 $featuredImages,
                 $validated['article_type'] ?? 'recipe',
-                null
+                null,
+                $validated['theme'] ?? null
             );
 
             return redirect()->back()->with('success', 'Hybrid mode: Generating 1 master article + ' . (count($generationJobIds) - 1) . ' local variations for ' . count($generationJobIds) . ' websites. Only 1 API call will be made!');
@@ -1534,7 +1577,8 @@ HTML;
                     $validated['auto_publish'] ?? false,
                     $featuredImages,
                     $validated['article_type'] ?? 'recipe',
-                    $index++
+                    $index++,
+                    $validated['theme'] ?? null
                 );
             }
 

@@ -111,6 +111,7 @@ $registerMainAppRoutes = function () {
         Route::delete('/websites/{website}', [OrganizationController::class, 'websitesDestroy'])->name('organization.websites.destroy');
 
         // Global Articles
+        Route::get('/global-articles/theme-select', [OrganizationController::class, 'globalArticlesThemeSelect'])->name('organization.global-articles.theme-select');
         Route::get('/global-articles', [OrganizationController::class, 'globalArticlesIndex'])->name('organization.global-articles.index');
         Route::post('/global-articles/generate', [OrganizationController::class, 'globalArticlesGenerate'])->name('organization.global-articles.generate');
 
