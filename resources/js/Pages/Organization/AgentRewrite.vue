@@ -1,6 +1,7 @@
 <script setup>
 import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, router } from '@inertiajs/vue3';
+import { watch } from 'vue';
 
 const props = defineProps({
     settings: {
@@ -9,14 +10,33 @@ const props = defineProps({
     }
 });
 
+console.log('AgentRewrite component loaded with settings:', props.settings);
+
 const form = useForm({
     article_generation_mode: props.settings.article_generation_mode || 'full_ai',
     max_variations: props.settings.max_variations || 5,
 });
 
+// Watch for changes in props to detect when settings are updated
+watch(() => props.settings, (newSettings, oldSettings) => {
+    console.log('Settings props changed:', { old: oldSettings, new: newSettings });
+    // Update form values when props change
+    form.article_generation_mode = newSettings.article_generation_mode || 'full_ai';
+    form.max_variations = newSettings.max_variations || 5;
+}, { deep: true });
+
 const submitForm = () => {
+    console.log('Submitting form with data:', form.data());
     form.post(route('organization.agent-rewrite.update'), {
-        preserveScroll: true,
+        preserveScroll: false, // Changed to false to force full reload
+        onSuccess: () => {
+            console.log('Form submitted successfully');
+            // Force a full page reload to ensure fresh data
+            router.reload({ only: ['settings'] });
+        },
+        onError: (errors) => {
+            console.error('Form submission errors:', errors);
+        },
     });
 };
 </script>

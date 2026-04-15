@@ -9,6 +9,7 @@ use App\Models\Page;
 use App\Models\ArticleGenerationJob;
 use App\Models\Subscriber;
 use App\Models\Theme;
+use App\Models\User;
 use App\Jobs\GenerateGlobalAIArticleJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -203,10 +204,19 @@ class OrganizationController extends Controller
      */
     public function agentRewrite()
     {
-        $user = Auth::user();
+        // Force fresh user data from database, not from cache
+        $user = User::find(Auth::id());
+        
         $websites = Website::where('user_id', $user->id)
             ->withCount(['articles', 'categories'])
             ->get();
+
+        \Log::info('Loading Agent Rewrite Page', [
+            'user_id' => $user->id,
+            'user_role' => $user->role,
+            'article_generation_mode' => $user->article_generation_mode,
+            'max_variations' => $user->max_variations,
+        ]);
 
         return Inertia::render('Organization/AgentRewrite', [
             'settings' => [
@@ -222,15 +232,35 @@ class OrganizationController extends Controller
      */
     public function updateAgentRewrite(Request $request)
     {
-        $user = Auth::user();
+        // Force fresh user data from database
+        $user = User::find(Auth::id());
 
         $validated = $request->validate([
             'article_generation_mode' => 'required|in:full_ai,hybrid_rewrite',
             'max_variations' => 'required|integer|min:1|max:20',
         ]);
 
-        $user->update($validated);
+        \Log::info('Updating Agent Rewrite Settings', [
+            'user_id' => $user->id,
+            'user_role' => $user->role,
+            'before_article_generation_mode' => $user->article_generation_mode,
+            'before_max_variations' => $user->max_variations,
+            'requested_article_generation_mode' => $validated['article_generation_mode'],
+            'requested_max_variations' => $validated['max_variations'],
+        ]);
 
+        $updateResult = $user->update($validated);
+
+        // Refresh the user model to get the latest data from database
+        $user->refresh();
+
+        \Log::info('After Updating Agent Rewrite Settings', [
+            'user_id' => $user->id,
+            'update_result' => $updateResult,
+            'after_article_generation_mode' => $user->article_generation_mode,
+            'after_max_variations' => $user->max_variations,
+        ]);
+        
         return redirect()->back()->with('success', 'Agent Rewrite settings updated successfully!');
     }
 
