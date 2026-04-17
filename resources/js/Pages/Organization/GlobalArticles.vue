@@ -42,6 +42,16 @@
                     <span>{{ form.errors.error }}</span>
                 </div>
             </div>
+            
+            <!-- Upload Error Message -->
+            <div v-if="uploadError" class="bg-red-900/50 border border-red-500 text-red-200 px-6 py-4 rounded-lg mb-6">
+                <div class="flex items-center gap-3">
+                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>{{ uploadError }}</span>
+                </div>
+            </div>
 
             <!-- Success Message -->
             <div v-if="$page.props.flash?.success" class="bg-emerald-900/50 border border-emerald-500 text-emerald-200 px-6 py-4 rounded-lg mb-6">
@@ -58,15 +68,27 @@
                 <div class="lg:col-span-2 space-y-8">
                     <div class="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-8">
                         <form @submit.prevent="submitForm" class="space-y-6">
-                            <!-- Topic -->
-                            <div>
+                            <!-- Topic or Source URL (conditional based on theme) -->
+                            <div v-if="selectedTheme === 'crochet'">
+                                <label class="block text-sm font-medium text-gray-300 mb-2">
+                                    Article Source URL *
+                                </label>
+                                <input
+                                    v-model="form.source_url"
+                                    type="url"
+                                    placeholder="e.g., 'https://example.com/crochet-pattern'"
+                                    class="w-full px-4 py-3 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:ring-2 focus:ring-emerald-500 text-lg"
+                                />
+                                <p v-if="form.errors.source_url" class="mt-1 text-sm text-red-500">{{ form.errors.source_url }}</p>
+                                <p class="mt-1 text-xs text-gray-500">Paste the article URL. The AI will read and rewrite the content to avoid copyright issues.</p>
+                            </div>
+                            <div v-else>
                                 <label class="block text-sm font-medium text-gray-300 mb-2">
                                     Article Topic *
                                 </label>
                                 <input
                                     v-model="form.topic"
                                     type="text"
-                                    required
                                     placeholder="e.g., 'Best Italian Pasta Recipes for Beginners'"
                                     class="w-full px-4 py-3 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:ring-2 focus:ring-emerald-500 text-lg"
                                 />
@@ -507,6 +529,7 @@ const selectedTheme = ref(props.selectedTheme || null);
 
 const form = useForm({
     topic: '',
+    source_url: '',
     tone: props.defaultTone,
     length: 'medium',
     keywords: '',
@@ -627,15 +650,34 @@ const submitForm = () => {
         featuredImagesData = uploadedImages.value;
     }
     
+    // For crochet theme: validate source_url and use it as topic
+    if (selectedTheme.value === 'crochet') {
+        if (!form.source_url || form.source_url.trim() === '') {
+            uploadError.value = 'Please provide a source URL for the crochet article';
+            return;
+        }
+        // Set topic to source_url for crochet theme (will be replaced after fetching)
+        form.topic = form.source_url;
+    } else {
+        // For other themes: validate topic
+        if (!form.topic || form.topic.trim() === '') {
+            uploadError.value = 'Please provide an article topic';
+            return;
+        }
+        // Clear source_url for non-crochet themes
+        form.source_url = '';
+    }
+    
     form.transform((data) => ({
         ...data,
         featured_images: featuredImagesData,
         article_type: form.article_type,
         theme: selectedTheme.value,
+        source_url: form.source_url, // Explicitly include source_url
     })).post(route('organization.global-articles.generate'), {
         onSuccess: () => {
             // Reset form fields
-            form.reset('topic', 'keywords', 'ingredients');
+            form.reset('topic', 'source_url', 'keywords', 'ingredients');
             form.tone = props.defaultTone;
             form.length = 'medium';
             form.auto_publish = false;
@@ -648,10 +690,14 @@ const submitForm = () => {
             // Clear selected websites
             selectedWebsites.value = [];
             
+            // Clear error messages
+            uploadError.value = '';
+            
             // Flash message handled by inertia
         },
-        onError: () => {
+        onError: (errors) => {
             // Error handled by form.errors
+            console.error('Form submission error:', errors);
         }
     });
 };

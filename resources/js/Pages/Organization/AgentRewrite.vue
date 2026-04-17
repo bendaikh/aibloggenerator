@@ -28,11 +28,11 @@ watch(() => props.settings, (newSettings, oldSettings) => {
 const submitForm = () => {
     console.log('Submitting form with data:', form.data());
     form.post(route('organization.agent-rewrite.update'), {
-        preserveScroll: false, // Changed to false to force full reload
+        preserveScroll: false,
         onSuccess: () => {
             console.log('Form submitted successfully');
-            // Force a full page reload to ensure fresh data
-            router.reload({ only: ['settings'] });
+            // Force a complete page reload to get fresh data
+            window.location.reload();
         },
         onError: (errors) => {
             console.error('Form submission errors:', errors);

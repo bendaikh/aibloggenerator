@@ -14,6 +14,7 @@ use App\Jobs\GenerateGlobalAIArticleJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Carbon\Carbon;
@@ -232,12 +233,18 @@ class OrganizationController extends Controller
      */
     public function updateAgentRewrite(Request $request)
     {
+        \Log::info('UPDATE AGENT REWRITE REQUEST RECEIVED', [
+            'method' => $request->method(),
+            'url' => $request->fullUrl(),
+            'all_input' => $request->all(),
+        ]);
+
         // Force fresh user data from database
         $user = User::find(Auth::id());
 
         $validated = $request->validate([
             'article_generation_mode' => 'required|in:full_ai,hybrid_rewrite',
-            'max_variations' => 'required|integer|min:1|max:20',
+            'max_variations' => 'required|integer|min:1|max:100',
         ]);
 
         \Log::info('Updating Agent Rewrite Settings', [
@@ -253,6 +260,12 @@ class OrganizationController extends Controller
 
         // Refresh the user model to get the latest data from database
         $user->refresh();
+
+        // Force refresh the authenticated user in the session
+        // This ensures the next request gets the fresh data
+        if (Auth::id() === $user->id) {
+            Auth::setUser($user);
+        }
 
         \Log::info('After Updating Agent Rewrite Settings', [
             'user_id' => $user->id,
@@ -302,7 +315,7 @@ class OrganizationController extends Controller
             'ai_model' => 'required|in:gpt-4o,gpt-4-turbo,gpt-3.5-turbo',
             'ai_default_tone' => 'required|in:conversational,professional,casual,friendly,formal',
             'article_generation_mode' => 'required|in:full_ai,hybrid_rewrite',
-            'max_variations' => 'required|integer|min:1|max:20',
+            'max_variations' => 'required|integer|min:1|max:100',
         ]);
 
         $updateData = [
@@ -1512,7 +1525,8 @@ HTML;
         }
 
         $validated = $request->validate([
-            'topic' => 'required|string|max:255',
+            'topic' => 'nullable|string|max:255',
+            'source_url' => 'nullable|url|max:500',
             'tone' => 'nullable|string|in:professional,casual,friendly,formal,conversational',
             'length' => 'nullable|string|in:short,medium,long',
             'keywords' => 'nullable|string',
@@ -1525,8 +1539,22 @@ HTML;
             'theme' => 'nullable|string|in:recipe,home-decor,crochet',
         ]);
 
-        // Replace hyphens with spaces in the topic (title)
-        $validated['topic'] = str_replace('-', ' ', $validated['topic']);
+        // Ensure either topic or source_url is provided
+        if (empty($validated['topic']) && empty($validated['source_url'])) {
+            return back()->withErrors([
+                'error' => 'Please provide either an article topic or a source URL.'
+            ]);
+        }
+
+        // For crochet theme with source_url, use URL as topic temporarily (will be replaced after fetching)
+        if (!empty($validated['source_url'])) {
+            $validated['topic'] = $validated['source_url'];
+        }
+
+        // Replace hyphens with spaces in the topic (title) - only if it's not a URL
+        if (empty($validated['source_url'])) {
+            $validated['topic'] = str_replace('-', ' ', $validated['topic']);
+        }
 
         $websiteIds = $validated['website_ids'];
         $generationJobIds = [];
@@ -1583,21 +1611,40 @@ HTML;
             // HYBRID MODE: Dispatch ONE job with ALL websites
             // This generates 1 master article via AI + local variations for other websites
             // Cost: 1 API call total (regardless of website count)
-            GenerateGlobalAIArticleJob::dispatch(
-                $generationJobIds,
-                array_keys($generationJobIds),
-                $user->id,
-                $validated['topic'],
-                $validated['tone'] ?? $user->ai_default_tone ?? 'conversational',
-                $validated['length'] ?? 'medium',
-                $validated['keywords'] ?? '',
-                $validated['ingredients'] ?? '',
-                $validated['auto_publish'] ?? false,
-                $featuredImages,
-                $validated['article_type'] ?? 'recipe',
-                null,
-                $validated['theme'] ?? null
-            );
+            
+            Log::info('About to dispatch hybrid job', [
+                'topic' => $validated['topic'],
+                'source_url' => $validated['source_url'] ?? null,
+                'theme' => $validated['theme'] ?? null,
+                'website_count' => count($generationJobIds)
+            ]);
+            
+            try {
+                GenerateGlobalAIArticleJob::dispatch(
+                    $generationJobIds,
+                    array_keys($generationJobIds),
+                    $user->id,
+                    $validated['topic'],
+                    $validated['tone'] ?? $user->ai_default_tone ?? 'conversational',
+                    $validated['length'] ?? 'medium',
+                    $validated['keywords'] ?? '',
+                    $validated['ingredients'] ?? '',
+                    $validated['auto_publish'] ?? false,
+                    $featuredImages,
+                    $validated['article_type'] ?? 'recipe',
+                    null,
+                    $validated['theme'] ?? null,
+                    $validated['source_url'] ?? null
+                );
+                
+                Log::info('Hybrid job dispatched successfully');
+            } catch (\Exception $e) {
+                Log::error('Failed to dispatch hybrid job', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return back()->withErrors(['error' => 'Failed to dispatch job: ' . $e->getMessage()]);
+            }
 
             return redirect()->back()->with('success', 'Hybrid mode: Generating 1 master article + ' . (count($generationJobIds) - 1) . ' local variations for ' . count($generationJobIds) . ' websites. Only 1 API call will be made!');
         } else {
@@ -1619,7 +1666,8 @@ HTML;
                     $featuredImages,
                     $validated['article_type'] ?? 'recipe',
                     $index++,
-                    $validated['theme'] ?? null
+                    $validated['theme'] ?? null,
+                    $validated['source_url'] ?? null
                 );
             }
 

@@ -126,46 +126,128 @@
                                     </button>
                                 </div>
 
+                                <!-- Gallery Images (Before Introduction) -->
+                                <div v-if="galleryImages.length > 0" class="mb-12 space-y-8">
+                                    <div class="text-center">
+                                        <h3 class="text-3xl font-black text-[#2D4A2D] mb-2">Project Gallery</h3>
+                                        <div class="w-16 h-1 bg-gradient-to-r from-[#588157] to-[#A44A3F] mx-auto rounded-full"></div>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div
+                                            v-for="(image, index) in galleryImages"
+                                            :key="image.id || index"
+                                            class="space-y-3 group"
+                                        >
+                                            <div class="relative rounded-2xl overflow-hidden shadow-lg border-4 border-[#FBF9F6] group-hover:border-[#A3B18A] transition-all duration-300">
+                                                <img
+                                                    :src="image.url || image.local_path"
+                                                    :alt="image.title"
+                                                    class="w-full h-auto group-hover:scale-105 transition-transform duration-500"
+                                                    loading="lazy"
+                                                />
+                                                <!-- Pinterest Pin Overlay -->
+                                                <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                    <a :href="getPinterestUrl(image.url || image.local_path, image.title)" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-[#E60023] text-white rounded-full font-bold text-xs hover:bg-[#bd081c] transition shadow-lg">
+                                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.627 0-12 5.372-12 12 0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/></svg>
+                                                        Pin
+                                                    </a>
+                                                </div>
+                                                <!-- Step Number Badge -->
+                                                <div class="absolute top-4 left-4 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg">
+                                                    <span class="text-sm font-black text-[#3A5A40]">{{ index + 1 }}</span>
+                                                </div>
+                                            </div>
+                                            <p v-if="image.title" class="text-center text-sm font-semibold text-[#6B8E6B]">
+                                                {{ image.title }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- Article Content -->
                                 <div class="prose prose-lg max-w-none article-content-crochet" v-html="processedContent"></div>
 
-                        <!-- Gallery Section -->
-                        <div v-if="galleryImages.length > 0" class="mt-16 space-y-8">
-                            <div class="text-center">
-                                <h3 class="text-3xl font-black text-[#2D4A2D] mb-2">Step-by-Step Guide</h3>
-                                <div class="w-16 h-1 bg-gradient-to-r from-[#588157] to-[#A44A3F] mx-auto rounded-full"></div>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div
-                                    v-for="(image, index) in galleryImages"
-                                    :key="image.id || index"
-                                    class="space-y-3 group"
-                                >
-                                    <div class="relative rounded-2xl overflow-hidden shadow-lg border-4 border-[#FBF9F6] group-hover:border-[#A3B18A] transition-all duration-300">
-                                        <img
-                                            :src="image.url || image.local_path"
-                                            :alt="image.title"
-                                            class="w-full h-auto group-hover:scale-105 transition-transform duration-500"
-                                            loading="lazy"
-                                        />
-                                        <!-- Pinterest Pin Overlay -->
-                                        <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                            <a :href="getPinterestUrl(image.url || image.local_path, image.title)" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-[#E60023] text-white rounded-full font-bold text-xs hover:bg-[#bd081c] transition shadow-lg">
-                                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.627 0-12 5.372-12 12 0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/></svg>
-                                                Pin
-                                            </a>
-                                        </div>
-                                        <!-- Step Number Badge -->
-                                        <div class="absolute top-4 left-4 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg">
-                                            <span class="text-sm font-black text-[#3A5A40]">{{ index + 1 }}</span>
+                                <!-- Rounds/Pattern Section (for crochet patterns) -->
+                                <div v-if="article.instructions && article.instructions.length > 0" id="pattern-section" class="mt-16 bg-gradient-to-br from-[#F0F4EF] to-[#FBF9F6] rounded-3xl p-8 md:p-12 border-4 border-[#E8F3E8] shadow-xl">
+                                    <div class="text-center mb-10">
+                                        <h2 class="text-4xl font-black text-[#2D4A2D] mb-3">Pattern Rounds</h2>
+                                        <div class="w-20 h-1 bg-gradient-to-r from-[#588157] to-[#A44A3F] mx-auto rounded-full"></div>
+                                        <p class="mt-4 text-[#6B8E6B] text-lg">Follow these rounds to create your masterpiece</p>
+                                    </div>
+                                    
+                                    <!-- Generate Rounds Button (shown when rounds not generated yet) -->
+                                    <div v-if="!roundsGenerated" class="text-center">
+                                        <button 
+                                            @click="generateRounds"
+                                            :disabled="isGeneratingRounds"
+                                            class="inline-flex items-center gap-3 bg-gradient-to-r from-[#588157] to-[#3A5A40] text-white px-12 py-5 rounded-2xl font-black text-lg shadow-2xl hover:shadow-xl hover:scale-105 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
+                                        >
+                                            <svg v-if="isGeneratingRounds" class="animate-spin w-6 h-6" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                            </svg>
+                                            <span>{{ isGeneratingRounds ? 'Generating Rounds...' : 'Generate Pattern Rounds' }}</span>
+                                        </button>
+                                        <p class="mt-4 text-sm text-[#6B8E6B] italic">Click to reveal the complete pattern with typing animation</p>
+                                    </div>
+                                    
+                                    <!-- Rounds Display with Checkboxes -->
+                                    <div v-if="roundsGenerated" class="space-y-4">
+                                        <div 
+                                            v-for="(round, index) in displayedRounds" 
+                                            :key="index"
+                                            class="bg-white rounded-2xl p-6 shadow-md border-l-4 border-[#588157] hover:shadow-lg transition-all duration-300"
+                                            :class="{ 'opacity-0 animate-fadeIn': index === displayedRounds.length - 1 }"
+                                        >
+                                            <div class="flex gap-4 items-start">
+                                                <!-- Checkbox -->
+                                                <div class="shrink-0 pt-1">
+                                                    <input 
+                                                        type="checkbox"
+                                                        :id="'round-' + index"
+                                                        v-model="checkedRounds[index]"
+                                                        class="w-6 h-6 text-[#588157] bg-white border-2 border-[#A3B18A] rounded focus:ring-[#588157] focus:ring-2 cursor-pointer transition-all"
+                                                    />
+                                                </div>
+                                                
+                                                <!-- Round Number Badge -->
+                                                <div class="shrink-0">
+                                                    <div class="w-12 h-12 bg-gradient-to-br from-[#588157] to-[#3A5A40] rounded-full flex items-center justify-center shadow-lg">
+                                                        <span class="text-white font-black text-lg">{{ index + 1 }}</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Round Text with Typing Effect -->
+                                                <label 
+                                                    :for="'round-' + index"
+                                                    class="flex-1 cursor-pointer"
+                                                    :class="{ 'line-through opacity-60': checkedRounds[index] }"
+                                                >
+                                                    <p class="text-[#344E41] text-base md:text-lg leading-relaxed font-medium">
+                                                        <span v-if="typingIndex === index">{{ typingText }}</span>
+                                                        <span v-else>{{ round }}</span>
+                                                        <span v-if="typingIndex === index && !typingComplete" class="inline-block w-0.5 h-5 bg-[#588157] ml-1 animate-pulse"></span>
+                                                    </p>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
-                                    <p v-if="image.title" class="text-center text-sm font-semibold text-[#6B8E6B]">
-                                        {{ image.title }}
-                                    </p>
+                                    
+                                    <div v-if="roundsGenerated" class="mt-8 p-6 bg-white/80 rounded-2xl border-2 border-dashed border-[#A3B18A]">
+                                        <div class="flex items-start gap-4">
+                                            <div class="text-3xl">💡</div>
+                                            <div>
+                                                <h3 class="text-lg font-black text-[#3A5A40] mb-2">Pro Tip</h3>
+                                                <p class="text-[#6B8E6B] text-sm">
+                                                    Use stitch markers to keep track of your rounds. Remember to count your stitches at the end of each round to ensure accuracy! Check off each round as you complete it.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
 
                         <!-- Tags -->
                         <div v-if="article.meta_tags && article.meta_tags.length > 0" class="mt-16 pt-10 border-t border-[#E8F3E8]">
@@ -403,6 +485,52 @@ const subscribeMessage = ref('');
 const subscribeSuccess = ref(false);
 const linkCopied = ref(false);
 
+// Rounds generation and typing animation
+const roundsGenerated = ref(false);
+const isGeneratingRounds = ref(false);
+const displayedRounds = ref([]);
+const checkedRounds = ref({});
+const typingIndex = ref(-1);
+const typingText = ref('');
+const typingComplete = ref(false);
+
+// Generate rounds with typing animation
+const generateRounds = async () => {
+    if (isGeneratingRounds.value || roundsGenerated.value) return;
+    
+    isGeneratingRounds.value = true;
+    
+    // Simulate initial loading
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    isGeneratingRounds.value = false;
+    roundsGenerated.value = true;
+    
+    // Start typing animation for each round
+    const rounds = props.article.instructions || [];
+    for (let i = 0; i < rounds.length; i++) {
+        displayedRounds.value.push('');
+        typingIndex.value = i;
+        typingText.value = '';
+        typingComplete.value = false;
+        
+        // Type out each character
+        const round = rounds[i];
+        for (let j = 0; j < round.length; j++) {
+            typingText.value = round.substring(0, j + 1);
+            await new Promise(resolve => setTimeout(resolve, 15)); // Typing speed
+        }
+        
+        // Complete this round
+        displayedRounds.value[i] = round;
+        typingComplete.value = true;
+        typingIndex.value = -1;
+        
+        // Brief pause before next round
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+};
+
 const subscribeNewsletter = async () => {
     if (!newsletterEmail.value || !newsletterEmail.value.includes('@')) {
         subscribeMessage.value = 'Please enter a valid email address.';
@@ -452,9 +580,15 @@ const subscribeSidebar = async () => {
 };
 
 const scrollToPattern = () => {
-    const contentElement = document.querySelector('.article-content-crochet');
-    if (contentElement) {
-        contentElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const patternElement = document.querySelector('#pattern-section');
+    if (patternElement) {
+        patternElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        // Fallback to content if pattern section doesn't exist
+        const contentElement = document.querySelector('.article-content-crochet');
+        if (contentElement) {
+            contentElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 };
 
@@ -484,11 +618,12 @@ const copyLink = async () => {
 // Article images from props
 const articleImages = computed(() => props.articleImages || []);
 
-// Get only non-hero images for gallery
+// Get all images for gallery (excluding hero which is position 0)
 const galleryImages = computed(() => {
     const images = props.articleImages || [];
+    // Show all uploaded images - they are already non-hero (position > 0)
     return images
-        .filter(img => !img.metadata?.is_hero && img.generation_type !== 'ai_hero')
+        .filter(img => img.generation_type === 'uploaded' || img.position > 0)
         .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 });
 
@@ -747,5 +882,21 @@ const seoSettings = computed(() => props.website?.seo_settings || {});
     .article-content-crochet {
         font-size: 12pt;
     }
+}
+
+/* Typing Animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.3s ease-out forwards;
 }
 </style>

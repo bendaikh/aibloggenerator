@@ -68,6 +68,7 @@ class PublicWebsiteController extends Controller
             ->where('status', 'published')
             ->where('published_at', '<=', now())
             ->with(['category', 'user', 'author', 'articleImages'])
+            ->orderByDesc('id')
             ->firstOrFail();
 
         // Increment views
@@ -94,7 +95,15 @@ class PublicWebsiteController extends Controller
         }
 
         // Ensure article images collection exists
-        $articleImages = $article->articleImages ?? collect();
+        $articleImages = $article->articleImages()->orderBy('position')->get() ?? collect();
+
+        // Debug log to check images being passed
+        \Illuminate\Support\Facades\Log::info('Passing images to ArticleCrochet (ByDomain)', [
+            'article_id' => $article->id,
+            'article_slug' => $article->slug,
+            'images_count' => $articleImages->count(),
+            'images_sample' => $articleImages->take(5)->map(fn($img) => ['id' => $img->id, 'pos' => $img->position, 'path' => $img->local_path])->toArray()
+        ]);
 
         return Inertia::render($viewComponent, [
             'website' => $website->toArray(),
@@ -379,6 +388,7 @@ class PublicWebsiteController extends Controller
             ->where('status', 'published')
             ->where('published_at', '<=', now())
             ->with(['category', 'user', 'author', 'articleImages'])
+            ->orderByDesc('id')
             ->firstOrFail();
 
         // Increment views
@@ -404,11 +414,22 @@ class PublicWebsiteController extends Controller
             $viewComponent = 'Public/Website/ArticleCrochet';
         }
 
+        // Ensure article images collection exists
+        $articleImages = $article->articleImages()->orderBy('position')->get() ?? collect();
+
+        // Debug log to check images being passed
+        \Illuminate\Support\Facades\Log::info('Passing images to ArticleCrochet (Legacy)', [
+            'article_id' => $article->id,
+            'article_slug' => $article->slug,
+            'images_count' => $articleImages->count(),
+            'images_sample' => $articleImages->take(5)->map(fn($img) => ['id' => $img->id, 'pos' => $img->position, 'path' => $img->local_path])->toArray()
+        ]);
+
         return Inertia::render($viewComponent, [
             'website' => $website,
             'article' => $article,
             'relatedArticles' => $relatedArticles,
-            'articleImages' => $article->articleImages
+            'articleImages' => $articleImages
                 ->map(fn ($image) => [
                     'id' => $image->id,
                     'url' => $image->url,

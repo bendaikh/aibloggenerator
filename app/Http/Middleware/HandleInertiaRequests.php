@@ -81,8 +81,12 @@ class HandleInertiaRequests extends Middleware
         // Only include auth and session data if user is authenticated
         // This prevents issues with public routes
         if ($request->user()) {
+            // Force fresh user data from database to avoid caching issues
+            // This ensures settings changes are immediately reflected
+            $freshUser = \App\Models\User::find($request->user()->id);
+            
             $sharedData['auth'] = [
-                'user' => $request->user(),
+                'user' => $freshUser ?? $request->user(),
             ];
             $sharedData['isImpersonating'] = $request->session()->has('impersonator_id');
         }

@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Article;
+use App\Models\ArticleImage;
 use App\Models\Website;
 use App\Models\Category;
 use App\Models\User;
@@ -14,7 +15,6 @@ use App\Services\PinterestDesignService;
 use App\Services\RewritingService;
 use App\Services\VariationEngine;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -22,13 +22,12 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 
-class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
+class GenerateGlobalAIArticleJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3;
     public $timeout = 1800; // 30 minutes - enough for 50+ websites
-    public $uniqueFor = 3600; // Job is unique for 1 hour
 
     protected array $generationJobIds = []; // website_id => generation_job_id
     protected array $websiteIds = [];
@@ -43,6 +42,7 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
     protected string $articleType = 'recipe';
     protected ?int $variationIndex = null;
     protected ?string $theme = null;
+    protected ?string $sourceUrl = null;
 
     /**
      * Create a new job instance.
@@ -60,7 +60,8 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
         array $featuredImages = [],
         string $articleType = 'recipe',
         ?int $variationIndex = null,
-        ?string $theme = null
+        ?string $theme = null,
+        ?string $sourceUrl = null
     ) {
         $this->generationJobIds = $generationJobIds;
         $this->websiteIds = $websiteIds;
@@ -75,17 +76,14 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
         $this->articleType = $articleType;
         $this->variationIndex = $variationIndex;
         $this->theme = $theme;
-    }
-
-    /**
-     * Get the unique ID for this job to prevent duplicate processing.
-     * This ensures the same job (same topic + same websites) doesn't run multiple times.
-     */
-    public function uniqueId(): string
-    {
-        // Create a unique identifier based on userId, topic, and website IDs
-        $websiteIdsString = implode(',', $this->websiteIds);
-        return "generate-article-{$this->userId}-{$this->topic}-{$websiteIdsString}";
+        $this->sourceUrl = $sourceUrl;
+        
+        // Debug log to verify sourceUrl is received
+        Log::info('GenerateGlobalAIArticleJob constructed', [
+            'topic' => $this->topic,
+            'sourceUrl' => $this->sourceUrl,
+            'theme' => $this->theme,
+        ]);
     }
 
     /**
@@ -230,10 +228,10 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                 $result = $client->chat()->create([
                     'model' => $model,
                     'messages' => [
-                        ['role' => 'system', 'content' => 'You are an expert blog writer who creates engaging, SEO-optimized, comprehensive content. Each article you write must be completely unique and different from others on the same topic. You write detailed articles with well-organized paragraphs and in-depth coverage. You MUST respond with valid JSON only.'],
+                        ['role' => 'system', 'content' => 'You are an expert blog writer who creates engaging, SEO-optimized, comprehensive content. Each article you write must be completely unique and different from others on the same topic. You write detailed articles with well-organized paragraphs and in-depth coverage. For crochet patterns, you MUST include EVERY round from the source material in the "rounds" array - never truncate, summarize, or stop early. You MUST respond with valid JSON only.'],
                         ['role' => 'user', 'content' => $prompt],
                     ],
-                    'max_tokens' => 8000,
+                    'max_tokens' => 16000,
                     'temperature' => 0.9, // Higher temperature for more variation
                     'response_format' => ['type' => 'json_object'],
                 ]);
@@ -406,6 +404,57 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                 // Generate AI images for home decor articles
                 $this->dispatchAIImageGenerationIfNeeded($article, $website, $user, $parsed['content'] ?? '');
                 
+                // Save user-uploaded images to article_images table for gallery display
+                \Illuminate\Support\Facades\Log::info("Checking featuredImages for gallery (Full AI)", [
+                    'article_id' => $article->id,
+                    'theme' => $this->theme,
+                    'featuredImages_count' => count($this->featuredImages ?? []),
+                ]);
+                
+                if (!empty($this->featuredImages) && $this->theme !== 'home-decor') {
+                    $savedCount = 0;
+                    foreach ($this->featuredImages as $position => $imageUrl) {
+                        // Skip first image (position 0) as it's the hero/featured image
+                        if ($position === 0) continue;
+                        
+                        // Handle both string URLs and array format
+                        $imagePath = is_array($imageUrl) ? ($imageUrl['url'] ?? $imageUrl['path'] ?? null) : $imageUrl;
+                        
+                        if (empty($imagePath)) {
+                            \Illuminate\Support\Facades\Log::warning("Skipping empty image at position {$position}");
+                            continue;
+                        }
+                        
+                        try {
+                            \Illuminate\Support\Facades\DB::table('article_images')->insert([
+                                'article_id' => $article->id,
+                                'user_id' => $this->userId,
+                                'local_path' => $imagePath,
+                                'title' => "Image " . ($position + 1),
+                                'position' => $position,
+                                'generation_type' => 'uploaded',
+                                'metadata' => json_encode([]),
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                            $savedCount++;
+                            \Illuminate\Support\Facades\Log::info("Saved gallery image via DB (Full AI)", ['position' => $position, 'path' => $imagePath]);
+                        } catch (\Exception $imgEx) {
+                            \Illuminate\Support\Facades\Log::error("Failed to save gallery image via DB (Full AI)", [
+                                'position' => $position,
+                                'path' => $imagePath,
+                                'error' => $imgEx->getMessage()
+                            ]);
+                        }
+                    }
+                    
+                    \Illuminate\Support\Facades\Log::info("Gallery images saved to article_images table (Full AI)", [
+                        'article_id' => $article->id,
+                        'saved_count' => $savedCount,
+                        'total_images' => count($this->featuredImages)
+                    ]);
+                }
+                
             } catch (\Exception $e) {
                 if ($generationJob) {
                     $generationJob->markAsFailed($e->getMessage());
@@ -452,10 +501,10 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
             $result = $client->chat()->create([
                 'model' => $model,
                 'messages' => [
-                    ['role' => 'system', 'content' => 'You are an expert blog writer who creates engaging, SEO-optimized, comprehensive content. You write detailed articles with well-organized paragraphs and in-depth coverage. You MUST respond with valid JSON only.'],
+                    ['role' => 'system', 'content' => 'You are an expert blog writer who creates engaging, SEO-optimized, comprehensive content. You write detailed articles with well-organized paragraphs and in-depth coverage. For crochet patterns, you MUST include EVERY round from the source material in the "rounds" array - never truncate, summarize, or stop early. You MUST respond with valid JSON only.'],
                     ['role' => 'user', 'content' => $prompt],
                 ],
-                'max_tokens' => 8000,
+                'max_tokens' => 16000,
                 'temperature' => 0.7,
                 'response_format' => ['type' => 'json_object'],
             ]);
@@ -731,6 +780,59 @@ class GenerateGlobalAIArticleJob implements ShouldQueue, ShouldBeUnique
                         'title' => $article->title
                     ]);
 
+                    // Save user-uploaded images to article_images table for gallery display
+                    // This must happen BEFORE Pinterest/AI image generation
+                    \Illuminate\Support\Facades\Log::info("Checking featuredImages for gallery", [
+                        'article_id' => $article->id,
+                        'theme' => $this->theme,
+                        'featuredImages_count' => count($this->featuredImages ?? []),
+                    ]);
+                    
+                    if (!empty($this->featuredImages) && $this->theme !== 'home-decor') {
+                        $savedCount = 0;
+                        foreach ($this->featuredImages as $position => $imageUrl) {
+                            // Skip first image (position 0) as it's the hero/featured image
+                            if ($position === 0) continue;
+                            
+                            // Handle both string URLs and array format
+                            $imagePath = is_array($imageUrl) ? ($imageUrl['url'] ?? $imageUrl['path'] ?? null) : $imageUrl;
+                            
+                            if (empty($imagePath)) {
+                                \Illuminate\Support\Facades\Log::warning("Skipping empty image at position {$position}");
+                                continue;
+                            }
+                            
+                            try {
+                                // Use DB::table to bypass any model issues for now
+                                \Illuminate\Support\Facades\DB::table('article_images')->insert([
+                                    'article_id' => $article->id,
+                                    'user_id' => $this->userId,
+                                    'local_path' => $imagePath,
+                                    'title' => "Image " . ($position + 1),
+                                    'position' => $position,
+                                    'generation_type' => 'uploaded',
+                                    'metadata' => json_encode([]),
+                                    'created_at' => now(),
+                                    'updated_at' => now(),
+                                ]);
+                                $savedCount++;
+                                \Illuminate\Support\Facades\Log::info("Saved gallery image via DB", ['position' => $position, 'path' => $imagePath]);
+                            } catch (\Exception $imgEx) {
+                                \Illuminate\Support\Facades\Log::error("Failed to save gallery image via DB", [
+                                    'position' => $position,
+                                    'path' => $imagePath,
+                                    'error' => $imgEx->getMessage()
+                                ]);
+                            }
+                        }
+                        
+                        \Illuminate\Support\Facades\Log::info("Gallery images saved to article_images table", [
+                            'article_id' => $article->id,
+                            'saved_count' => $savedCount,
+                            'total_images' => count($this->featuredImages)
+                        ]);
+                    }
+
                     // Generate Pinterest pin
                     if ($article->featured_image) {
                         try {
@@ -999,6 +1101,57 @@ LANGUAGE;
                 'topic' => $this->topic
             ]);
             return $this->buildHomeDecorPrompt($wordCount, $this->getVariationStyle($variationIndex), rand(1000, 9999), $variationIndex, $keywordsText);
+        }
+        
+        // Check if website uses crochet theme
+        if ($websiteTheme && $websiteTheme->slug === 'crochet') {
+            Log::info("Building crochet prompt for website with crochet theme", [
+                'website_id' => $website->id,
+                'topic' => $this->topic,
+                'has_source_url' => !empty($this->sourceUrl)
+            ]);
+            
+            // Fetch content from URL if provided
+            $sourceContent = null;
+            if (!empty($this->sourceUrl)) {
+                // Clean the URL by encoding spaces and special characters
+                $cleanUrl = str_replace(' ', '%20', $this->sourceUrl);
+                
+                $fetchedData = $this->fetchUrlContent($cleanUrl);
+                if ($fetchedData) {
+                    $sourceContent = $fetchedData['content'];
+                    
+                    // Always use the fetched title if available (the topic field contains the URL when crochet theme is used)
+                    if (!empty($fetchedData['title'])) {
+                        // Clean the title: remove site name suffixes, trim whitespace
+                        $cleanTitle = trim($fetchedData['title']);
+                        // Remove common separators and site names at the end (e.g., " - Site Name", " | Site Name")
+                        $cleanTitle = preg_replace('/\s*[\|\-–—]\s*[^|\-–—]*$/', '', $cleanTitle);
+                        $this->topic = trim($cleanTitle);
+                        
+                        Log::info("Extracted and cleaned title from fetched URL", [
+                            'raw_title' => $fetchedData['title'],
+                            'cleaned_title' => $this->topic
+                        ]);
+                    } else {
+                        Log::warning("No title found in fetched content, using URL as title", [
+                            'url' => $this->sourceUrl
+                        ]);
+                    }
+                    
+                    Log::info("Successfully fetched and will rewrite content from URL", [
+                        'url' => $this->sourceUrl,
+                        'title' => $this->topic,
+                        'content_length' => strlen($sourceContent)
+                    ]);
+                } else {
+                    Log::warning("Failed to fetch URL content, will generate original content", [
+                        'url' => $this->sourceUrl
+                    ]);
+                }
+            }
+            
+            return $this->buildCrochetPrompt($wordCount, $this->getVariationStyle($variationIndex), rand(1000, 9999), $variationIndex, $keywordsText, $sourceContent);
         }
         
         // Handle ingredients: if provided by user, tell AI to use them; otherwise AI generates
@@ -1370,6 +1523,209 @@ PROMPT;
     }
 
     /**
+     * Build a specialized prompt for crochet theme articles.
+     * This prompt generates "rounds" instead of ingredients/instructions.
+     */
+    private function buildCrochetPrompt(string $wordCount, string $variationStyle, int $randomSeed, int $variationIndex, string $keywordsText, ?string $sourceContent = null): string
+    {
+        $keywordsText = !empty($this->keywords) ? "\n- Naturally weave in these keywords: {$this->keywords}" : '';
+        
+        // Detect language from the title
+        $detectedLanguage = $this->detectLanguage($this->topic);
+        $languageInstruction = '';
+        
+        if ($detectedLanguage !== 'English') {
+            $languageInstruction = <<<LANGUAGE
+
+CRITICAL LANGUAGE REQUIREMENT:
+- The title is in {$detectedLanguage}, so you MUST write the ENTIRE article in {$detectedLanguage}
+- ALL content including: article content, excerpt, meta_title, meta_description, tags, notes, and rounds MUST be in {$detectedLanguage}
+- Use natural, authentic {$detectedLanguage} language - not translated from English
+- Write as if you are a native {$detectedLanguage} speaker
+
+LANGUAGE;
+        }
+        
+        // Build source content section if URL was provided
+        $sourceSection = '';
+        if (!empty($sourceContent)) {
+            // Strip HTML tags to drastically reduce token usage, preserving all text including ALL rounds
+            $plainSource = strip_tags($sourceContent);
+            // Decode HTML entities (e.g. &amp; &nbsp;)
+            $plainSource = html_entity_decode($plainSource, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            // Normalize whitespace but keep line breaks so rounds stay visually separated
+            $plainSource = preg_replace('/[ \t]+/', ' ', $plainSource);
+            $plainSource = preg_replace('/\n\s*\n/', "\n", $plainSource);
+            $plainSource = trim($plainSource);
+
+            // Use a much larger limit (25000 chars) so long crochet patterns with many rounds aren't cut off
+            $truncatedSource = mb_substr($plainSource, 0, 25000);
+
+            $sourceSection = "\n\n⚠️ SOURCE CONTENT PROVIDED - REWRITE THIS ARTICLE ⚠️\n";
+            $sourceSection .= "You have been provided with source content from another article. Your task is to READ, UNDERSTAND, and COMPLETELY REWRITE this content to avoid copyright issues.\n\n";
+            $sourceSection .= "SOURCE CONTENT TO REWRITE:\n";
+            $sourceSection .= $truncatedSource . "\n\n";
+            $sourceSection .= "🚨 CRITICAL ROUNDS RULE - READ CAREFULLY 🚨\n";
+            $sourceSection .= "- The source article contains a FULL crochet pattern with MANY rounds.\n";
+            $sourceSection .= "- You MUST extract EVERY SINGLE ROUND from the source and include them ALL in the \"rounds\" array.\n";
+            $sourceSection .= "- If the source has 30 rounds, your \"rounds\" array MUST have 30 rounds. If it has 50, include 50.\n";
+            $sourceSection .= "- DO NOT stop at 8, 9, or 10 rounds. DO NOT summarize. DO NOT skip any round.\n";
+            $sourceSection .= "- Include rounds for EVERY body part mentioned (head, body, arms, legs, ears, tail, etc.).\n";
+            $sourceSection .= "- Keep section labels like \"HEAD:\", \"BODY:\", \"ARMS:\" as separate entries in the array when applicable, so the structure of the pattern is preserved.\n";
+            $sourceSection .= "- Rewrite each round in your own words (change phrasing, add clarifications) BUT keep the same stitch counts, sequence, and technique.\n\n";
+            $sourceSection .= "CRITICAL REWRITING RULES:\n";
+            $sourceSection .= "- Extract the main ideas, pattern details, and techniques from the source\n";
+            $sourceSection .= "- COMPLETELY rewrite the narrative content (intro, tips, materials) in your own words - do NOT copy sentences or phrases\n";
+            $sourceSection .= "- Change the structure, order, and flow of information in the narrative content\n";
+            $sourceSection .= "- Add your own explanations, tips, and insights\n";
+            $sourceSection .= "- Use different examples and metaphors\n";
+            $sourceSection .= "- Make it unique and original while keeping EVERY pattern round intact and accurate\n";
+        }
+        
+        return <<<PROMPT
+You are a professional crochet blog writer who creates detailed, helpful patterns and tutorials for crochet enthusiasts.
+
+Write a DETAILED, COMPREHENSIVE and COMPLETELY UNIQUE crochet pattern article about: "{$this->topic}"
+{$languageInstruction}{$sourceSection}
+CRITICAL TITLE RULE:
+- The TITLE field below is pre-filled with the exact title the user wants. DO NOT CHANGE IT. Use it exactly as written - no additions, no modifications, no "improvements".
+
+UNIQUENESS REQUIREMENT (Variation #{$variationIndex}, Seed: {$randomSeed}):
+- {$variationStyle}
+- Use different examples, explanations, and teaching approaches than typical patterns
+- Create a fresh, original perspective that stands out
+
+⚠️ CRITICAL FOR CROCHET PATTERNS - ROUNDS ARE MANDATORY AND MUST BE COMPLETE ⚠️
+YOUR CROCHET PATTERN WILL BE REJECTED IF THE "rounds" ARRAY IS EMPTY OR INCOMPLETE!
+
+- The "rounds" array MUST contain EVERY pattern round from start to finish (not just the first few)
+- Example: ["Round 1: Magic ring, 6 sc in ring (6)", "Round 2: Inc in each st around (12)", "Round 3: (Sc, inc) repeat 6 times (18)"]
+- Each round MUST include the stitch count in parentheses at the end
+- Use standard crochet abbreviations (sc, dc, inc, dec, ch, sl st, etc.)
+- DO NOT include rounds in the "content" HTML - they go ONLY in the "rounds" array
+- NEVER leave the rounds array empty - this is the MOST IMPORTANT part of a crochet pattern!
+
+🚨 COMPLETENESS REQUIREMENT - DO NOT STOP EARLY 🚨
+- If source content was provided above, your "rounds" array MUST contain ALL rounds from that source - DO NOT stop at 8, 9, or 10 rounds.
+- Amigurumi/toy patterns typically have 30-80+ rounds across multiple body parts (head, body, arms, legs, ears, tail, muzzle, etc.). INCLUDE THEM ALL.
+- Include section label entries (e.g. "HEAD:", "BODY:", "ARMS (make 2):", "LEGS (make 2):", "EARS (make 2):", "TAIL:", "ASSEMBLY:") as separate items in the array to preserve the pattern structure.
+- When in doubt, include MORE rounds rather than fewer. A complete, detailed pattern is ALWAYS preferred.
+
+MOST CRITICAL RULE - BOLD TITLES ON ALL CONTENT (DO NOT SKIP THIS):
+**EVERY SINGLE PARAGRAPH AND LIST ITEM** in the article MUST begin with a bold title. This is NON-NEGOTIABLE.
+
+FOR PARAGRAPHS:
+- Format: <p><strong>Descriptive Title Here:</strong> Then your paragraph content...</p>
+- WRONG: <p>This adorable amigurumi pattern is perfect for beginners...</p>
+- RIGHT: <p><strong>Perfect for Beginners:</strong> This adorable amigurumi pattern is perfect for beginners...</p>
+
+FOR LIST ITEMS (VERY IMPORTANT):
+- Format: <li><strong>Title Here:</strong> Then the list item content...</li>
+- WRONG: <li>Worsted weight yarn in your choice of color</li>
+- RIGHT: <li><strong>Yarn Choice:</strong> Worsted weight yarn in your choice of color</li>
+
+EVERY <p> and <li> tag MUST start with <strong>Title:</strong>
+- NO paragraph or list item should EVER start without a bold title
+- If I see ANY paragraph or list item without a bold title, the article is REJECTED
+
+CRITICAL WRITING STYLE RULES - DO NOT VIOLATE THESE:
+1. Use DESCRIPTIVE, ENGAGING headers (<h2> and <h3>) to organize your content
+2. DO NOT start with generic phrases like "Are you looking for..." or "In this article, we will..."
+3. DO NOT use phrases like "In conclusion", "To summarize", "Let's dive in", or "Without further ado"
+4. DO NOT follow a formulaic structure
+5. DO NOT use overused AI phrases like "game-changer", "elevate", "delve into", or "embark on a journey"
+6. REMEMBER: Every <p> AND <li> tag MUST have <strong>Title:</strong> at the start!
+
+HOW TO WRITE THIS (follow this closely):
+- Start with a LONG, ENGAGING introduction (at least 5-7 detailed paragraphs) about the pattern, why it's special, and who it's for
+- Write like you're talking to a friend who loves crochet
+- Be warm, encouraging, and VERY thorough
+
+PARAGRAPH STRUCTURE (VERY IMPORTANT):
+- Each paragraph should be 4-6 sentences minimum, not just 1-2 sentences
+- Use multiple paragraphs per section - don't cram everything into one paragraph
+- Add detailed explanations, tips, and context in each paragraph
+- Every major point deserves its own paragraph with full explanation
+
+REMINDER - BOLD TITLES ON EVERY PARAGRAPH AND LIST ITEM (MANDATORY):
+- EVERY <p> tag = <p><strong>Title:</strong> content</p>
+- EVERY <li> tag = <li><strong>Title:</strong> content</li>
+- NO EXCEPTIONS. Check every paragraph and list item before submitting.
+
+CONTENT DEPTH REQUIREMENTS:
+- Include a "Materials Needed" section with detailed list of supplies
+- Include a "Skills You'll Need" or "Techniques Used" section
+- Include a "Tips for Success" section with at least 4-5 detailed tips
+- Include pattern variations or customization ideas
+- Include a "Finishing and Assembly" section if applicable
+- Include a "Troubleshooting" or "Common Mistakes" section
+- Include care instructions for the finished item
+- End naturally with encouragement and engagement
+
+Requirements:
+- Length: MINIMUM {$wordCount} words. This is a MINIMUM - feel free to write more! Be as detailed and comprehensive as possible. DO NOT stop early.
+- Tone: {$this->tone} (but always warm, friendly, and encouraging)
+- Use proper HTML formatting: <h2> for major sections, <h3> for subsections, <p>, <ul>, <ol>, <strong>, <em>, <blockquote> for tips/notes
+- Make it SEO-friendly but human-first{$keywordsText}
+
+CRITICAL FOR CROCHET PATTERNS - JSON ARRAYS ARE MANDATORY:
+- The "rounds" JSON array MUST contain all pattern rounds with stitch counts
+- Each round must be a PLAIN TEXT string with standard crochet abbreviations
+- DO NOT include HTML tags inside the rounds array - they should be PLAIN TEXT strings
+- Example rounds: ["Round 1: Magic ring, 6 sc in ring (6)", "Round 2: Inc in each st around (12)", "Round 3: (Sc, inc) repeat 6 times (18)"]
+- THE JSON RESPONSE WILL BE REJECTED IF "rounds" ARRAY IS EMPTY
+
+CRITICAL OUTPUT FORMAT RULE:
+- DO NOT use markdown syntax like ** or __ in your output
+- Use HTML tags only: <strong> for bold, <em> for italic
+- Times, notes, and all metadata must be plain text without any markdown formatting
+
+YOU MUST RESPOND WITH A VALID JSON OBJECT. The JSON structure must be EXACTLY as follows:
+
+{
+  "title": "{$this->topic}",
+  "excerpt": "2-3 sentences teaser - plain text, no markdown",
+  "meta_title": "SEO title, 50-60 characters - plain text",
+  "meta_description": "SEO description, 150-160 characters - plain text",
+  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
+  "prep_time": "",
+  "cook_time": "",
+  "rest_time": "",
+  "total_time": "",
+  "notes": ["Crochet tip 1", "Crochet tip 2", "Crochet tip 3"],
+  "rounds": ["Round 1: Magic ring, 6 sc in ring (6)", "Round 2: Inc in each st around (12)", "Round 3: (Sc, inc) repeat 6 times (18)"],
+  "ingredients": [],
+  "instructions": [],
+  "content": "<h2>Introduction</h2><p><strong>Opening Title:</strong> Your engaging introduction...</p>..."
+}
+
+REQUIRED JSON FIELDS (ALL MUST BE PRESENT):
+- "title": EXACTLY "{$this->topic}" (do not change)
+- "excerpt": String, 2-3 sentences teaser (PLAIN TEXT, no HTML)
+- "meta_title": String, SEO title 50-60 characters (PLAIN TEXT, no HTML)
+- "meta_description": String, SEO description 150-160 characters (PLAIN TEXT, no HTML)
+- "tags": Array of 5-8 relevant tag strings (PLAIN TEXT, no HTML)
+- "prep_time": Empty string "" (not applicable for crochet)
+- "cook_time": Empty string "" (not applicable for crochet)
+- "rest_time": Empty string "" (not applicable for crochet)
+- "total_time": Empty string "" (not applicable for crochet)
+- "notes": Array of 3-5 crochet tips or insights (PLAIN TEXT, no HTML)
+- "rounds": ⚠️ MANDATORY ARRAY - must contain pattern rounds with stitch counts (PLAIN TEXT ONLY, e.g. ["Round 1: Magic ring, 6 sc (6)", "Round 2: Inc in each st (12)"])
+- "ingredients": Empty array [] (not applicable for crochet)
+- "instructions": Empty array [] (not applicable for crochet)
+- "content": String containing the full article in HTML format (use <strong> for bold, <em> for italic)
+
+⚠️ CRITICAL FOR CROCHET PATTERNS - READ CAREFULLY ⚠️
+- The "rounds" array is MANDATORY and MUST contain pattern instructions with stitch counts
+- Each round MUST be PLAIN TEXT - NO HTML TAGS inside them!
+- Example: ["Round 1: Magic ring, 6 sc in ring (6)", "Round 2: Inc in each st around (12)", "Round 3: (Sc, inc) repeat 6 times (18)"]
+- IF THE ROUNDS ARRAY IS EMPTY, THE PATTERN WILL BE REJECTED!
+
+IMPORTANT: Return ONLY the JSON object, no additional text before or after.
+PROMPT;
+    }
+
+    /**
      * Parse the generated content from JSON response.
      */
     private function parseGeneratedContent(string $content): array
@@ -1450,6 +1806,19 @@ PROMPT;
                     'has_instructions_key' => isset($jsonData['instructions']),
                     'instructions_type' => isset($jsonData['instructions']) ? gettype($jsonData['instructions']) : 'not set'
                 ]);
+            }
+            
+            // Get rounds from JSON (for crochet patterns - strip HTML from each round)
+            $rounds = [];
+            if (isset($jsonData['rounds']) && is_array($jsonData['rounds'])) {
+                $rounds = array_values(array_filter(array_map([$this, 'stripHtmlAndClean'], $jsonData['rounds'])));
+                Log::info('Parsed rounds from JSON (crochet pattern)', ['count' => count($rounds)]);
+                
+                // For crochet theme, use rounds as instructions for compatibility
+                if ($this->theme === 'crochet' && !empty($rounds)) {
+                    $instructions = $rounds;
+                    Log::info('Using rounds as instructions for crochet theme');
+                }
             }
             
             $articleContent = $jsonData['content'] ?? '';
@@ -2566,6 +2935,104 @@ PROMPT;
                 'error' => $e->getMessage()
             ]);
             return $content;
+        }
+    }
+
+    /**
+     * Fetch content from a source URL
+     * Used for crochet theme to rewrite existing articles
+     */
+    private function fetchUrlContent(string $url): ?array
+    {
+        try {
+            Log::info("Fetching content from URL", ['url' => $url]);
+            
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+            
+            $html = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            if ($httpCode !== 200 || empty($html)) {
+                Log::error("Failed to fetch URL", ['url' => $url, 'http_code' => $httpCode]);
+                return null;
+            }
+            
+            // Parse HTML to extract title and main content
+            $dom = new \DOMDocument();
+            @$dom->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING);
+            
+            // Extract title
+            $titleElements = $dom->getElementsByTagName('title');
+            $title = $titleElements->length > 0 ? trim($titleElements->item(0)->textContent) : '';
+            
+            // Try to extract main content
+            $content = '';
+            
+            // Try common content selectors
+            $selectors = ['article', 'main', '.post-content', '.entry-content', '.content', '#content'];
+            foreach ($selectors as $selector) {
+                $xpath = new \DOMXPath($dom);
+                if (strpos($selector, '.') === 0) {
+                    // Class selector
+                    $elements = $xpath->query("//*[contains(@class, '" . substr($selector, 1) . "')]");
+                } elseif (strpos($selector, '#') === 0) {
+                    // ID selector
+                    $elements = $xpath->query("//*[@id='" . substr($selector, 1) . "']");
+                } else {
+                    // Tag selector
+                    $elements = $dom->getElementsByTagName($selector);
+                }
+                
+                if ($elements->length > 0) {
+                    $element = $elements->item(0);
+                    $content = $dom->saveHTML($element);
+                    if (!empty(trim(strip_tags($content)))) {
+                        break;
+                    }
+                }
+            }
+            
+            // If no content found, get body
+            if (empty($content)) {
+                $bodyElements = $dom->getElementsByTagName('body');
+                if ($bodyElements->length > 0) {
+                    $content = $dom->saveHTML($bodyElements->item(0));
+                }
+            }
+            
+            // Strip scripts and styles
+            $content = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $content);
+            $content = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $content);
+            
+            // Clean up whitespace
+            $content = preg_replace('/\s+/', ' ', $content);
+            $content = trim($content);
+            
+            Log::info("Successfully fetched URL content", [
+                'url' => $url,
+                'title' => $title,
+                'content_length' => strlen($content)
+            ]);
+            
+            return [
+                'title' => $title,
+                'content' => $content,
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error("Error fetching URL content", [
+                'url' => $url,
+                'error' => $e->getMessage()
+            ]);
+            return null;
         }
     }
 }
