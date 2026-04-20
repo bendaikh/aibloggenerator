@@ -126,40 +126,78 @@
                                     </button>
                                 </div>
 
-                                <!-- Gallery Images (Before Introduction) -->
+                                <!-- Gallery Images Slider (Before Introduction) -->
                                 <div v-if="galleryImages.length > 0" class="mb-12 space-y-8">
                                     <div class="text-center">
                                         <h3 class="text-3xl font-black text-[#2D4A2D] mb-2">Project Gallery</h3>
                                         <div class="w-16 h-1 bg-gradient-to-r from-[#588157] to-[#A44A3F] mx-auto rounded-full"></div>
                                     </div>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div
-                                            v-for="(image, index) in galleryImages"
-                                            :key="image.id || index"
-                                            class="space-y-3 group"
-                                        >
-                                            <div class="relative rounded-2xl overflow-hidden shadow-lg border-4 border-[#FBF9F6] group-hover:border-[#A3B18A] transition-all duration-300">
+                                    
+                                    <!-- Image Slider -->
+                                    <div class="relative">
+                                        <!-- Main Image Display -->
+                                        <div class="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-[#FBF9F6]">
+                                            <img
+                                                :src="galleryImages[currentSlideIndex]?.url || galleryImages[currentSlideIndex]?.local_path"
+                                                :alt="galleryImages[currentSlideIndex]?.title"
+                                                class="w-full h-auto object-cover"
+                                                loading="lazy"
+                                            />
+                                            
+                                            <!-- Pinterest Pin Overlay -->
+                                            <div class="absolute top-4 right-4">
+                                                <a :href="getPinterestUrl(galleryImages[currentSlideIndex]?.url || galleryImages[currentSlideIndex]?.local_path, galleryImages[currentSlideIndex]?.title)" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-[#E60023] text-white rounded-full font-bold text-xs hover:bg-[#bd081c] transition shadow-lg">
+                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.627 0-12 5.372-12 12 0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/></svg>
+                                                    Pin
+                                                </a>
+                                            </div>
+                                            
+                                            <!-- Image Counter Badge -->
+                                            <div class="absolute top-4 left-4 px-4 py-2 bg-white/90 rounded-full flex items-center gap-2 shadow-lg">
+                                                <span class="text-sm font-black text-[#3A5A40]">{{ currentSlideIndex + 1 }} / {{ galleryImages.length }}</span>
+                                            </div>
+                                            
+                                            <!-- Navigation Arrows -->
+                                            <button 
+                                                v-if="galleryImages.length > 1"
+                                                @click="previousSlide" 
+                                                class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-xl transition-all hover:scale-110"
+                                            >
+                                                <svg class="w-6 h-6 text-[#3A5A40]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7" />
+                                                </svg>
+                                            </button>
+                                            <button 
+                                                v-if="galleryImages.length > 1"
+                                                @click="nextSlide" 
+                                                class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-xl transition-all hover:scale-110"
+                                            >
+                                                <svg class="w-6 h-6 text-[#3A5A40]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Image Title -->
+                                        <p v-if="galleryImages[currentSlideIndex]?.title" class="text-center text-base font-semibold text-[#6B8E6B] mt-4">
+                                            {{ galleryImages[currentSlideIndex].title }}
+                                        </p>
+                                        
+                                        <!-- Thumbnail Navigation -->
+                                        <div v-if="galleryImages.length > 1" class="flex justify-center gap-2 mt-6 flex-wrap">
+                                            <button
+                                                v-for="(image, index) in galleryImages"
+                                                :key="image.id || index"
+                                                @click="currentSlideIndex = index"
+                                                class="w-16 h-16 rounded-lg overflow-hidden border-3 transition-all"
+                                                :class="currentSlideIndex === index ? 'border-[#588157] ring-2 ring-[#588157] scale-110' : 'border-[#E8F3E8] opacity-60 hover:opacity-100'"
+                                            >
                                                 <img
                                                     :src="image.url || image.local_path"
                                                     :alt="image.title"
-                                                    class="w-full h-auto group-hover:scale-105 transition-transform duration-500"
-                                                    loading="lazy"
+                                                    class="w-full h-full object-cover"
                                                 />
-                                                <!-- Pinterest Pin Overlay -->
-                                                <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                                    <a :href="getPinterestUrl(image.url || image.local_path, image.title)" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-[#E60023] text-white rounded-full font-bold text-xs hover:bg-[#bd081c] transition shadow-lg">
-                                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.627 0-12 5.372-12 12 0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/></svg>
-                                                        Pin
-                                                    </a>
-                                                </div>
-                                                <!-- Step Number Badge -->
-                                                <div class="absolute top-4 left-4 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg">
-                                                    <span class="text-sm font-black text-[#3A5A40]">{{ index + 1 }}</span>
-                                                </div>
-                                            </div>
-                                            <p v-if="image.title" class="text-center text-sm font-semibold text-[#6B8E6B]">
-                                                {{ image.title }}
-                                            </p>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -194,46 +232,60 @@
                                         <p class="mt-4 text-sm text-[#6B8E6B] italic">Click to reveal the complete pattern with typing animation</p>
                                     </div>
                                     
-                                    <!-- Rounds Display with Checkboxes -->
+                                    <!-- Rounds Display with Inline Title Cards & Checkboxes -->
                                     <div v-if="roundsGenerated" class="space-y-4">
-                                        <div 
-                                            v-for="(round, index) in displayedRounds" 
-                                            :key="index"
-                                            class="bg-white rounded-2xl p-6 shadow-md border-l-4 border-[#588157] hover:shadow-lg transition-all duration-300"
-                                            :class="{ 'opacity-0 animate-fadeIn': index === displayedRounds.length - 1 }"
-                                        >
-                                            <div class="flex gap-4 items-start">
-                                                <!-- Checkbox -->
-                                                <div class="shrink-0 pt-1">
-                                                    <input 
-                                                        type="checkbox"
-                                                        :id="'round-' + index"
-                                                        v-model="checkedRounds[index]"
-                                                        class="w-6 h-6 text-[#588157] bg-white border-2 border-[#A3B18A] rounded focus:ring-[#588157] focus:ring-2 cursor-pointer transition-all"
-                                                    />
+                                        <template v-for="(item, index) in displayedRounds" :key="index">
+                                            <!-- Title Card (e.g., HEAD:, EARS (make 2):, ANTLERS (make 2):) -->
+                                            <div 
+                                                v-if="item.type === 'title'"
+                                                class="bg-gradient-to-r from-[#588157] to-[#3A5A40] rounded-2xl p-6 shadow-lg mt-6"
+                                                :class="{ 'opacity-0 animate-fadeIn': index === displayedRounds.length - 1 }"
+                                            >
+                                                <div class="flex items-center gap-3">
+                                                    <div class="text-3xl">🧶</div>
+                                                    <h3 class="text-2xl font-black text-white tracking-wide uppercase">
+                                                        <span v-if="typingIndex === index">{{ typingText }}</span>
+                                                        <span v-else>{{ item.text }}</span>
+                                                        <span v-if="typingIndex === index && !typingComplete" class="inline-block w-0.5 h-6 bg-white ml-1 animate-pulse"></span>
+                                                    </h3>
                                                 </div>
-                                                
-                                                <!-- Round Number Badge -->
-                                                <div class="shrink-0">
-                                                    <div class="w-12 h-12 bg-gradient-to-br from-[#588157] to-[#3A5A40] rounded-full flex items-center justify-center shadow-lg">
-                                                        <span class="text-white font-black text-lg">{{ index + 1 }}</span>
+                                            </div>
+                                            
+                                            <!-- Round Card -->
+                                            <div 
+                                                v-else
+                                                class="bg-white rounded-2xl p-6 shadow-md border-l-4 border-[#588157] hover:shadow-lg transition-all duration-300"
+                                                :class="{ 'opacity-0 animate-fadeIn': index === displayedRounds.length - 1 }"
+                                            >
+                                                <div class="flex gap-4 items-start">
+                                                    <!-- Checkbox -->
+                                                    <div class="shrink-0 pt-1">
+                                                        <input 
+                                                            type="checkbox"
+                                                            :id="'round-' + index"
+                                                            v-model="checkedRounds[index]"
+                                                            class="w-6 h-6 text-[#588157] bg-white border-2 border-[#A3B18A] rounded focus:ring-[#588157] focus:ring-2 cursor-pointer transition-all"
+                                                        />
+                                                    </div>
+                                                    
+                                                    <!-- Round Number Badge -->
+                                                    <div class="shrink-0">
+                                                        <div class="w-12 h-12 bg-gradient-to-br from-[#588157] to-[#3A5A40] rounded-full flex items-center justify-center shadow-lg">
+                                                            <span class="text-white font-black text-lg">{{ item.roundNumber }}</span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Round Text with Typing Effect (NOT clickable label) -->
+                                                    <div class="flex-1" :class="{ 'line-through opacity-60': checkedRounds[index] }">
+                                                        <p class="text-[#344E41] text-base md:text-lg leading-relaxed font-medium">
+                                                            <span v-if="typingIndex === index">{{ typingText }}</span>
+                                                            <span v-else>{{ item.text }}</span>
+                                                            <span v-if="typingIndex === index && !typingComplete" class="inline-block w-0.5 h-5 bg-[#588157] ml-1 animate-pulse"></span>
+                                                        </p>
                                                     </div>
                                                 </div>
-                                                
-                                                <!-- Round Text with Typing Effect -->
-                                                <label 
-                                                    :for="'round-' + index"
-                                                    class="flex-1 cursor-pointer"
-                                                    :class="{ 'line-through opacity-60': checkedRounds[index] }"
-                                                >
-                                                    <p class="text-[#344E41] text-base md:text-lg leading-relaxed font-medium">
-                                                        <span v-if="typingIndex === index">{{ typingText }}</span>
-                                                        <span v-else>{{ round }}</span>
-                                                        <span v-if="typingIndex === index && !typingComplete" class="inline-block w-0.5 h-5 bg-[#588157] ml-1 animate-pulse"></span>
-                                                    </p>
-                                                </label>
                                             </div>
-                                        </div>
+                                        </template>
                                     </div>
                                     
                                     <div v-if="roundsGenerated" class="mt-8 p-6 bg-white/80 rounded-2xl border-2 border-dashed border-[#A3B18A]">
@@ -494,6 +546,58 @@ const typingIndex = ref(-1);
 const typingText = ref('');
 const typingComplete = ref(false);
 
+// Image slider
+const currentSlideIndex = ref(0);
+
+const nextSlide = () => {
+    if (currentSlideIndex.value < galleryImages.value.length - 1) {
+        currentSlideIndex.value++;
+    } else {
+        currentSlideIndex.value = 0;
+    }
+};
+
+const previousSlide = () => {
+    if (currentSlideIndex.value > 0) {
+        currentSlideIndex.value--;
+    } else {
+        currentSlideIndex.value = galleryImages.value.length - 1;
+    }
+};
+
+// Detect if an instruction line is a section title (e.g. "HEAD:", "EARS (make 2):", "ANTLERS (make 2):", "BODY:", "LEGS (make 4):")
+// Titles are typically:
+// - Short body text (no actual stitch instructions)
+// - Mostly uppercase letters
+// - End with a colon
+// - May include "(make N)" qualifiers
+// - Do NOT start with "Round", "Rnd", "R" + number, or contain stitch counts in parens like "(6)", "(12)"
+const isTitleLine = (text) => {
+    if (!text || typeof text !== 'string') return false;
+    const trimmed = text.trim();
+    
+    // Must end with colon
+    if (!trimmed.endsWith(':')) return false;
+    
+    // Must NOT start with Round/Rnd/R# patterns (those are actual rounds)
+    if (/^(round|rnd|r\d+|row)\s*\d*/i.test(trimmed)) return false;
+    
+    // Strip the colon and any "(make N)" suffix to get the core title
+    const core = trimmed.replace(/:\s*$/, '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+    
+    // Title shouldn't be too long (real instructions are longer)
+    if (core.length === 0 || core.length > 40) return false;
+    
+    // Should be mostly uppercase letters/spaces (allow occasional lowercase for words like "and")
+    // At least 60% of letters should be uppercase
+    const letters = core.replace(/[^a-zA-Z]/g, '');
+    if (letters.length === 0) return false;
+    const upperLetters = core.replace(/[^A-Z]/g, '');
+    const upperRatio = upperLetters.length / letters.length;
+    
+    return upperRatio >= 0.6;
+};
+
 // Generate rounds with typing animation
 const generateRounds = async () => {
     if (isGeneratingRounds.value || roundsGenerated.value) return;
@@ -506,28 +610,44 @@ const generateRounds = async () => {
     isGeneratingRounds.value = false;
     roundsGenerated.value = true;
     
-    // Start typing animation for each round
-    const rounds = props.article.instructions || [];
-    for (let i = 0; i < rounds.length; i++) {
-        displayedRounds.value.push('');
+    const allInstructions = props.article.instructions || [];
+    
+    // Build a structured list separating titles from actual rounds
+    // Each item is either { type: 'title', text } or { type: 'round', text, roundNumber }
+    let roundCounter = 0;
+    const items = allInstructions.map((line) => {
+        if (isTitleLine(line)) {
+            return { type: 'title', text: line.trim() };
+        }
+        roundCounter++;
+        return { type: 'round', text: line, roundNumber: roundCounter };
+    });
+    
+    // Start typing animation for each item (title or round)
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        // Push the item with empty text initially so it renders
+        displayedRounds.value.push({ ...item, text: '' });
         typingIndex.value = i;
         typingText.value = '';
         typingComplete.value = false;
         
         // Type out each character
-        const round = rounds[i];
-        for (let j = 0; j < round.length; j++) {
-            typingText.value = round.substring(0, j + 1);
-            await new Promise(resolve => setTimeout(resolve, 15)); // Typing speed
+        const fullText = item.text;
+        // Titles type faster
+        const speed = item.type === 'title' ? 25 : 15;
+        for (let j = 0; j < fullText.length; j++) {
+            typingText.value = fullText.substring(0, j + 1);
+            await new Promise(resolve => setTimeout(resolve, speed));
         }
         
-        // Complete this round
-        displayedRounds.value[i] = round;
+        // Complete this item
+        displayedRounds.value[i] = { ...item, text: fullText };
         typingComplete.value = true;
         typingIndex.value = -1;
         
-        // Brief pause before next round
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Brief pause before next item (longer pause after a title)
+        await new Promise(resolve => setTimeout(resolve, item.type === 'title' ? 250 : 100));
     }
 };
 
@@ -627,7 +747,24 @@ const galleryImages = computed(() => {
         .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 });
 
-const processedContent = computed(() => props.article?.processed_content || props.article?.content || '');
+const processedContent = computed(() => {
+    let content = props.article?.processed_content || props.article?.content || '';
+    
+    // Remove Instructions section (h2 or h3 with "Instructions" and everything until next heading or end)
+    content = content.replace(
+        /<h[23][^>]*>\s*Instructions?\s*<\/h[23]>[\s\S]*?(?=<h[23]|$)/gi,
+        ''
+    );
+    
+    // Wrap "Materials Needed" (or similar) section in a styled card
+    // Match h2/h3 with Materials/Supplies/You Will Need + the following block until the next h2/h3 or end
+    content = content.replace(
+        /(<h[23][^>]*>\s*(?:Materials\s*Needed|Materials|Supplies(?:\s*Needed)?|You\s*Will\s*Need|What\s*You(?:'|&#39;|&rsquo;)?ll\s*Need|Tools\s*(?:&|and)\s*Materials)\s*<\/h[23]>)([\s\S]*?)(?=<h[23]|$)/gi,
+        '<div class="materials-needed-card">$1$2</div>'
+    );
+    
+    return content;
+});
 
 const formatDate = (date) => {
     return new Date(date).toLocaleDateString('en-US', {
@@ -882,6 +1019,75 @@ const seoSettings = computed(() => props.website?.seo_settings || {});
     .article-content-crochet {
         font-size: 12pt;
     }
+}
+
+/* Materials Needed Card */
+.article-content-crochet .materials-needed-card {
+    background: linear-gradient(135deg, #E8F3E8 0%, #F0F4EF 100%);
+    border: 3px solid #A3B18A;
+    border-radius: 1.5rem;
+    padding: 2rem 2.5rem;
+    margin: 3rem 0;
+    box-shadow: 0 10px 30px rgba(58, 90, 64, 0.12);
+    position: relative;
+    overflow: hidden;
+}
+
+.article-content-crochet .materials-needed-card::before {
+    content: '🧶';
+    position: absolute;
+    top: -10px;
+    right: 20px;
+    font-size: 5rem;
+    opacity: 0.12;
+    transform: rotate(15deg);
+    pointer-events: none;
+}
+
+.article-content-crochet .materials-needed-card h2,
+.article-content-crochet .materials-needed-card h3 {
+    margin-top: 0 !important;
+    margin-bottom: 1.5rem !important;
+    color: #2D4A2D !important;
+    padding-bottom: 0.75rem !important;
+    border-bottom: 2px solid #A3B18A !important;
+    position: relative;
+    z-index: 1;
+}
+
+.article-content-crochet .materials-needed-card h2::after,
+.article-content-crochet .materials-needed-card h3::after {
+    display: none !important;
+}
+
+.article-content-crochet .materials-needed-card ul,
+.article-content-crochet .materials-needed-card ol {
+    margin-bottom: 0;
+    background: rgba(255, 255, 255, 0.6);
+    padding: 1.25rem 1.25rem 1.25rem 2.75rem;
+    border-radius: 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.article-content-crochet .materials-needed-card li {
+    margin-bottom: 0.625rem;
+    color: #344E41;
+    font-weight: 500;
+}
+
+.article-content-crochet .materials-needed-card li:last-child {
+    margin-bottom: 0;
+}
+
+.article-content-crochet .materials-needed-card li::marker {
+    color: #588157;
+    font-weight: 800;
+}
+
+.article-content-crochet .materials-needed-card p {
+    position: relative;
+    z-index: 1;
 }
 
 /* Typing Animation */
