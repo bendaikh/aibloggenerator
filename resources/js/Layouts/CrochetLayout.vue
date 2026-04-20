@@ -56,6 +56,15 @@
                             </div>
                         </div>
                         <a 
+                            :href="`${website.url}/shop`"
+                            class="px-4 py-2 rounded-full text-sm font-black text-[#A44A3F] hover:bg-[#FCE1E4]/50 transition-colors uppercase tracking-widest flex items-center gap-1"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            </svg>
+                            Shop
+                        </a>
+                        <a 
                             v-for="page in website.pages" 
                             :key="page.id"
                             :href="page.url"
@@ -83,6 +92,15 @@
                         class="block px-4 py-2 text-base font-black text-[#3A5A40] uppercase tracking-widest"
                     >
                         Home
+                    </a>
+                    <a 
+                        :href="`${website.url}/shop`"
+                        class="flex items-center gap-2 px-4 py-2 text-base font-black text-[#A44A3F] uppercase tracking-widest"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                        </svg>
+                        Shop
                     </a>
                     <div class="px-4 py-2 text-xs font-black text-[#A3B18A] uppercase tracking-widest">Categories</div>
                     <a 

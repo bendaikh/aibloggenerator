@@ -32,6 +32,13 @@ class User extends Authenticatable
         'ai_default_tone',
         'article_generation_mode',
         'max_variations',
+        'stripe_publishable_key',
+        'stripe_secret_key',
+        'stripe_webhook_secret',
+        'paypal_client_id',
+        'paypal_client_secret',
+        'paypal_mode',
+        'payments_enabled',
     ];
 
     /**
@@ -156,6 +163,11 @@ class User extends Authenticatable
         'openai_api_key',
         'gemini_api_key',
         'ideogram_api_key',
+        'stripe_publishable_key',
+        'stripe_secret_key',
+        'stripe_webhook_secret',
+        'paypal_client_id',
+        'paypal_client_secret',
     ];
 
     /**
@@ -171,6 +183,32 @@ class User extends Authenticatable
             'openai_api_key' => 'encrypted',
             'gemini_api_key' => 'encrypted',
             'ideogram_api_key' => 'encrypted',
+            'stripe_publishable_key' => 'encrypted',
+            'stripe_secret_key' => 'encrypted',
+            'stripe_webhook_secret' => 'encrypted',
+            'paypal_client_id' => 'encrypted',
+            'paypal_client_secret' => 'encrypted',
+            'payments_enabled' => 'boolean',
         ];
+    }
+
+    public function hasStripeConfigured(): bool
+    {
+        return !empty($this->stripe_publishable_key) && !empty($this->stripe_secret_key);
+    }
+
+    public function hasPaypalConfigured(): bool
+    {
+        return !empty($this->paypal_client_id) && !empty($this->paypal_client_secret);
+    }
+
+    public function hasPaymentsConfigured(): bool
+    {
+        return $this->payments_enabled && ($this->hasStripeConfigured() || $this->hasPaypalConfigured());
+    }
+
+    public function orders()
+    {
+        return $this->hasManyThrough(Order::class, Website::class);
     }
 }

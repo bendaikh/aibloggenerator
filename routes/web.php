@@ -17,6 +17,7 @@ use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\DomainRequestController;
+use App\Http\Controllers\ProductController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -41,6 +42,16 @@ if (!$isLocalDev) {
         Route::get('/search', [PublicWebsiteController::class, 'search'])->name('website.search.subdomain');
         Route::post('/subscribe', [\App\Http\Controllers\SubscriberController::class, 'subscribeByDomain'])->name('website.subscribe.subdomain');
         Route::get('/ads.txt', [PublicWebsiteController::class, 'adsTxt'])->name('website.ads_txt');
+        // Shop routes
+        Route::get('/shop', [PublicWebsiteController::class, 'shopByDomain'])->name('website.shop.subdomain');
+        Route::get('/shop/{product}', [PublicWebsiteController::class, 'showProductByDomain'])->name('website.product.subdomain');
+        // Checkout routes
+        Route::get('/checkout/{product}', [\App\Http\Controllers\CheckoutController::class, 'show'])->name('website.checkout.subdomain');
+        Route::post('/checkout/{product}/stripe', [\App\Http\Controllers\CheckoutController::class, 'createStripeSession'])->name('website.checkout.stripe.subdomain');
+        Route::post('/checkout/{product}/paypal/create', [\App\Http\Controllers\CheckoutController::class, 'createPaypalOrder'])->name('website.checkout.paypal.create.subdomain');
+        Route::post('/checkout/{product}/paypal/capture', [\App\Http\Controllers\CheckoutController::class, 'capturePaypalOrder'])->name('website.checkout.paypal.capture.subdomain');
+        Route::get('/checkout/{product}/success', [\App\Http\Controllers\CheckoutController::class, 'success'])->name('website.checkout.success.subdomain');
+        Route::get('/checkout/{product}/paypal-return', [\App\Http\Controllers\CheckoutController::class, 'paypalReturn'])->name('website.checkout.paypal.return.subdomain');
         // Sitemap and robots.txt
         Route::get('/sitemap.xml', [PublicWebsiteController::class, 'sitemapByDomain'])->name('website.sitemap.subdomain');
         Route::get('/robots.txt', [PublicWebsiteController::class, 'robotsTxtByDomain'])->name('website.robots.subdomain');
@@ -92,6 +103,14 @@ $registerMainAppRoutes = function () {
         
         // API Usage & Cost Tracking
         Route::get('/api-usage', [OrganizationController::class, 'apiUsage'])->name('organization.api-usage');
+        
+        // Payment Integration Routes
+        Route::get('/payments', [\App\Http\Controllers\PaymentController::class, 'index'])->name('organization.payments');
+        Route::post('/payments', [\App\Http\Controllers\PaymentController::class, 'update'])->name('organization.payments.update');
+        Route::post('/payments/test-stripe', [\App\Http\Controllers\PaymentController::class, 'testStripe'])->name('organization.payments.test-stripe');
+        Route::post('/payments/test-paypal', [\App\Http\Controllers\PaymentController::class, 'testPaypal'])->name('organization.payments.test-paypal');
+        Route::post('/payments/disconnect-stripe', [\App\Http\Controllers\PaymentController::class, 'disconnectStripe'])->name('organization.payments.disconnect-stripe');
+        Route::post('/payments/disconnect-paypal', [\App\Http\Controllers\PaymentController::class, 'disconnectPaypal'])->name('organization.payments.disconnect-paypal');
         
         // Themes Routes (Read-Only - just view available themes)
         Route::get('/themes', [OrganizationController::class, 'themes'])->name('organization.themes');
@@ -264,6 +283,15 @@ $registerMainAppRoutes = function () {
         // GEO (Generative Engine Optimization) Routes
         Route::get('/{website}/geo', [\App\Http\Controllers\GeoController::class, 'index'])->name('superadmin.geo');
         Route::post('/{website}/geo', [\App\Http\Controllers\GeoController::class, 'update'])->name('superadmin.geo.update');
+
+        // Shop Products Routes
+        Route::get('/{website}/products', [ProductController::class, 'index'])->name('superadmin.products.index');
+        Route::get('/{website}/products/create', [ProductController::class, 'create'])->name('superadmin.products.create');
+        Route::post('/{website}/products', [ProductController::class, 'store'])->name('superadmin.products.store');
+        Route::get('/{website}/products/{product}/edit', [ProductController::class, 'edit'])->name('superadmin.products.edit');
+        Route::put('/{website}/products/{product}', [ProductController::class, 'update'])->name('superadmin.products.update');
+        Route::delete('/{website}/products/{product}', [ProductController::class, 'destroy'])->name('superadmin.products.destroy');
+        Route::post('/{website}/products/order', [ProductController::class, 'updateOrder'])->name('superadmin.products.order');
     });
 
     // Legacy routes
@@ -282,6 +310,17 @@ $registerMainAppRoutes = function () {
     Route::get('/site/{website}/search', [PublicWebsiteController::class, 'searchLegacy'])->name('website.search');
     Route::post('/site/{website}/subscribe', [\App\Http\Controllers\SubscriberController::class, 'subscribe'])->name('website.subscribe');
     Route::get('/site/{website}/ads.txt', [PublicWebsiteController::class, 'adsTxtLegacy'])->name('website.ads_txt.legacy');
+    // Shop routes
+    Route::get('/site/{website}/shop', [PublicWebsiteController::class, 'shop'])->name('website.shop');
+    Route::get('/site/{website}/shop/{product}', [PublicWebsiteController::class, 'showProduct'])->name('website.product');
+    
+    // Checkout routes
+    Route::get('/site/{website}/checkout/{product}', [\App\Http\Controllers\CheckoutController::class, 'show'])->name('website.checkout');
+    Route::post('/site/{website}/checkout/{product}/stripe', [\App\Http\Controllers\CheckoutController::class, 'createStripeSession'])->name('website.checkout.stripe');
+    Route::post('/site/{website}/checkout/{product}/paypal/create', [\App\Http\Controllers\CheckoutController::class, 'createPaypalOrder'])->name('website.checkout.paypal.create');
+    Route::post('/site/{website}/checkout/{product}/paypal/capture', [\App\Http\Controllers\CheckoutController::class, 'capturePaypalOrder'])->name('website.checkout.paypal.capture');
+    Route::get('/site/{website}/checkout/{product}/success', [\App\Http\Controllers\CheckoutController::class, 'success'])->name('website.checkout.success');
+    Route::get('/site/{website}/checkout/{product}/paypal-return', [\App\Http\Controllers\CheckoutController::class, 'paypalReturn'])->name('website.checkout.paypal.return');
     // Sitemap and robots.txt routes
     Route::get('/site/{website}/sitemap.xml', [PublicWebsiteController::class, 'sitemap'])->name('website.sitemap');
     Route::get('/site/{website}/robots.txt', [PublicWebsiteController::class, 'robotsTxt'])->name('website.robots');
@@ -294,6 +333,11 @@ $registerMainAppRoutes = function () {
     
     // Auth routes
     require __DIR__.'/auth.php';
+    
+    // Stripe Webhook (outside auth - must be accessible without authentication)
+    Route::post('/webhooks/stripe', [\App\Http\Controllers\CheckoutController::class, 'stripeWebhook'])
+        ->name('webhooks.stripe')
+        ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
     
     // Diagnostics route (can be removed after verifying fix)
     Route::get('/diagnostics/inertia', [\App\Http\Controllers\DiagnosticsController::class, 'index'])->name('diagnostics.inertia');
@@ -326,6 +370,16 @@ if (!$isLocalDev) {
         Route::get('/search', [PublicWebsiteController::class, 'search'])->name('website.search.custom');
         Route::post('/subscribe', [\App\Http\Controllers\SubscriberController::class, 'subscribeByDomain'])->name('website.subscribe.custom');
         Route::get('/ads.txt', [PublicWebsiteController::class, 'adsTxt'])->name('website.ads_txt.custom');
+        // Shop routes
+        Route::get('/shop', [PublicWebsiteController::class, 'shopByDomain'])->name('website.shop.custom');
+        Route::get('/shop/{product}', [PublicWebsiteController::class, 'showProductByDomain'])->name('website.product.custom');
+        // Checkout routes
+        Route::get('/checkout/{product}', [\App\Http\Controllers\CheckoutController::class, 'show'])->name('website.checkout.custom');
+        Route::post('/checkout/{product}/stripe', [\App\Http\Controllers\CheckoutController::class, 'createStripeSession'])->name('website.checkout.stripe.custom');
+        Route::post('/checkout/{product}/paypal/create', [\App\Http\Controllers\CheckoutController::class, 'createPaypalOrder'])->name('website.checkout.paypal.create.custom');
+        Route::post('/checkout/{product}/paypal/capture', [\App\Http\Controllers\CheckoutController::class, 'capturePaypalOrder'])->name('website.checkout.paypal.capture.custom');
+        Route::get('/checkout/{product}/success', [\App\Http\Controllers\CheckoutController::class, 'success'])->name('website.checkout.success.custom');
+        Route::get('/checkout/{product}/paypal-return', [\App\Http\Controllers\CheckoutController::class, 'paypalReturn'])->name('website.checkout.paypal.return.custom');
         // Sitemap and robots.txt
         Route::get('/sitemap.xml', [PublicWebsiteController::class, 'sitemapByDomain'])->name('website.sitemap.custom');
         Route::get('/robots.txt', [PublicWebsiteController::class, 'robotsTxtByDomain'])->name('website.robots.custom');

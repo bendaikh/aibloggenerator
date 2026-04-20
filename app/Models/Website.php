@@ -135,6 +135,33 @@ class Website extends Model
     }
 
     /**
+     * Get the products for the website.
+     */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    /**
+     * Get published products.
+     */
+    public function publishedProducts(): HasMany
+    {
+        return $this->products()
+            ->where('status', 'published')
+            ->orderBy('order')
+            ->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Get the orders for the website.
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    /**
      * Get the domain request associated with this website.
      */
     public function domainRequest()

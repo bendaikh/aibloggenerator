@@ -83,6 +83,13 @@
                                 </div>
                             </div>
                         </div>
+
+                        <a :href="`${website.url}/shop`" class="text-amber-600 hover:text-amber-700 font-bold transition flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            </svg>
+                            Shop
+                        </a>
                         
                         <!-- Dynamic Pages from Content Management -->
                         <a
@@ -121,6 +128,17 @@
                             class="block px-4 py-3 text-gray-700 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg font-medium transition"
                         >
                             Home
+                        </a>
+
+                        <a 
+                            :href="`${website.url}/shop`" 
+                            @click="closeMobileMenu"
+                            class="flex items-center gap-2 px-4 py-3 text-amber-600 hover:bg-amber-50 rounded-lg font-bold transition"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            </svg>
+                            Shop
                         </a>
                         
                         <!-- Categories Section -->

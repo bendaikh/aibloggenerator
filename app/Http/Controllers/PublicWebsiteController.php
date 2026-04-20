@@ -6,6 +6,7 @@ use App\Models\Website;
 use App\Models\Article;
 use App\Models\ArticleImage;
 use App\Models\Page;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -890,6 +891,152 @@ class PublicWebsiteController extends Controller
             'featuredArticles' => $featuredArticles,
             'familyFavorites' => $familyFavorites,
             'author' => $author,
+        ]);
+    }
+
+    /**
+     * Display the shop page (subdomain/custom domain).
+     */
+    public function shopByDomain(Request $request): Response
+    {
+        $website = $request->get('website');
+        
+        if (!$website) {
+            abort(404, 'Website not found');
+        }
+
+        view()->share('website', $website);
+
+        return $this->renderShop($website);
+    }
+
+    /**
+     * Display the shop page (legacy /site/{slug} route).
+     */
+    public function shop(string $websiteSlug): Response
+    {
+        $website = Website::where('slug', $websiteSlug)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        view()->share('website', $website);
+
+        return $this->renderShop($website);
+    }
+
+    /**
+     * Display a product (subdomain/custom domain).
+     */
+    public function showProductByDomain(Request $request, string $productSlug): Response
+    {
+        $website = $request->get('website');
+        
+        if (!$website) {
+            abort(404, 'Website not found');
+        }
+
+        view()->share('website', $website);
+
+        return $this->renderProduct($website, $productSlug);
+    }
+
+    /**
+     * Display a product (legacy /site/{slug} route).
+     */
+    public function showProduct(string $websiteSlug, string $productSlug): Response
+    {
+        $website = Website::where('slug', $websiteSlug)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        view()->share('website', $website);
+
+        return $this->renderProduct($website, $productSlug);
+    }
+
+    /**
+     * Render the shop page for a website.
+     */
+    private function renderShop(Website $website): Response
+    {
+        $website->load([
+            'categories' => function ($query) {
+                $query->where('is_active', true)->orderBy('order');
+            },
+            'pages' => function ($query) {
+                $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
+            },
+            'theme'
+        ]);
+
+        $products = $website->publishedProducts()
+            ->paginate(12);
+
+        $featuredProducts = $website->publishedProducts()
+            ->featured()
+            ->take(4)
+            ->get();
+
+        $websiteTheme = $website->theme()->first();
+        
+        $viewComponent = 'Public/Website/Shop';
+        if ($websiteTheme && $websiteTheme->slug === 'home-decor') {
+            $viewComponent = 'Public/Website/ShopHomeDecor';
+        }
+        if ($websiteTheme && $websiteTheme->slug === 'crochet') {
+            $viewComponent = 'Public/Website/ShopCrochet';
+        }
+
+        return Inertia::render($viewComponent, [
+            'website' => $website,
+            'products' => $products,
+            'featuredProducts' => $featuredProducts,
+        ]);
+    }
+
+    /**
+     * Render a single product page.
+     */
+    private function renderProduct(Website $website, string $productSlug): Response
+    {
+        $website->load([
+            'categories' => function ($query) {
+                $query->where('is_active', true)->orderBy('order');
+            },
+            'pages' => function ($query) {
+                $query->where('is_active', true)->where('show_in_menu', true)->orderBy('order');
+            },
+            'theme'
+        ]);
+
+        $product = $website->publishedProducts()
+            ->where('slug', $productSlug)
+            ->firstOrFail();
+
+        $relatedProducts = $website->publishedProducts()
+            ->where('id', '!=', $product->id)
+            ->inRandomOrder()
+            ->take(4)
+            ->get();
+
+        $websiteTheme = $website->theme()->first();
+        
+        $viewComponent = 'Public/Website/ProductDetail';
+        if ($websiteTheme && $websiteTheme->slug === 'home-decor') {
+            $viewComponent = 'Public/Website/ProductDetailHomeDecor';
+        }
+        if ($websiteTheme && $websiteTheme->slug === 'crochet') {
+            $viewComponent = 'Public/Website/ProductDetailCrochet';
+        }
+
+        $user = $website->user;
+        $paymentsEnabled = $user && $user->hasPaymentsConfigured();
+
+        return Inertia::render($viewComponent, [
+            'website' => $website,
+            'product' => $product,
+            'relatedProducts' => $relatedProducts,
+            'paymentsEnabled' => $paymentsEnabled,
         ]);
     }
 

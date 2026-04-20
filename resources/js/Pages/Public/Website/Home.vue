@@ -288,7 +288,7 @@ const newsletterCtaButton = computed(() => themeSettings.value.newsletter_cta_bu
 const shopCtaTitle = computed(() => themeSettings.value.shop_cta_title || 'VISIT OUR SHOP');
 const shopCtaSubtitle = computed(() => themeSettings.value.shop_cta_subtitle || 'FIND GREAT GIFT IDEAS!');
 const shopCtaButton = computed(() => themeSettings.value.shop_cta_button || 'SHOP NOW');
-const shopCtaLink = computed(() => themeSettings.value.shop_cta_link || '#shop');
+const shopCtaLink = computed(() => themeSettings.value.shop_cta_link || `${props.website.url}/shop`);
 
 const articleTitleFontFamily = computed(() => {
     const fontId = props.website?.theme_settings?.article_title_font_family || 'merriweather';

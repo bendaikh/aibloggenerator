@@ -21,7 +21,7 @@ class ImageUploadController extends Controller
     {
         $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120', // 5MB max
-            'type' => 'nullable|string|in:article,website,category',
+            'type' => 'nullable|string|in:article,website,category,product',
         ]);
 
         $type = $request->input('type', 'general');

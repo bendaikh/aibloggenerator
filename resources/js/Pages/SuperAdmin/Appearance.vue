@@ -51,7 +51,7 @@ const form = useForm({
         shop_cta_title: currentThemeSettings.shop_cta_title || 'VISIT OUR SHOP',
         shop_cta_subtitle: currentThemeSettings.shop_cta_subtitle || 'FIND GREAT GIFT IDEAS!',
         shop_cta_button: currentThemeSettings.shop_cta_button || 'SHOP NOW',
-        shop_cta_link: currentThemeSettings.shop_cta_link || '#shop',
+        shop_cta_link: currentThemeSettings.shop_cta_link || '',
         // Subscription popup customization
         show_subscription_popup: currentThemeSettings.show_subscription_popup !== false, // Default to true
         subscription_popup_desktop: currentThemeSettings.subscription_popup_desktop !== false, // Default to true
@@ -291,9 +291,10 @@ const getFontFamily = (fontId) => {
                                         <input
                                             v-model="form.theme_settings.shop_cta_link"
                                             type="text"
-                                            placeholder="https://yourshop.com"
+                                            placeholder="/shop (leave empty for default)"
                                             class="w-full px-3 py-2 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                         />
+                                        <p class="text-gray-500 text-xs mt-1">Leave empty to use the default shop page (/shop)</p>
                                     </div>
                                 </div>
                                 <!-- Preview -->
