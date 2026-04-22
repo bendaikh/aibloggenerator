@@ -41,8 +41,14 @@ You should see the Website Owner role.
 
 ## After Production Deployment:
 
-1. Run the seeder command above
-2. Clear Laravel cache:
+1. **Deploy the code changes** (includes the `role_id` fix in User model)
+
+2. Run the seeder command:
+   ```bash
+   php artisan db:seed --class=RolesAndPermissionsSeeder
+   ```
+
+3. Clear Laravel cache:
    ```bash
    php artisan cache:clear
    php artisan config:clear
@@ -50,9 +56,16 @@ You should see the Website Owner role.
    php artisan view:clear
    ```
 
-3. Both you and your partner should logout and login again
+4. Both you and your partner should logout and login again
 
-4. Create new users with "Website Owner" role through the User Management interface
+5. Create new users with "Website Owner" role through the User Management interface
+
+## Important Fix Applied:
+
+Added `role_id` to the User model's `$fillable` array. This was preventing role updates in the User Management interface. Now you can:
+- ✅ Create users with specific roles
+- ✅ Update existing users' roles
+- ✅ Role changes take effect immediately (after logout/login)
 
 ## Creating Website Owner Users:
 

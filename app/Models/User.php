@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'role_id',
         'status',
         'theme_id',
         'openai_api_key',

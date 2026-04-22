@@ -166,6 +166,11 @@ php artisan tinker
 - Run the seeder in production: `php artisan db:seed --class=RolesAndPermissionsSeeder`
 - Clear cache: `php artisan cache:clear && php artisan config:clear`
 
+### Role update not saving when editing user
+- **FIXED**: Added `role_id` to User model's `$fillable` array
+- Make sure you've deployed the latest code
+- If still having issues, check: `\App\Models\User::make()->getFillable()` should include 'role_id'
+
 ### User sees other people's websites
 - This should NEVER happen now - all users are isolated
 - Check the website's `user_id` field
@@ -195,7 +200,9 @@ php artisan tinker
 ## Files Modified
 
 - `database/seeders/RolesAndPermissionsSeeder.php`: Added website_owner role
-- `app/Models/User.php`: Added isWebsiteOwner() and canSeeAllWebsites() methods
+- `app/Models/User.php`: 
+  - Added isWebsiteOwner() and canSeeAllWebsites() methods
+  - Added `role_id` to $fillable array (required for role updates)
 - `app/Http/Controllers/WebsiteController.php`: Updated to filter by user role
 - `app/Http/Controllers/OrganizationController.php`: Updated all methods to filter by user role + theme access for Website Owners
 - `app/Http/Controllers/UserManagementController.php`: Updated to set status='approved' on user creation
