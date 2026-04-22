@@ -80,7 +80,9 @@ class User extends Authenticatable
      */
     public function canSeeAllWebsites(): bool
     {
-        return $this->isSuperAdmin();
+        // Nobody should see all websites - each user only sees their own
+        // This was changed per user request - all users are isolated to their own websites
+        return false;
     }
 
     /**
