@@ -68,6 +68,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is a website owner (has full access to their own websites only).
+     */
+    public function isWebsiteOwner(): bool
+    {
+        return $this->roleRelation && $this->roleRelation->name === 'website_owner';
+    }
+
+    /**
+     * Check if user can see all websites (true superadmin only).
+     */
+    public function canSeeAllWebsites(): bool
+    {
+        return $this->isSuperAdmin();
+    }
+
+    /**
      * Check if user is an admin or superadmin.
      */
     public function isAdmin(): bool

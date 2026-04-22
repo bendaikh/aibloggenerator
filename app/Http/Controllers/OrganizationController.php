@@ -67,9 +67,12 @@ class OrganizationController extends Controller
             }
         }
         
-        $websites = Website::where('user_id', $user->id)
-            ->withCount(['articles', 'categories'])
-            ->get();
+        // Get websites based on user role - superadmins see all, website owners see only theirs
+        $websitesQuery = $user->canSeeAllWebsites() 
+            ? Website::query()
+            : Website::where('user_id', $user->id);
+        
+        $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
         $websiteIds = $websites->pluck('id');
 
@@ -118,9 +121,13 @@ class OrganizationController extends Controller
     public function settings()
     {
         $user = Auth::user();
-        $websites = Website::where('user_id', $user->id)
-            ->withCount(['articles', 'categories'])
-            ->get();
+        
+        // Get websites based on user role
+        $websitesQuery = $user->canSeeAllWebsites() 
+            ? Website::query()
+            : Website::where('user_id', $user->id);
+        
+        $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
         return Inertia::render('Organization/Settings', [
             'settings' => [
@@ -141,9 +148,13 @@ class OrganizationController extends Controller
     public function apiKeys()
     {
         $user = Auth::user();
-        $websites = Website::where('user_id', $user->id)
-            ->withCount(['articles', 'categories'])
-            ->get();
+        
+        // Get websites based on user role
+        $websitesQuery = $user->canSeeAllWebsites() 
+            ? Website::query()
+            : Website::where('user_id', $user->id);
+        
+        $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
         return Inertia::render('Organization/ApiKeys', [
             'settings' => [
@@ -208,9 +219,12 @@ class OrganizationController extends Controller
         // Force fresh user data from database, not from cache
         $user = User::find(Auth::id());
         
-        $websites = Website::where('user_id', $user->id)
-            ->withCount(['articles', 'categories'])
-            ->get();
+        // Get websites based on user role
+        $websitesQuery = $user->canSeeAllWebsites() 
+            ? Website::query()
+            : Website::where('user_id', $user->id);
+        
+        $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
         \Log::info('Loading Agent Rewrite Page', [
             'user_id' => $user->id,
@@ -283,15 +297,19 @@ class OrganizationController extends Controller
     public function themes()
     {
         $user = Auth::user();
-        $websites = Website::where('user_id', $user->id)
-            ->withCount(['articles', 'categories'])
-            ->get();
+        
+        // Get websites based on user role
+        $websitesQuery = $user->canSeeAllWebsites() 
+            ? Website::query()
+            : Website::where('user_id', $user->id);
+        
+        $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
         // Get themes based on user role
-        // Superadmins can see all themes, regular users only see public themes
+        // Superadmins and Website Owners can see all themes, regular users only see public themes
         $themesQuery = \App\Models\Theme::where('is_active', true);
         
-        if (!$user->isSuperAdmin()) {
+        if (!$user->isSuperAdmin() && !$user->isWebsiteOwner()) {
             $themesQuery->where('is_public', true);
         }
         
@@ -340,9 +358,13 @@ class OrganizationController extends Controller
     public function apiUsage()
     {
         $user = Auth::user();
-        $websites = Website::where('user_id', $user->id)
-            ->withCount(['articles', 'categories'])
-            ->get();
+        
+        // Get websites based on user role
+        $websitesQuery = $user->canSeeAllWebsites() 
+            ? Website::query()
+            : Website::where('user_id', $user->id);
+        
+        $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
         // Get usage statistics
         $totalCost = \App\Models\ApiUsageLog::where('user_id', $user->id)->sum('estimated_cost');
@@ -608,9 +630,13 @@ class OrganizationController extends Controller
     public function websitesIndex()
     {
         $user = Auth::user();
-        $websites = Website::where('user_id', $user->id)
-            ->withCount(['articles', 'categories'])
-            ->get();
+        
+        // Get websites based on user role
+        $websitesQuery = $user->canSeeAllWebsites() 
+            ? Website::query()
+            : Website::where('user_id', $user->id);
+        
+        $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
         return Inertia::render('Organization/Websites/Index', [
             'websites' => $websites,
@@ -623,15 +649,19 @@ class OrganizationController extends Controller
     public function websitesCreate()
     {
         $user = Auth::user();
-        $websites = Website::where('user_id', $user->id)
-            ->withCount(['articles', 'categories'])
-            ->get();
+        
+        // Get websites based on user role
+        $websitesQuery = $user->canSeeAllWebsites() 
+            ? Website::query()
+            : Website::where('user_id', $user->id);
+        
+        $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
         // Get themes based on user role
-        // Superadmins can see all themes, regular users only see public themes
+        // Superadmins and Website Owners can see all themes, regular users only see public themes
         $themesQuery = \App\Models\Theme::where('is_active', true);
         
-        if (!$user->isSuperAdmin()) {
+        if (!$user->isSuperAdmin() && !$user->isWebsiteOwner()) {
             $themesQuery->where('is_public', true);
         }
         
@@ -1353,9 +1383,13 @@ HTML;
         $this->authorize('update', $website);
 
         $user = Auth::user();
-        $websites = Website::where('user_id', $user->id)
-            ->withCount(['articles', 'categories'])
-            ->get();
+        
+        // Get websites based on user role
+        $websitesQuery = $user->canSeeAllWebsites() 
+            ? Website::query()
+            : Website::where('user_id', $user->id);
+        
+        $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
         return Inertia::render('Organization/Websites/Edit', [
             'website' => $website,
@@ -1459,10 +1493,10 @@ HTML;
         $user = Auth::user();
         
         // Fetch themes based on user role
-        // Superadmin sees all themes, regular users see only public themes
+        // Superadmin and Website Owners see all themes, regular users see only public themes
         $themesQuery = Theme::query();
         
-        if (!$user->isSuperAdmin()) {
+        if (!$user->isSuperAdmin() && !$user->isWebsiteOwner()) {
             $themesQuery->where('is_public', true);
         }
         
@@ -1498,9 +1532,12 @@ HTML;
                 ->withErrors(['error' => 'Invalid theme selected']);
         }
         
-        // Get websites filtered by theme
-        $websites = Website::where('user_id', $user->id)
-            ->where('theme_id', $theme->id)
+        // Get websites based on user role and filtered by theme
+        $websitesQuery = $user->canSeeAllWebsites() 
+            ? Website::query()
+            : Website::where('user_id', $user->id);
+        
+        $websites = $websitesQuery->where('theme_id', $theme->id)
             ->withCount(['articles', 'categories'])
             ->get();
 
@@ -1681,9 +1718,13 @@ HTML;
     public function globalSubscribersIndex()
     {
         $user = Auth::user();
-        $websites = Website::where('user_id', $user->id)
-            ->withCount(['articles', 'categories'])
-            ->get();
+        
+        // Get websites based on user role
+        $websitesQuery = $user->canSeeAllWebsites() 
+            ? Website::query()
+            : Website::where('user_id', $user->id);
+        
+        $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
         $websiteIds = $websites->pluck('id');
 
@@ -1716,7 +1757,13 @@ HTML;
     public function globalSubscribersExport()
     {
         $user = Auth::user();
-        $websiteIds = Website::where('user_id', $user->id)->pluck('id');
+        
+        // Get websites based on user role
+        $websitesQuery = $user->canSeeAllWebsites() 
+            ? Website::query()
+            : Website::where('user_id', $user->id);
+        
+        $websiteIds = $websitesQuery->pluck('id');
 
         $subscribers = Subscriber::whereIn('website_id', $websiteIds)
             ->with(['website:id,name,subdomain,domain', 'website.user:id,name'])

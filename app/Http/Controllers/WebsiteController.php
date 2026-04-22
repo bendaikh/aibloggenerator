@@ -25,9 +25,12 @@ class WebsiteController extends Controller
     {
         $this->authorize('view', $website);
 
-        $websites = auth()->user()->websites()
-            ->withCount(['articles', 'categories'])
-            ->get();
+        // Get websites based on user role
+        $websitesQuery = auth()->user()->canSeeAllWebsites() 
+            ? Website::query()
+            : auth()->user()->websites();
+        
+        $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
         // Get stats for this website
         $stats = [
@@ -57,8 +60,12 @@ class WebsiteController extends Controller
      */
     public function index(): Response
     {
-        $websites = auth()->user()->websites()
-            ->withCount(['articles', 'categories'])
+        // Get websites based on user role
+        $websitesQuery = auth()->user()->canSeeAllWebsites() 
+            ? Website::query()
+            : auth()->user()->websites();
+        
+        $websites = $websitesQuery->withCount(['articles', 'categories'])
             ->latest()
             ->get();
 

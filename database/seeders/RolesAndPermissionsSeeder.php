@@ -134,6 +134,14 @@ class RolesAndPermissionsSeeder extends Seeder
             ]
         );
 
+        $websiteOwner = Role::firstOrCreate(
+            ['name' => 'website_owner'],
+            [
+                'display_name' => 'Website Owner',
+                'description' => 'Full access to own websites and content, but cannot manage other users or see all websites'
+            ]
+        );
+
         // Assign all permissions to superadmin
         $allPermissions = Permission::all();
         $superadmin->permissions()->sync($allPermissions->pluck('id'));
@@ -158,6 +166,10 @@ class RolesAndPermissionsSeeder extends Seeder
         // Assign view-only permissions to viewer
         $viewerPermissions = Permission::where('name', 'like', '%.view')->get();
         $viewer->permissions()->sync($viewerPermissions->pluck('id'));
+
+        // Assign all permissions to website owner EXCEPT global user/role/permission management
+        $websiteOwnerPermissions = Permission::whereNotIn('group', ['users', 'roles', 'permissions'])->get();
+        $websiteOwner->permissions()->sync($websiteOwnerPermissions->pluck('id'));
 
         $this->command->info('Roles and permissions seeded successfully!');
     }
