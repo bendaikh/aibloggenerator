@@ -101,6 +101,11 @@ $registerMainAppRoutes = function () {
         Route::get('/agent-rewrite', [OrganizationController::class, 'agentRewrite'])->name('organization.agent-rewrite');
         Route::post('/agent-rewrite', [OrganizationController::class, 'updateAgentRewrite'])->name('organization.agent-rewrite.update');
         
+        // Security Notifications Routes
+        Route::get('/security-notifications', [OrganizationController::class, 'securityNotifications'])->name('organization.security-notifications');
+        Route::post('/security-notifications', [OrganizationController::class, 'updateSecurityNotifications'])->name('organization.security-notifications.update');
+        Route::post('/security-notifications/test-twilio', [OrganizationController::class, 'testTwilioConnection'])->name('organization.security-notifications.test-twilio');
+        
         // API Usage & Cost Tracking
         Route::get('/api-usage', [OrganizationController::class, 'apiUsage'])->name('organization.api-usage');
         

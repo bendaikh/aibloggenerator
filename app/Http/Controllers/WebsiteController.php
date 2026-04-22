@@ -32,26 +32,156 @@ class WebsiteController extends Controller
         
         $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
+        // Calculate real statistics for this website
+        $now = now();
+        $startOfMonth = $now->copy()->startOfMonth();
+        $startOfLastMonth = $now->copy()->subMonth()->startOfMonth();
+        $endOfLastMonth = $now->copy()->subMonth()->endOfMonth();
+
+        // Article statistics
+        $totalArticles = $website->articles()->count();
+        $publishedArticles = $website->articles()->where('status', 'published')->count();
+        $draftArticles = $website->articles()->where('status', 'draft')->count();
+        
+        // Articles created this month vs last month for growth calculation
+        $articlesThisMonth = $website->articles()
+            ->where('created_at', '>=', $startOfMonth)
+            ->count();
+        $articlesLastMonth = $website->articles()
+            ->whereBetween('created_at', [$startOfLastMonth, $endOfLastMonth])
+            ->count();
+        
+        // Calculate growth percentage
+        $articlesGrowth = $articlesLastMonth > 0 
+            ? round((($articlesThisMonth - $articlesLastMonth) / $articlesLastMonth) * 100, 1)
+            : ($articlesThisMonth > 0 ? 100 : 0);
+
+        // Total views across all articles
+        $totalViews = $website->articles()->sum('views');
+        
+        // Views this month vs last month for growth calculation
+        $articlesThisMonthIds = $website->articles()
+            ->where('created_at', '>=', $startOfMonth)
+            ->pluck('id');
+        $viewsThisMonth = $website->articles()
+            ->whereIn('id', $articlesThisMonthIds)
+            ->sum('views');
+        
+        $articlesLastMonthIds = $website->articles()
+            ->whereBetween('created_at', [$startOfLastMonth, $endOfLastMonth])
+            ->pluck('id');
+        $viewsLastMonth = $website->articles()
+            ->whereIn('id', $articlesLastMonthIds)
+            ->sum('views');
+        
+        $viewsGrowth = $viewsLastMonth > 0 
+            ? round((($viewsThisMonth - $viewsLastMonth) / $viewsLastMonth) * 100, 1)
+            : ($viewsThisMonth > 0 ? 100 : 0);
+
+        // AI Usage statistics (for articles belonging to this website)
+        $websiteArticleIds = $website->articles()->pluck('id');
+        $aiCost = \App\Models\ApiUsageLog::whereIn('article_id', $websiteArticleIds)
+            ->sum('estimated_cost');
+        $aiTokens = \App\Models\ApiUsageLog::whereIn('article_id', $websiteArticleIds)
+            ->sum('total_tokens');
+        $aiEvents = \App\Models\ApiUsageLog::whereIn('article_id', $websiteArticleIds)
+            ->count();
+
+        // Format tokens for display (e.g., 6500000 -> 6.5M)
+        $aiUsageFormatted = $aiTokens >= 1000000 
+            ? round($aiTokens / 1000000, 1) . 'M'
+            : ($aiTokens >= 1000 ? round($aiTokens / 1000, 1) . 'K' : $aiTokens);
+
+        // AI usage growth (this month vs last month)
+        $aiCostThisMonth = \App\Models\ApiUsageLog::whereIn('article_id', $websiteArticleIds)
+            ->where('created_at', '>=', $startOfMonth)
+            ->sum('estimated_cost');
+        $aiCostLastMonth = \App\Models\ApiUsageLog::whereIn('article_id', $websiteArticleIds)
+            ->whereBetween('created_at', [$startOfLastMonth, $endOfLastMonth])
+            ->sum('estimated_cost');
+        
+        $aiCostGrowth = $aiCostLastMonth > 0 
+            ? round((($aiCostThisMonth - $aiCostLastMonth) / $aiCostLastMonth) * 100, 1)
+            : ($aiCostThisMonth > 0 ? 100 : 0);
+
+        // Other statistics
+        $totalPages = $website->pages()->count();
+        $totalCategories = $website->categories()->count();
+        $totalSubscribers = \App\Models\Subscriber::where('website_id', $website->id)->count();
+
+        // Chart data: Article views over last 30 days
+        $chartData = [];
+        $last30Days = now()->subDays(29);
+        
+        // Get articles published in the last 30 days with their views
+        $articlesWithViews = $website->articles()
+            ->where('published_at', '>=', $last30Days)
+            ->where('status', 'published')
+            ->select('published_at', 'views', 'id')
+            ->get()
+            ->groupBy(function($article) {
+                return $article->published_at->format('M d');
+            });
+
+        // Fill in the last 30 days with data
+        for ($i = 29; $i >= 0; $i--) {
+            $date = now()->subDays($i);
+            $dateKey = $date->format('M d');
+            
+            // Count articles published on this day
+            $articlesPublished = $website->articles()
+                ->whereDate('published_at', $date->toDateString())
+                ->where('status', 'published')
+                ->count();
+            
+            // Get total views for articles published up to this day
+            $cumulativeViews = $website->articles()
+                ->where('published_at', '<=', $date->endOfDay())
+                ->where('status', 'published')
+                ->sum('views');
+            
+            $chartData[] = [
+                'date' => $dateKey,
+                'articles' => $articlesPublished,
+                'views' => (int) $cumulativeViews,
+            ];
+        }
+
         // Get stats for this website
         $stats = [
-            'totalArticles' => $website->articles()->count(),
-            'articlesGrowth' => 42.4, // Would calculate from real data
-            'publishedArticles' => $website->articles()->where('status', 'published')->count(),
-            'draftArticles' => $website->articles()->where('status', 'draft')->count(),
-            'aiUsage' => '6.5M',
-            'aiUsageGrowth' => 100,
-            'aiCost' => 5.5276,
-            'aiEvents' => 1074,
-            'adRevenue' => 0.34,
-            'revenueGrowth' => 100,
-            'adImpressions' => 545,
-            'impressionsGrowth' => 100
+            // Articles
+            'totalArticles' => $totalArticles,
+            'articlesGrowth' => $articlesGrowth,
+            'publishedArticles' => $publishedArticles,
+            'draftArticles' => $draftArticles,
+            
+            // Views
+            'totalViews' => $totalViews,
+            'viewsGrowth' => $viewsGrowth,
+            
+            // AI Usage
+            'aiUsage' => $aiUsageFormatted,
+            'aiUsageGrowth' => $aiCostGrowth,
+            'aiCost' => round($aiCost, 4),
+            'aiEvents' => $aiEvents,
+            
+            // Other metrics
+            'totalPages' => $totalPages,
+            'totalCategories' => $totalCategories,
+            'totalSubscribers' => $totalSubscribers,
+            
+            // Placeholder for future ad revenue integration
+            'adRevenue' => 0,
+            'revenueGrowth' => 0,
+            'adImpressions' => 0,
+            'impressionsGrowth' => 0
         ];
 
         return Inertia::render('SuperAdmin/Dashboard', [
             'currentWebsite' => $website,
             'websites' => $websites,
             'stats' => $stats,
+            'chartData' => $chartData,
         ]);
     }
 

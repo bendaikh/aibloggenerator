@@ -115,6 +115,35 @@ const props = defineProps({
                         </span>
                     </div>
                 </Link>
+
+                <!-- Security Notifications Card -->
+                <Link 
+                    :href="route('organization.security-notifications')"
+                    class="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6 hover:border-red-500/50 transition-all group"
+                >
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-orange-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold text-white group-hover:text-red-400 transition-colors">Security Notifications</h3>
+                            <p class="text-gray-400 text-sm">WhatsApp Login Alerts</p>
+                        </div>
+                        <svg class="w-5 h-5 text-gray-500 group-hover:text-red-400 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </div>
+                    <p class="text-gray-500 text-sm">
+                        Get instant WhatsApp alerts when someone logs in as superadmin. Monitor login attempts with IP, location, and device details.
+                    </p>
+                    <div class="mt-4 flex items-center gap-2 text-xs text-gray-600">
+                        <span class="px-2 py-1 bg-amber-900/50 text-amber-400 rounded">
+                            🔒 Security Monitoring
+                        </span>
+                    </div>
+                </Link>
             </div>
         </div>
     </OrganizationLayout>

@@ -1752,6 +1752,131 @@ HTML;
     }
 
     /**
+     * Security Notifications Page
+     */
+    public function securityNotifications()
+    {
+        $user = Auth::user();
+        
+        // Get websites based on user role
+        $websitesQuery = $user->canSeeAllWebsites() 
+            ? Website::query()
+            : Website::where('user_id', $user->id);
+        
+        $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
+
+        return Inertia::render('Organization/SecurityNotifications', [
+            'settings' => [
+                'twilio_sid_set' => !empty($user->twilio_sid),
+                'twilio_sid_masked' => $user->twilio_sid ? substr($user->twilio_sid, 0, 7) . '....' . substr($user->twilio_sid, -4) : null,
+                'twilio_auth_token_set' => !empty($user->twilio_auth_token),
+                'twilio_auth_token_masked' => $user->twilio_auth_token ? substr($user->twilio_auth_token, 0, 7) . '....' . substr($user->twilio_auth_token, -4) : null,
+                'twilio_whatsapp_from' => $user->twilio_whatsapp_from ?? '+14155238886',
+                'admin_whatsapp_number' => $user->admin_whatsapp_number ?? '+212634741761',
+                'security_alerts_enabled' => $user->security_alerts_enabled ?? true,
+            ],
+            'websites' => $websites,
+        ]);
+    }
+
+    /**
+     * Update Security Notifications Settings
+     */
+    public function updateSecurityNotifications(Request $request)
+    {
+        $user = Auth::user();
+
+        $validated = $request->validate([
+            'twilio_sid' => 'nullable|string',
+            'twilio_auth_token' => 'nullable|string',
+            'twilio_whatsapp_from' => 'nullable|string|max:20',
+            'admin_whatsapp_number' => 'required|string|max:20',
+            'security_alerts_enabled' => 'boolean',
+        ]);
+
+        $updateData = [
+            'admin_whatsapp_number' => $validated['admin_whatsapp_number'],
+            'security_alerts_enabled' => $validated['security_alerts_enabled'] ?? true,
+        ];
+
+        // Only update optional fields if provided
+        if (!empty($validated['twilio_sid'])) {
+            $updateData['twilio_sid'] = $validated['twilio_sid'];
+        }
+
+        if (!empty($validated['twilio_auth_token'])) {
+            $updateData['twilio_auth_token'] = $validated['twilio_auth_token'];
+        }
+
+        if (!empty($validated['twilio_whatsapp_from'])) {
+            $updateData['twilio_whatsapp_from'] = $validated['twilio_whatsapp_from'];
+        }
+
+        $user->update($updateData);
+
+        return redirect()->back()->with('success', 'Security notification settings updated successfully!');
+    }
+
+    /**
+     * Test Twilio WhatsApp Connection
+     */
+    public function testTwilioConnection()
+    {
+        $user = Auth::user();
+
+        if (empty($user->twilio_sid) || empty($user->twilio_auth_token)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Twilio credentials not configured. Please save your credentials first.'
+            ]);
+        }
+
+        if (empty($user->admin_whatsapp_number)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Admin WhatsApp number not configured.'
+            ]);
+        }
+
+        try {
+            $whatsappService = new \App\Services\WhatsAppNotificationService();
+            
+            $testData = [
+                'username' => 'Test User',
+                'email' => 'test@example.com',
+                'ip_address' => '8.8.8.8',
+                'city' => 'Mountain View',
+                'region' => 'California',
+                'country' => 'United States',
+                'isp' => 'Google LLC',
+                'browser' => 'Chrome 120.0',
+                'platform' => 'Windows 11',
+                'timestamp' => now()->format('Y-m-d H:i:s T'),
+            ];
+
+            $result = $whatsappService->sendSuperAdminLoginAlert($testData);
+
+            if ($result) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Test alert sent successfully! Check your WhatsApp at ' . $user->admin_whatsapp_number
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send test alert. Check your credentials and make sure you\'ve joined the WhatsApp sandbox.'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Connection failed: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Export global subscribers as CSV
      */
     public function globalSubscribersExport()

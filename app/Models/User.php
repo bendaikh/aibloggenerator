@@ -40,6 +40,11 @@ class User extends Authenticatable
         'paypal_client_secret',
         'paypal_mode',
         'payments_enabled',
+        'twilio_sid',
+        'twilio_auth_token',
+        'twilio_whatsapp_from',
+        'admin_whatsapp_number',
+        'security_alerts_enabled',
     ];
 
     /**
@@ -187,6 +192,8 @@ class User extends Authenticatable
         'stripe_webhook_secret',
         'paypal_client_id',
         'paypal_client_secret',
+        'twilio_sid',
+        'twilio_auth_token',
     ];
 
     /**
@@ -207,7 +214,10 @@ class User extends Authenticatable
             'stripe_webhook_secret' => 'encrypted',
             'paypal_client_id' => 'encrypted',
             'paypal_client_secret' => 'encrypted',
+            'twilio_sid' => 'encrypted',
+            'twilio_auth_token' => 'encrypted',
             'payments_enabled' => 'boolean',
+            'security_alerts_enabled' => 'boolean',
         ];
     }
 
