@@ -1118,6 +1118,8 @@ LANGUAGE;
                 $cleanUrl = str_replace(' ', '%20', $this->sourceUrl);
                 
                 $fetchedData = $this->fetchUrlContent($cleanUrl);
+                $titleExtracted = false;
+                
                 if ($fetchedData) {
                     $sourceContent = $fetchedData['content'];
                     
@@ -1127,26 +1129,77 @@ LANGUAGE;
                         $cleanTitle = trim($fetchedData['title']);
                         // Remove common separators and site names at the end (e.g., " - Site Name", " | Site Name")
                         $cleanTitle = preg_replace('/\s*[\|\-–—]\s*[^|\-–—]*$/', '', $cleanTitle);
-                        $this->topic = trim($cleanTitle);
+                        $cleanTitle = trim($cleanTitle);
                         
-                        Log::info("Extracted and cleaned title from fetched URL", [
-                            'raw_title' => $fetchedData['title'],
-                            'cleaned_title' => $this->topic
-                        ]);
-                    } else {
-                        Log::warning("No title found in fetched content, using URL as title", [
-                            'url' => $this->sourceUrl
-                        ]);
+                        // Validate that the title is not a URL, not an error page, and has reasonable length
+                        $isValidTitle = !empty($cleanTitle) 
+                            && !preg_match('/^https?:\/\//i', $cleanTitle)
+                            && !preg_match('/^(403|404|500|error|forbidden|not found)/i', $cleanTitle)
+                            && strlen($cleanTitle) >= 10
+                            && strlen($cleanTitle) <= 500;
+                        
+                        if ($isValidTitle) {
+                            $this->topic = $cleanTitle;
+                            $titleExtracted = true;
+                            
+                            Log::info("Extracted and cleaned title from fetched URL", [
+                                'raw_title' => $fetchedData['title'],
+                                'cleaned_title' => $this->topic
+                            ]);
+                        } else {
+                            Log::warning("Extracted title is invalid (error page, URL-like or too short/long)", [
+                                'extracted_title' => $cleanTitle,
+                                'url' => $this->sourceUrl
+                            ]);
+                        }
                     }
                     
-                    Log::info("Successfully fetched and will rewrite content from URL", [
+                    Log::info("Successfully fetched content from URL", [
                         'url' => $this->sourceUrl,
-                        'title' => $this->topic,
                         'content_length' => strlen($sourceContent)
                     ]);
                 } else {
-                    Log::warning("Failed to fetch URL content, will generate original content", [
+                    Log::warning("Failed to fetch URL content", [
                         'url' => $this->sourceUrl
+                    ]);
+                }
+                
+                // FALLBACK: If title extraction failed, extract a readable title from the URL path
+                if (!$titleExtracted && preg_match('/^https?:\/\//i', $this->topic)) {
+                    $urlPath = parse_url($this->sourceUrl, PHP_URL_PATH);
+                    if ($urlPath) {
+                        // Remove leading/trailing slashes and get the last path segment
+                        $urlPath = trim($urlPath, '/');
+                        $pathSegments = explode('/', $urlPath);
+                        $lastSegment = end($pathSegments);
+                        
+                        if (!empty($lastSegment)) {
+                            // Convert slug to title: "free-crochet-flower-patterns" -> "Free Crochet Flower Patterns"
+                            $titleFromUrl = str_replace(['-', '_'], ' ', $lastSegment);
+                            $titleFromUrl = ucwords(strtolower($titleFromUrl));
+                            
+                            // Only use if it's a reasonable title (at least 3 words)
+                            $wordCount = str_word_count($titleFromUrl);
+                            if ($wordCount >= 3 && strlen($titleFromUrl) >= 10) {
+                                $this->topic = $titleFromUrl;
+                                $titleExtracted = true;
+                                
+                                Log::info("Extracted title from URL path as fallback", [
+                                    'url' => $this->sourceUrl,
+                                    'extracted_title' => $titleFromUrl
+                                ]);
+                            }
+                        }
+                    }
+                }
+                
+                // Log final result
+                if ($titleExtracted) {
+                    Log::info("Final title for article", ['title' => $this->topic]);
+                } else {
+                    Log::warning("Could not extract title, URL will be used as title", [
+                        'url' => $this->sourceUrl,
+                        'topic' => $this->topic
                     ]);
                 }
             }
@@ -2951,35 +3004,128 @@ PROMPT;
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_MAXREDIRS, 10);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+            curl_setopt($ch, CURLOPT_ENCODING, ''); // Accept all encodings (gzip, deflate)
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language: en-US,en;q=0.9',
+                'Cache-Control: no-cache',
+                'Pragma: no-cache',
+                'Sec-Ch-Ua: "Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+                'Sec-Ch-Ua-Mobile: ?0',
+                'Sec-Ch-Ua-Platform: "Windows"',
+                'Sec-Fetch-Dest: document',
+                'Sec-Fetch-Mode: navigate',
+                'Sec-Fetch-Site: none',
+                'Sec-Fetch-User: ?1',
+                'Upgrade-Insecure-Requests: 1',
+            ]);
             
             $html = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            $curlErrno = curl_errno($ch);
             curl_close($ch);
             
-            if ($httpCode !== 200 || empty($html)) {
-                Log::error("Failed to fetch URL", ['url' => $url, 'http_code' => $httpCode]);
-                return null;
+            // Log curl error details if fetch failed
+            if ($curlErrno !== 0) {
+                Log::error("Curl error while fetching URL", [
+                    'url' => $url,
+                    'curl_errno' => $curlErrno,
+                    'curl_error' => $curlError
+                ]);
+            }
+            
+            // Accept any 2xx status code as success
+            if ($httpCode < 200 || $httpCode >= 300 || empty($html)) {
+                Log::warning("Curl failed, trying file_get_contents as fallback", [
+                    'url' => $url,
+                    'http_code' => $httpCode,
+                    'curl_error' => $curlError
+                ]);
+                
+                // Fallback: try file_get_contents with stream context
+                $html = $this->fetchUrlWithFileGetContents($url);
+                
+                if (empty($html)) {
+                    Log::error("Both curl and file_get_contents failed to fetch URL", [
+                        'url' => $url,
+                        'http_code' => $httpCode,
+                        'curl_error' => $curlError
+                    ]);
+                    return null;
+                }
+                
+                Log::info("Successfully fetched URL using file_get_contents fallback", ['url' => $url]);
             }
             
             // Parse HTML to extract title and main content
             $dom = new \DOMDocument();
-            @$dom->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING);
+            @$dom->loadHTML(mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8'), LIBXML_NOERROR | LIBXML_NOWARNING);
+            $xpath = new \DOMXPath($dom);
             
-            // Extract title
-            $titleElements = $dom->getElementsByTagName('title');
-            $title = $titleElements->length > 0 ? trim($titleElements->item(0)->textContent) : '';
+            // Extract title using multiple fallback methods
+            $title = '';
+            
+            // Method 1: Try Open Graph og:title (most reliable for article titles)
+            $ogTitleNodes = $xpath->query("//meta[@property='og:title']/@content");
+            if ($ogTitleNodes->length > 0) {
+                $title = trim($ogTitleNodes->item(0)->nodeValue);
+                Log::info("Title extracted from og:title", ['title' => $title]);
+            }
+            
+            // Method 2: Try Twitter card title
+            if (empty($title)) {
+                $twitterTitleNodes = $xpath->query("//meta[@name='twitter:title']/@content");
+                if ($twitterTitleNodes->length > 0) {
+                    $title = trim($twitterTitleNodes->item(0)->nodeValue);
+                    Log::info("Title extracted from twitter:title", ['title' => $title]);
+                }
+            }
+            
+            // Method 3: Try the first H1 tag (common for article titles)
+            if (empty($title)) {
+                $h1Elements = $dom->getElementsByTagName('h1');
+                if ($h1Elements->length > 0) {
+                    $title = trim($h1Elements->item(0)->textContent);
+                    Log::info("Title extracted from h1", ['title' => $title]);
+                }
+            }
+            
+            // Method 4: Try <title> tag as fallback
+            if (empty($title)) {
+                $titleElements = $dom->getElementsByTagName('title');
+                if ($titleElements->length > 0) {
+                    $title = trim($titleElements->item(0)->textContent);
+                    Log::info("Title extracted from title tag", ['title' => $title]);
+                }
+            }
+            
+            // Method 5: Try meta name="title"
+            if (empty($title)) {
+                $metaTitleNodes = $xpath->query("//meta[@name='title']/@content");
+                if ($metaTitleNodes->length > 0) {
+                    $title = trim($metaTitleNodes->item(0)->nodeValue);
+                    Log::info("Title extracted from meta name=title", ['title' => $title]);
+                }
+            }
+            
+            // Log warning if no title found
+            if (empty($title)) {
+                Log::warning("No title found from any source for URL", ['url' => $url]);
+            }
             
             // Try to extract main content
             $content = '';
             
-            // Try common content selectors
+            // Try common content selectors (reuse $xpath from above)
             $selectors = ['article', 'main', '.post-content', '.entry-content', '.content', '#content'];
             foreach ($selectors as $selector) {
-                $xpath = new \DOMXPath($dom);
                 if (strpos($selector, '.') === 0) {
                     // Class selector
                     $elements = $xpath->query("//*[contains(@class, '" . substr($selector, 1) . "')]");
@@ -3029,6 +3175,47 @@ PROMPT;
             
         } catch (\Exception $e) {
             Log::error("Error fetching URL content", [
+                'url' => $url,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+    
+    /**
+     * Fallback method to fetch URL content using file_get_contents
+     */
+    private function fetchUrlWithFileGetContents(string $url): ?string
+    {
+        try {
+            $context = stream_context_create([
+                'http' => [
+                    'method' => 'GET',
+                    'header' => implode("\r\n", [
+                        'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                        'Accept-Language: en-US,en;q=0.9',
+                        'Cache-Control: no-cache',
+                    ]),
+                    'timeout' => 60,
+                    'ignore_errors' => true,
+                ],
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                ],
+            ]);
+            
+            $html = @file_get_contents($url, false, $context);
+            
+            if ($html === false) {
+                Log::warning("file_get_contents also failed", ['url' => $url]);
+                return null;
+            }
+            
+            return $html;
+        } catch (\Exception $e) {
+            Log::warning("file_get_contents exception", [
                 'url' => $url,
                 'error' => $e->getMessage()
             ]);
