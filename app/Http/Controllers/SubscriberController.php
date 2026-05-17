@@ -21,7 +21,7 @@ class SubscriberController extends Controller
     {
         return [
             'currentWebsite' => $website,
-            'websites' => auth()->user()->websites()
+            'websites' => auth()->user()->accessibleWebsitesQuery()
                 ->withCount(['articles', 'categories'])
                 ->get(),
         ];

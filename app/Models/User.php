@@ -24,6 +24,7 @@ class User extends Authenticatable
         'role',
         'role_id',
         'status',
+        'is_global_user',
         'theme_id',
         'openai_api_key',
         'gemini_api_key',
@@ -161,6 +162,72 @@ class User extends Authenticatable
     }
 
     /**
+     * Secondary users assigned to this global user.
+     */
+    public function secondaryUsers()
+    {
+        return $this->belongsToMany(
+            User::class,
+            'global_user_secondary_users',
+            'global_user_id',
+            'secondary_user_id'
+        )->withTimestamps();
+    }
+
+    /**
+     * Global users that have this user assigned as secondary.
+     */
+    public function assignedGlobalUsers()
+    {
+        return $this->belongsToMany(
+            User::class,
+            'global_user_secondary_users',
+            'secondary_user_id',
+            'global_user_id'
+        )->withTimestamps();
+    }
+
+    public function isGlobalUser(): bool
+    {
+        return (bool) $this->is_global_user;
+    }
+
+    /**
+     * Websites this user may access (own, secondary assignments, or all for legacy superadmin flag).
+     */
+    public function accessibleWebsitesQuery()
+    {
+        if ($this->isGlobalUser()) {
+            $secondaryUserIds = $this->secondaryUsers()->pluck('users.id');
+
+            if ($secondaryUserIds->isEmpty()) {
+                return Website::query()->whereRaw('0 = 1');
+            }
+
+            return Website::query()->whereIn('user_id', $secondaryUserIds);
+        }
+
+        if ($this->canSeeAllWebsites()) {
+            return Website::query();
+        }
+
+        return Website::query()->where('user_id', $this->id);
+    }
+
+    public function canAccessWebsite(Website $website): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($this->isGlobalUser()) {
+            return $this->secondaryUsers()->where('users.id', $website->user_id)->exists();
+        }
+
+        return $this->id === $website->user_id;
+    }
+
+    /**
      * Get the articles created by the user.
      */
     public function articles()
@@ -218,6 +285,7 @@ class User extends Authenticatable
             'twilio_auth_token' => 'encrypted',
             'payments_enabled' => 'boolean',
             'security_alerts_enabled' => 'boolean',
+            'is_global_user' => 'boolean',
         ];
     }
 

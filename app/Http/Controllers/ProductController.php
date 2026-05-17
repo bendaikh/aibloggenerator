@@ -25,7 +25,7 @@ class ProductController extends Controller
 
         return Inertia::render('SuperAdmin/Products/Index', [
             'currentWebsite' => $website,
-            'websites' => Website::where('user_id', auth()->id())->withCount(['articles', 'categories'])->get(),
+            'websites' => auth()->user()->accessibleWebsitesQuery()->withCount(['articles', 'categories'])->get(),
             'products' => $products,
         ]);
     }
@@ -39,7 +39,7 @@ class ProductController extends Controller
 
         return Inertia::render('SuperAdmin/Products/Create', [
             'currentWebsite' => $website,
-            'websites' => Website::where('user_id', auth()->id())->withCount(['articles', 'categories'])->get(),
+            'websites' => auth()->user()->accessibleWebsitesQuery()->withCount(['articles', 'categories'])->get(),
         ]);
     }
 
@@ -101,7 +101,7 @@ class ProductController extends Controller
 
         return Inertia::render('SuperAdmin/Products/Edit', [
             'currentWebsite' => $website,
-            'websites' => Website::where('user_id', auth()->id())->withCount(['articles', 'categories'])->get(),
+            'websites' => auth()->user()->accessibleWebsitesQuery()->withCount(['articles', 'categories'])->get(),
             'product' => $product,
         ]);
     }

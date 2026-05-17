@@ -68,9 +68,7 @@ class OrganizationController extends Controller
         }
         
         // Get websites based on user role - superadmins see all, website owners see only theirs
-        $websitesQuery = $user->canSeeAllWebsites() 
-            ? Website::query()
-            : Website::where('user_id', $user->id);
+        $websitesQuery = $user->accessibleWebsitesQuery();
         
         $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
@@ -122,12 +120,32 @@ class OrganizationController extends Controller
     {
         $user = Auth::user();
         
-        // Get websites based on user role
-        $websitesQuery = $user->canSeeAllWebsites() 
-            ? Website::query()
-            : Website::where('user_id', $user->id);
-        
-        $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
+        $websites = $user->accessibleWebsitesQuery()
+            ->withCount(['articles', 'categories'])
+            ->get();
+
+        $globalUsersData = [];
+        if ($user->isSuperAdmin()) {
+            $globalUsers = User::where('is_global_user', true)
+                ->with('secondaryUsers:id,name,email')
+                ->orderBy('name')
+                ->get(['id', 'name', 'email', 'is_global_user']);
+
+            $usersForGlobalToggle = User::where('id', '!=', $user->id)
+                ->orderBy('name')
+                ->get(['id', 'name', 'email', 'is_global_user']);
+
+            $assignableUsers = User::where('is_global_user', false)
+                ->where('id', '!=', $user->id)
+                ->orderBy('name')
+                ->get(['id', 'name', 'email']);
+
+            $globalUsersData = [
+                'globalUsers' => $globalUsers,
+                'assignableUsers' => $assignableUsers,
+                'usersForGlobalToggle' => $usersForGlobalToggle,
+            ];
+        }
 
         return Inertia::render('Organization/Settings', [
             'settings' => [
@@ -139,7 +157,97 @@ class OrganizationController extends Controller
                 'max_variations' => $user->max_variations ?? 5,
             ],
             'websites' => $websites,
+            'isSuperAdmin' => $user->isSuperAdmin(),
+            ...$globalUsersData,
         ]);
+    }
+
+    /**
+     * Toggle global user flag (superadmin only).
+     */
+    public function updateGlobalUserStatus(Request $request, User $user)
+    {
+        $currentUser = Auth::user();
+
+        if (!$currentUser->isSuperAdmin()) {
+            abort(403);
+        }
+
+        $isGlobalUser = $request->boolean('is_global_user');
+        
+        $user->is_global_user = $isGlobalUser;
+        $user->save();
+
+        if (!$isGlobalUser) {
+            $user->secondaryUsers()->detach();
+        }
+
+        return redirect()->back()->with('success', 'Global user status updated.');
+    }
+
+    /**
+     * Assign secondary users to a global user (superadmin only).
+     */
+    public function updateGlobalUserAssignments(Request $request, User $user)
+    {
+        $currentUser = Auth::user();
+
+        if (!$currentUser->isSuperAdmin()) {
+            abort(403);
+        }
+
+        if (!$user->is_global_user) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'User is not marked as a global user.'], 422);
+            }
+
+            return back()->withErrors(['error' => 'User is not marked as a global user.']);
+        }
+
+        $validated = $request->validate([
+            'secondary_user_ids' => 'nullable|array',
+            'secondary_user_ids.*' => 'exists:users,id',
+        ]);
+
+        $secondaryIds = collect($validated['secondary_user_ids'] ?? [])
+            ->filter(fn ($id) => (int) $id !== $user->id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $user->secondaryUsers()->sync($secondaryIds);
+
+        if ($request->expectsJson()) {
+            return response()->json($this->globalUsersSettingsPayload($currentUser));
+        }
+
+        return redirect()->back()->with('success', 'Secondary users assigned successfully.');
+    }
+
+    /**
+     * @return array{globalUsers: \Illuminate\Support\Collection, assignableUsers: \Illuminate\Support\Collection, usersForGlobalToggle: \Illuminate\Support\Collection}
+     */
+    private function globalUsersSettingsPayload(User $user): array
+    {
+        $globalUsers = User::where('is_global_user', true)
+            ->with('secondaryUsers:id,name,email')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'is_global_user']);
+
+        $usersForGlobalToggle = User::where('id', '!=', $user->id)
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'is_global_user']);
+
+        $assignableUsers = User::where('is_global_user', false)
+            ->where('id', '!=', $user->id)
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
+
+        return [
+            'globalUsers' => $globalUsers,
+            'assignableUsers' => $assignableUsers,
+            'usersForGlobalToggle' => $usersForGlobalToggle,
+        ];
     }
 
     /**
@@ -150,9 +258,7 @@ class OrganizationController extends Controller
         $user = Auth::user();
         
         // Get websites based on user role
-        $websitesQuery = $user->canSeeAllWebsites() 
-            ? Website::query()
-            : Website::where('user_id', $user->id);
+        $websitesQuery = $user->accessibleWebsitesQuery();
         
         $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
@@ -220,9 +326,7 @@ class OrganizationController extends Controller
         $user = User::find(Auth::id());
         
         // Get websites based on user role
-        $websitesQuery = $user->canSeeAllWebsites() 
-            ? Website::query()
-            : Website::where('user_id', $user->id);
+        $websitesQuery = $user->accessibleWebsitesQuery();
         
         $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
@@ -299,9 +403,7 @@ class OrganizationController extends Controller
         $user = Auth::user();
         
         // Get websites based on user role
-        $websitesQuery = $user->canSeeAllWebsites() 
-            ? Website::query()
-            : Website::where('user_id', $user->id);
+        $websitesQuery = $user->accessibleWebsitesQuery();
         
         $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
@@ -360,9 +462,7 @@ class OrganizationController extends Controller
         $user = Auth::user();
         
         // Get websites based on user role
-        $websitesQuery = $user->canSeeAllWebsites() 
-            ? Website::query()
-            : Website::where('user_id', $user->id);
+        $websitesQuery = $user->accessibleWebsitesQuery();
         
         $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
@@ -632,9 +732,7 @@ class OrganizationController extends Controller
         $user = Auth::user();
         
         // Get websites based on user role
-        $websitesQuery = $user->canSeeAllWebsites() 
-            ? Website::query()
-            : Website::where('user_id', $user->id);
+        $websitesQuery = $user->accessibleWebsitesQuery();
         
         $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
@@ -651,9 +749,7 @@ class OrganizationController extends Controller
         $user = Auth::user();
         
         // Get websites based on user role
-        $websitesQuery = $user->canSeeAllWebsites() 
-            ? Website::query()
-            : Website::where('user_id', $user->id);
+        $websitesQuery = $user->accessibleWebsitesQuery();
         
         $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
@@ -1385,9 +1481,7 @@ HTML;
         $user = Auth::user();
         
         // Get websites based on user role
-        $websitesQuery = $user->canSeeAllWebsites() 
-            ? Website::query()
-            : Website::where('user_id', $user->id);
+        $websitesQuery = $user->accessibleWebsitesQuery();
         
         $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
@@ -1533,9 +1627,7 @@ HTML;
         }
         
         // Get websites based on user role and filtered by theme
-        $websitesQuery = $user->canSeeAllWebsites() 
-            ? Website::query()
-            : Website::where('user_id', $user->id);
+        $websitesQuery = $user->accessibleWebsitesQuery();
         
         $websites = $websitesQuery->where('theme_id', $theme->id)
             ->withCount(['articles', 'categories'])
@@ -1612,7 +1704,7 @@ HTML;
 
         // Verify websites belong to user and create tracking jobs
         foreach ($websiteIds as $websiteId) {
-            $website = Website::where('id', $websiteId)->where('user_id', $user->id)->first();
+            $website = $user->accessibleWebsitesQuery()->where('id', $websiteId)->first();
             if (!$website) {
                 continue; // Or abort/error
             }
@@ -1720,9 +1812,7 @@ HTML;
         $user = Auth::user();
         
         // Get websites based on user role
-        $websitesQuery = $user->canSeeAllWebsites() 
-            ? Website::query()
-            : Website::where('user_id', $user->id);
+        $websitesQuery = $user->accessibleWebsitesQuery();
         
         $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
@@ -1759,9 +1849,7 @@ HTML;
         $user = Auth::user();
         
         // Get websites based on user role
-        $websitesQuery = $user->canSeeAllWebsites() 
-            ? Website::query()
-            : Website::where('user_id', $user->id);
+        $websitesQuery = $user->accessibleWebsitesQuery();
         
         $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
 
@@ -1884,9 +1972,7 @@ HTML;
         $user = Auth::user();
         
         // Get websites based on user role
-        $websitesQuery = $user->canSeeAllWebsites() 
-            ? Website::query()
-            : Website::where('user_id', $user->id);
+        $websitesQuery = $user->accessibleWebsitesQuery();
         
         $websiteIds = $websitesQuery->pluck('id');
 

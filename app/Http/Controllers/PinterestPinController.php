@@ -16,6 +16,24 @@ class PinterestPinController extends Controller
 {
     use AuthorizesRequests;
 
+    private function resolveFrameDesign(Website $website, ?string $requested): string
+    {
+        $themeSlug = $website->themeSlug();
+        $default = ($themeSlug === 'crochet') ? 'crochet' : 'simple_center';
+        $design = $requested ?: $default;
+
+        if ($design === 'crochet' && $themeSlug !== 'crochet') {
+            return $default;
+        }
+
+        $allowed = array_keys(PinterestDesignService::getFrameDesigns());
+        if (!in_array($design, $allowed, true)) {
+            return $default;
+        }
+
+        return $design;
+    }
+
     /**
      * Get common data for views (websites list and current website)
      */
@@ -23,9 +41,10 @@ class PinterestPinController extends Controller
     {
         return [
             'currentWebsite' => $website,
-            'websites' => auth()->user()->websites()
+            'websites' => auth()->user()->accessibleWebsitesQuery()
                 ->withCount(['articles', 'categories'])
                 ->get(),
+            'websiteThemeSlug' => $website->themeSlug(),
         ];
     }
 
@@ -149,7 +168,7 @@ class PinterestPinController extends Controller
                 'subheadline_font_size' => $validated['subheadline_font_size'] ?? 22,
                 'overlay_color' => $validated['overlay_color'] ?? '#000000',
                 'overlay_opacity' => $validated['overlay_opacity'] ?? 70,
-                'frame_design' => $validated['frame_design'] ?? 'simple_center',
+                'frame_design' => $this->resolveFrameDesign($website, $validated['frame_design'] ?? null),
                 'frame_settings' => [
                     'domain_name' => $validated['domain_name'] ?? ($website->domain ?: ($website->slug ? $website->slug . '.com' : ''))
                 ],
@@ -425,7 +444,7 @@ class PinterestPinController extends Controller
                     'subheadline_font_size' => $validated['subheadline_font_size'] ?? 22,
                     'overlay_color' => $validated['overlay_color'] ?? '#000000',
                     'overlay_opacity' => $validated['overlay_opacity'] ?? 70,
-                    'frame_design' => $validated['frame_design'] ?? 'simple_center',
+                    'frame_design' => $this->resolveFrameDesign($website, $validated['frame_design'] ?? null),
                     'frame_settings' => [
                         'domain_name' => $validated['domain_name'] ?? ($website->domain ?: ($website->slug ? $website->slug . '.com' : ''))
                     ],
@@ -680,7 +699,7 @@ class PinterestPinController extends Controller
                 $validated['subheadline_color'] ?? '#d4a574',
                 $validated['overlay_color'] ?? '#000000',
                 $validated['overlay_opacity'] ?? 70,
-                $validated['frame_design'] ?? 'simple_center',
+                $this->resolveFrameDesign($website, $validated['frame_design'] ?? null),
                 $validated['headline_font'] ?? 'arial',
                 $validated['subheadline_font'] ?? 'georgia',
                 $validated['headline_font_size'] ?? 28,

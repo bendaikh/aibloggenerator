@@ -25,12 +25,9 @@ class WebsiteController extends Controller
     {
         $this->authorize('view', $website);
 
-        // Get websites based on user role
-        $websitesQuery = auth()->user()->canSeeAllWebsites() 
-            ? Website::query()
-            : auth()->user()->websites();
-        
-        $websites = $websitesQuery->withCount(['articles', 'categories'])->get();
+        $websites = auth()->user()->accessibleWebsitesQuery()
+            ->withCount(['articles', 'categories'])
+            ->get();
 
         // Calculate real statistics for this website
         $now = now();
@@ -190,12 +187,8 @@ class WebsiteController extends Controller
      */
     public function index(): Response
     {
-        // Get websites based on user role
-        $websitesQuery = auth()->user()->canSeeAllWebsites() 
-            ? Website::query()
-            : auth()->user()->websites();
-        
-        $websites = $websitesQuery->withCount(['articles', 'categories'])
+        $websites = auth()->user()->accessibleWebsitesQuery()
+            ->withCount(['articles', 'categories'])
             ->latest()
             ->get();
 
@@ -1166,7 +1159,7 @@ HTML;
     {
         $this->authorize('view', $website);
 
-        $websites = auth()->user()->websites()
+        $websites = auth()->user()->accessibleWebsitesQuery()
             ->withCount(['articles', 'categories'])
             ->get();
 
@@ -1209,7 +1202,7 @@ HTML;
     {
         $this->authorize('view', $website);
 
-        $websites = auth()->user()->websites()
+        $websites = auth()->user()->accessibleWebsitesQuery()
             ->withCount(['articles', 'categories'])
             ->get();
 
@@ -1319,7 +1312,7 @@ HTML;
     {
         $this->authorize('view', $website);
 
-        $websites = auth()->user()->websites()
+        $websites = auth()->user()->accessibleWebsitesQuery()
             ->withCount(['articles', 'categories'])
             ->get();
 

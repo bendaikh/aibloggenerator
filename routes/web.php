@@ -90,6 +90,8 @@ $registerMainAppRoutes = function () {
         Route::get('/settings', [OrganizationController::class, 'settings'])->name('organization.settings');
         Route::post('/settings', [OrganizationController::class, 'updateSettings'])->name('organization.settings.update');
         Route::post('/settings/test', [OrganizationController::class, 'testAiConnection'])->name('organization.settings.test');
+        Route::put('/settings/global-users/{user}/status', [OrganizationController::class, 'updateGlobalUserStatus'])->name('organization.settings.global-users.status');
+        Route::put('/settings/global-users/{user}/assignments', [OrganizationController::class, 'updateGlobalUserAssignments'])->name('organization.settings.global-users.assignments');
         
         // API Keys Routes
         Route::get('/api-keys', [OrganizationController::class, 'apiKeys'])->name('organization.api-keys');

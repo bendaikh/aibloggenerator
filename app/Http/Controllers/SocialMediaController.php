@@ -17,7 +17,7 @@ class SocialMediaController extends Controller
         
         return Inertia::render('SuperAdmin/SocialMedia', [
             'currentWebsite' => $website,
-            'websites' => Website::where('user_id', auth()->id())
+            'websites' => auth()->user()->accessibleWebsitesQuery()
                 ->withCount(['articles', 'categories'])
                 ->get(),
             'socialMedia' => $website->social_media ?? [],

@@ -22,8 +22,15 @@ const props = defineProps({
     missingDesignPins: {
         type: Array,
         default: () => []
+    },
+    websiteThemeSlug: {
+        type: String,
+        default: null
     }
 });
+
+const isCrochetTheme = computed(() => props.websiteThemeSlug === 'crochet');
+const defaultFrameDesign = computed(() => isCrochetTheme.value ? 'crochet' : 'simple_center');
 
 const showDeleteModal = ref(false);
 const pinToDelete = ref(null);
@@ -180,7 +187,7 @@ const bulkForm = useForm({
     subheadline_font_size: 22,
     overlay_color: '#000000',
     overlay_opacity: 70,
-    frame_design: 'simple_center',
+    frame_design: defaultFrameDesign.value,
     domain_name: props.currentWebsite?.domain || (props.currentWebsite?.slug ? props.currentWebsite.slug + '.com' : ''),
     use_ai_headlines: false,
     headline_text: '',
@@ -341,7 +348,7 @@ const fontOptions = {
     ]
 };
 
-const frameDesigns = [
+const baseFrameDesigns = [
     { id: 'simple_center', name: 'Simple Center', description: 'Classic text overlay on images', bgColor: '#000000', textColor: '#ffffff' },
     { id: 'black_christmas', name: 'Black Christmas', description: 'Elegant black with white lines', bgColor: '#000000', textColor: '#ffffff' },
     { id: 'green_dashed', name: 'Green Dashed', description: 'Vibrant green with dashed border', bgColor: '#22c55e', textColor: '#ffffff' },
@@ -351,6 +358,16 @@ const frameDesigns = [
     { id: 'crispy_orange', name: 'Crispy Orange', description: 'Orange banner with yellow accents', bgColor: '#e67e22', textColor: '#ffffff' },
     { id: 'torn_paper', name: 'Torn Paper', description: 'White background with torn edges', bgColor: '#ffffff', textColor: '#000000' },
 ];
+
+const crochetFrameDesign = { id: 'crochet', name: 'Crochet', description: 'Warm craft frame with script title', bgColor: '#F9F7F2', textColor: '#4A3728' };
+
+const frameDesigns = computed(() => {
+    if (isCrochetTheme.value) {
+        return [...baseFrameDesigns, crochetFrameDesign];
+    }
+    return baseFrameDesigns;
+});
+
 
 // Copy Info Modal
 const showCopyInfoModal = ref(false);
@@ -375,7 +392,7 @@ const articleForm = useForm({
     subheadline_font_size: 22,
     overlay_color: '#000000',
     overlay_opacity: 70,
-    frame_design: 'simple_center',
+    frame_design: defaultFrameDesign.value,
     domain_name: props.currentWebsite?.domain || (props.currentWebsite?.slug ? props.currentWebsite.slug + '.com' : ''),
     use_ai_headlines: false,
     headline_text: '',
@@ -415,10 +432,16 @@ watch(selectedArticles, (newSelection) => {
     if (newSelection.length === 1) {
         const article = props.articlesWithoutPins.find(a => a.id === newSelection[0]);
         if (article) {
-            const words = article.title.split(' ');
-            const mid = Math.ceil(words.length / 2);
-            articleForm.headline_text = words.slice(0, mid).join(' ');
-            articleForm.subheadline_text = words.slice(mid).join(' ');
+            if (isCrochetTheme.value) {
+                articleForm.headline_text = article.title;
+                articleForm.subheadline_text = 'EASY PATTERN | CUTE & HANDMADE | PDF TUTORIAL';
+                articleForm.frame_design = 'crochet';
+            } else {
+                const words = article.title.split(' ');
+                const mid = Math.ceil(words.length / 2);
+                articleForm.headline_text = words.slice(0, mid).join(' ');
+                articleForm.subheadline_text = words.slice(mid).join(' ');
+            }
         }
     } else {
         articleForm.headline_text = '';
@@ -1316,9 +1339,43 @@ const getStatusBadgeClass = (status) => {
                             <div class="absolute top-0 left-0 right-0 h-[40.234375%] overflow-hidden bg-gray-100">
                                 <img
                                     v-if="articlesWithoutPins.find(a => a.id === selectedArticles[0])?.featured_image"
-                                    :src="articlesWithoutPins.find(a => a.id === selectedArticles[0]).featured_image"
+                                    :src="articlesWithoutPins.find(a => a.id === selectedArticles[0]).featured_image.startsWith('http') ? articlesWithoutPins.find(a => a.id === selectedArticles[0]).featured_image : '/' + articlesWithoutPins.find(a => a.id === selectedArticles[0]).featured_image"
                                     class="w-full h-full object-cover"
                                 />
+                            </div>
+
+                            <!-- Crochet Header Overlay -->
+                            <div 
+                                v-if="articleForm.frame_design === 'crochet'"
+                                class="absolute top-0 left-0 right-0 z-10 flex flex-col items-center justify-center px-4"
+                                :style="{ 
+                                    height: '31.25%', 
+                                    backgroundColor: articlePreviewStyles.overlayBg 
+                                }"
+                            >
+                                <p 
+                                    class="text-center w-full px-1"
+                                    :style="{ 
+                                        color: articlePreviewStyles.headlineColor, 
+                                        fontSize: articlePreviewStyles.headlineFontSize,
+                                        fontFamily: articlePreviewStyles.headlineFontFamily,
+                                        wordWrap: 'break-word',
+                                        lineHeight: '1.2'
+                                    }"
+                                >
+                                    {{ articleForm.headline_text || 'Crochet Pattern' }}
+                                </p>
+                                <div class="w-3/4 h-[1px] border-b border-dashed my-2" :style="{ borderBottomColor: articlePreviewStyles.headlineColor }"></div>
+                                <p 
+                                    class="text-center uppercase tracking-wider w-full px-1"
+                                    :style="{ 
+                                        color: articlePreviewStyles.subheadlineColor, 
+                                        fontSize: articlePreviewStyles.subheadlineFontSize,
+                                        fontFamily: articlePreviewStyles.subheadlineFontFamily
+                                    }"
+                                >
+                                    {{ articleForm.subheadline_text || 'EASY PATTERN | CUTE & HANDMADE | PDF TUTORIAL' }}
+                                </p>
                             </div>
 
                             <!-- Dynamic Text Overlay based on frame_design -->
@@ -1465,11 +1522,73 @@ const getStatusBadgeClass = (status) => {
                                 </p>
                             </div>
 
-                            <!-- Bottom Image -->
-                            <div class="absolute bottom-0 left-0 right-0 h-[40.234375%] overflow-hidden bg-gray-50">
+                            <!-- Crochet Footer Overlay -->
+                            <div 
+                                v-if="articleForm.frame_design === 'crochet'"
+                                class="absolute bottom-0 left-0 right-0 z-10 flex flex-col items-center justify-center"
+                                :style="{ height: '17.578125%', backgroundColor: '#D69A96' }"
+                            >
+                                <div class="flex justify-around w-full px-2 mb-4">
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center mb-1 border" :style="{ backgroundColor: articlePreviewStyles.overlayBg, borderColor: articlePreviewStyles.headlineColor }">
+                                            <svg class="w-4 h-4" :style="{ color: articlePreviewStyles.headlineColor }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                                            </svg>
+                                        </div>
+                                        <span class="text-[5px] text-center leading-tight" :style="{ color: articlePreviewStyles.headlineColor }">Beginner<br>Friendly</span>
+                                    </div>
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center mb-1 border" :style="{ backgroundColor: articlePreviewStyles.overlayBg, borderColor: articlePreviewStyles.headlineColor }">
+                                            <svg class="w-4 h-4" :style="{ color: articlePreviewStyles.subheadlineColor }" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <span class="text-[5px] text-center leading-tight" :style="{ color: articlePreviewStyles.headlineColor }">Perfect for<br>Gifting</span>
+                                    </div>
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center mb-1 border" :style="{ backgroundColor: articlePreviewStyles.overlayBg, borderColor: articlePreviewStyles.headlineColor }">
+                                            <svg class="w-4 h-4" :style="{ color: articlePreviewStyles.headlineColor }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        </div>
+                                        <span class="text-[5px] text-center leading-tight" :style="{ color: articlePreviewStyles.headlineColor }">Step-by-Step<br>Tutorial</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Main Image (Crochet) -->
+                            <div 
+                                v-if="articleForm.frame_design === 'crochet'"
+                                class="absolute left-0 right-0 overflow-hidden"
+                                style="top: 31.25%; height: 51.171875%;"
+                            >
                                 <img
                                     v-if="articlesWithoutPins.find(a => a.id === selectedArticles[0])?.featured_image"
-                                    :src="articlesWithoutPins.find(a => a.id === selectedArticles[0]).featured_image"
+                                    :src="articlesWithoutPins.find(a => a.id === selectedArticles[0]).featured_image.startsWith('http') ? articlesWithoutPins.find(a => a.id === selectedArticles[0]).featured_image : '/' + articlesWithoutPins.find(a => a.id === selectedArticles[0]).featured_image"
+                                    class="w-full h-full object-cover"
+                                />
+                                <div v-else class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">Main Image</div>
+                            </div>
+
+                            <!-- Top Image (Other designs) -->
+                            <div 
+                                v-if="articleForm.frame_design !== 'crochet'"
+                                class="absolute top-0 left-0 right-0 overflow-hidden"
+                                style="height: 40.234375%;"
+                            >
+                                <img
+                                    v-if="articlesWithoutPins.find(a => a.id === selectedArticles[0])?.featured_image"
+                                    :src="articlesWithoutPins.find(a => a.id === selectedArticles[0]).featured_image.startsWith('http') ? articlesWithoutPins.find(a => a.id === selectedArticles[0]).featured_image : '/' + articlesWithoutPins.find(a => a.id === selectedArticles[0]).featured_image"
+                                    class="w-full h-full object-cover"
+                                />
+                                <div v-else class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">Top Image</div>
+                            </div>
+
+                            <!-- Bottom Image (Other designs) -->
+                            <div v-if="articleForm.frame_design !== 'crochet'" class="absolute bottom-0 left-0 right-0 h-[40.234375%] overflow-hidden bg-gray-50">
+                                <img
+                                    v-if="articlesWithoutPins.find(a => a.id === selectedArticles[0])?.featured_image"
+                                    :src="articlesWithoutPins.find(a => a.id === selectedArticles[0]).featured_image.startsWith('http') ? articlesWithoutPins.find(a => a.id === selectedArticles[0]).featured_image : '/' + articlesWithoutPins.find(a => a.id === selectedArticles[0]).featured_image"
                                     class="w-full h-full object-cover"
                                 />
                             </div>
@@ -1896,14 +2015,66 @@ const getStatusBadgeClass = (status) => {
                         
                         <!-- The Preview Box (Synced with bulkForm) -->
                         <div v-if="previewPin" class="relative bg-white rounded-2xl shadow-2xl overflow-hidden" style="aspect-ratio: 1/2; height: 100%; max-height: 700px;">
-                            <!-- Top Image -->
-                            <div class="absolute top-0 left-0 right-0 h-[40.234375%] overflow-hidden">
+                            <!-- Main Image (Crochet) -->
+                            <div 
+                                v-if="bulkForm.frame_design === 'crochet'"
+                                class="absolute left-0 right-0 overflow-hidden"
+                                style="top: 31.25%; height: 51.171875%;"
+                            >
                                 <img
                                     v-if="previewPin.top_image_url"
                                     :src="previewPin.top_image_url"
                                     class="w-full h-full object-cover"
                                 />
-                                <div v-else class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">Image</div>
+                                <div v-else class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">Main Image</div>
+                            </div>
+
+                            <!-- Top Image (Other designs) -->
+                            <div 
+                                v-if="bulkForm.frame_design !== 'crochet'"
+                                class="absolute top-0 left-0 right-0 overflow-hidden"
+                                style="height: 40.234375%;"
+                            >
+                                <img
+                                    v-if="previewPin.top_image_url"
+                                    :src="previewPin.top_image_url"
+                                    class="w-full h-full object-cover"
+                                />
+                                <div v-else class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">Top Image</div>
+                            </div>
+
+                            <!-- Crochet Header Overlay -->
+                            <div 
+                                v-if="bulkForm.frame_design === 'crochet'"
+                                class="absolute top-0 left-0 right-0 z-10 flex flex-col items-center justify-center px-4"
+                                :style="{ 
+                                    height: '31.25%', 
+                                    backgroundColor: previewStyles.overlayBg 
+                                }"
+                            >
+                                <p 
+                                    class="text-center w-full px-1"
+                                    :style="{ 
+                                        color: previewStyles.headlineColor, 
+                                        fontSize: previewStyles.headlineFontSize,
+                                        fontFamily: previewStyles.headlineFontFamily,
+                                        wordWrap: 'break-word',
+                                        lineHeight: '1.2'
+                                    }"
+                                >
+                                    {{ bulkForm.headline_text || 'Crochet Pattern' }}
+                                </p>
+                                <div class="w-3/4 h-[1px] border-b border-dashed my-2" :style="{ borderBottomColor: previewStyles.headlineColor }"></div>
+                                <p 
+                                    class="text-center uppercase tracking-wider w-full px-1"
+                                    :style="{ 
+                                        color: previewStyles.subheadlineColor, 
+                                        fontSize: previewStyles.subheadlineFontSize,
+                                        fontFamily: previewStyles.subheadlineFontFamily
+                                    }"
+                                >
+                                    {{ bulkForm.subheadline_text || 'EASY PATTERN | CUTE & HANDMADE | PDF TUTORIAL' }}
+                                </p>
                             </div>
 
                             <!-- Dynamic Text Overlay based on frame_design -->
@@ -2038,8 +2209,45 @@ const getStatusBadgeClass = (status) => {
                                 <p class="text-center font-bold w-full mt-1 truncate px-1" :style="{ color: previewStyles.subheadlineColor, fontSize: previewStyles.subheadlineFontSize, fontFamily: previewStyles.headlineFontFamily, wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.2' }">{{ bulkForm.subheadline_text || 'Subheadline Preview' }}</p>
                             </div>
 
+                            <!-- Crochet Footer Overlay -->
+                            <div 
+                                v-if="bulkForm.frame_design === 'crochet'"
+                                class="absolute bottom-0 left-0 right-0 z-10 flex flex-col items-center justify-center"
+                                :style="{ height: '17.578125%', backgroundColor: '#D69A96' }"
+                            >
+                                <div class="flex justify-around w-full px-2 mb-4">
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center mb-1 border" :style="{ backgroundColor: previewStyles.overlayBg, borderColor: previewStyles.headlineColor }">
+                                            <svg class="w-4 h-4" :style="{ color: previewStyles.headlineColor }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                                            </svg>
+                                        </div>
+                                        <span class="text-[5px] text-center leading-tight" :style="{ color: previewStyles.headlineColor }">Beginner<br>Friendly</span>
+                                    </div>
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center mb-1 border" :style="{ backgroundColor: previewStyles.overlayBg, borderColor: previewStyles.headlineColor }">
+                                            <svg class="w-4 h-4" :style="{ color: previewStyles.subheadlineColor }" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <span class="text-[5px] text-center leading-tight" :style="{ color: previewStyles.headlineColor }">Perfect for<br>Gifting</span>
+                                    </div>
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center mb-1 border" :style="{ backgroundColor: previewStyles.overlayBg, borderColor: previewStyles.headlineColor }">
+                                            <svg class="w-4 h-4" :style="{ color: previewStyles.headlineColor }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        </div>
+                                        <span class="text-[5px] text-center leading-tight" :style="{ color: previewStyles.headlineColor }">Step-by-Step<br>Tutorial</span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Bottom Image -->
-                            <div class="absolute bottom-0 left-0 right-0 h-[40.234375%] overflow-hidden">
+                            <div 
+                                v-if="bulkForm.frame_design !== 'crochet'"
+                                class="absolute bottom-0 left-0 right-0 h-[40.234375%] overflow-hidden"
+                            >
                                 <img
                                     v-if="previewPin.bottom_image_url || previewPin.top_image_url"
                                     :src="previewPin.bottom_image_url || previewPin.top_image_url"

@@ -66,6 +66,12 @@ class PinterestDesignService
                 'description' => 'White background with jagged torn paper effect',
                 'preview_colors' => ['bg' => '#ffffff', 'primary' => '#000000', 'secondary' => '#000000'],
             ],
+            'crochet' => [
+                'name' => 'Crochet',
+                'description' => 'Warm craft aesthetic with script title and badge footer',
+                'preview_colors' => ['bg' => '#F9F7F2', 'primary' => '#4A3728', 'secondary' => '#D69A96'],
+                'theme_slug' => 'crochet',
+            ],
         ];
     }
 
@@ -422,6 +428,21 @@ PROMPT;
                     $subheadlineColor,
                     $overlayColor,
                     $overlayOpacity,
+                    $headlineFont,
+                    $subheadlineFont,
+                    $headlineFontSize,
+                    $subheadlineFontSize
+                );
+                break;
+            case 'crochet':
+                $this->drawCrochetFrame(
+                    $canvas,
+                    $topImagePath,
+                    $headlineText,
+                    $subheadlineText,
+                    $headlineColor,
+                    $subheadlineColor,
+                    $overlayColor,
                     $headlineFont,
                     $subheadlineFont,
                     $headlineFontSize,
@@ -1450,6 +1471,164 @@ PROMPT;
         // Draw Subheadline
         if (!empty($transformedSub)) {
             $this->drawCenteredText($canvas, $transformedSub, $scriptFontPath ?? $fontPath, $scaledSubSize, $centerX, $startY, $subheadlineTextColor);
+        }
+    }
+
+    /**
+     * Frame: Crochet - cream header, centered main image, dusty rose footer with badges.
+     * Only intended for websites with the crochet theme.
+     */
+    private function drawCrochetFrame(
+        $canvas,
+        string $topImagePath,
+        string $headline,
+        string $subheadline = '',
+        string $headlineColorHex = '#4A3728',
+        string $subheadlineColorHex = '#D69A96',
+        string $overlayColorHex = '#F9F7F2',
+        string $headlineFont = 'dancing-script',
+        string $subheadlineFont = 'montserrat',
+        int $headlineFontSize = 32,
+        int $subheadlineFontSize = 10
+    ): void {
+        $headerHeight = 320;
+        $footerHeight = 180;
+        $imageStartY = $headerHeight;
+        $imageHeight = self::PIN_HEIGHT - $headerHeight - $footerHeight;
+        $footerStartY = self::PIN_HEIGHT - $footerHeight;
+
+        $creamRgb = $this->hexToRgb($overlayColorHex ?: '#F9F7F2');
+        $textRgb = $this->hexToRgb($headlineColorHex ?: '#4A3728');
+        $taglineRgb = $this->hexToRgb($subheadlineColorHex ?: '#4A3728');
+        $footerRgb = $this->hexToRgb('#D69A96');
+        $badgeBgRgb = $this->hexToRgb($overlayColorHex ?: '#F9F7F2');
+
+        $cream = imagecolorallocate($canvas, $creamRgb['r'], $creamRgb['g'], $creamRgb['b']);
+        $textColor = imagecolorallocate($canvas, $textRgb['r'], $textRgb['g'], $textRgb['b']);
+        $taglineColor = imagecolorallocate($canvas, $taglineRgb['r'], $taglineRgb['g'], $taglineRgb['b']);
+        $footerColor = imagecolorallocate($canvas, $footerRgb['r'], $footerRgb['g'], $footerRgb['b']);
+        $badgeBg = imagecolorallocate($canvas, $badgeBgRgb['r'], $badgeBgRgb['g'], $badgeBgRgb['b']);
+
+        // Backgrounds
+        imagefilledrectangle($canvas, 0, 0, self::PIN_WIDTH, $headerHeight, $cream);
+        imagefilledrectangle($canvas, 0, $footerStartY, self::PIN_WIDTH, self::PIN_HEIGHT, $footerColor);
+
+        // Main Image
+        $mainImage = $this->loadImage($topImagePath);
+        if ($mainImage) {
+            $this->placeImage($canvas, $mainImage, 0, $imageStartY, self::PIN_WIDTH, $imageHeight);
+            imagedestroy($mainImage);
+        }
+
+        // Fonts
+        $scriptFont = $this->getFontPath($headlineFont) ?? $this->getFontPath('dancing-script') ?? $this->getFontPath('script');
+        $sansFont = $this->getFontPath($subheadlineFont) ?? $this->getFontPath('montserrat') ?? $this->getFontPath('sans-serif');
+
+        // Header Text
+        $titleText = trim($headline) ?: 'Crochet Pattern';
+        $tagline = trim($subheadline) ?: 'EASY PATTERN | CUTE & HANDMADE | PDF TUTORIAL';
+
+        // Title (Script)
+        $titleSize = $headlineFontSize ?: 32;
+        while ($titleSize > 18 && $this->isTextTooWide($titleText, $scriptFont, $titleSize, 460)) {
+            $titleSize -= 2;
+        }
+        $titleY = 50;
+        $actualTitleHeight = $this->drawCenteredText($canvas, $titleText, $scriptFont, $titleSize, self::PIN_WIDTH / 2, $titleY, $textColor, 460);
+
+        // Dashed Line
+        $dashY = $titleY + $actualTitleHeight + 25;
+        imagesetthickness($canvas, 1);
+        $this->drawDashedHorizontalLine($canvas, 60, (int) $dashY, self::PIN_WIDTH - 60, $textColor);
+
+        // Tagline (Sans-serif)
+        $taglineSize = $subheadlineFontSize ?: 10;
+        $taglineY = $dashY + 20;
+        $this->drawCenteredText($canvas, strtoupper($tagline), $sansFont, $taglineSize, self::PIN_WIDTH / 2, $taglineY, $taglineColor, 480);
+
+        // Footer Badges
+        $badges = [
+            ['label' => "Beginner\nFriendly", 'icon' => 'yarn'],
+            ['label' => "Perfect for\nGifting", 'icon' => 'heart'],
+            ['label' => "Step-by-Step\nTutorial", 'icon' => 'pdf'],
+        ];
+        
+        $badgeRadius = 45;
+        $badgeY = $footerStartY + 45; // Center of the circle
+        $spacing = self::PIN_WIDTH / 4;
+        $centers = [$spacing, self::PIN_WIDTH / 2, self::PIN_WIDTH - $spacing];
+
+        foreach ($badges as $index => $badge) {
+            $cx = (int) $centers[$index];
+            $cy = (int) $badgeY;
+            
+            // Draw circle
+            imagefilledellipse($canvas, $cx, $cy, $badgeRadius * 2, $badgeRadius * 2, $badgeBg);
+            
+            // Draw simple icon placeholders
+            if ($badge['icon'] === 'heart') {
+                $this->drawHeart($canvas, $cx, $cy, 20, $footerColor);
+            } elseif ($badge['icon'] === 'yarn') {
+                $this->drawYarn($canvas, $cx, $cy, 20, $textColor);
+            } elseif ($badge['icon'] === 'pdf') {
+                $this->drawPdfIcon($canvas, $cx, $cy, 20, $textColor);
+            }
+
+            // Label below circle
+            $labelY = $cy + $badgeRadius + 15;
+            $this->drawCenteredText($canvas, $badge['label'], $sansFont, 8, $cx, $labelY, $textColor, $spacing - 10);
+        }
+    }
+
+    /**
+     * Helper: Draw a simple heart shape.
+     */
+    private function drawHeart($canvas, int $cx, int $cy, int $size, $color): void
+    {
+        $points = [];
+        for ($angle = 0; $angle <= 2 * pi(); $angle += 0.1) {
+            $x = 16 * pow(sin($angle), 3);
+            $y = 13 * cos($angle) - 5 * cos(2 * $angle) - 2 * cos(3 * $angle) - cos(4 * $angle);
+            
+            $points[] = (int)($cx + $x * ($size / 16));
+            $points[] = (int)($cy - $y * ($size / 16));
+        }
+        imagefilledpolygon($canvas, $points, count($points) / 2, $color);
+    }
+
+    /**
+     * Helper: Draw a simple yarn ball shape.
+     */
+    private function drawYarn($canvas, int $cx, int $cy, int $size, $color): void
+    {
+        imageellipse($canvas, $cx, $cy, $size * 2, $size * 2, $color);
+        for ($i = 0; $i < 3; $i++) {
+            imageline($canvas, $cx - $size, $cy - $size + ($i * 10), $cx + $size, $cy + $size - ($i * 10), $color);
+        }
+    }
+
+    /**
+     * Helper: Draw a simple PDF icon shape.
+     */
+    private function drawPdfIcon($canvas, int $cx, int $cy, int $size, $color): void
+    {
+        $w = $size;
+        $h = (int)($size * 1.3);
+        imagerectangle($canvas, $cx - $w/2, $cy - $h/2, $cx + $w/2, $cy + $h/2, $color);
+        $font = 2;
+        $this->drawCenteredText($canvas, "PDF", null, 6, $cx, $cy - 3, $color, $w);
+    }
+
+    /**
+     * Draw a dashed horizontal line.
+     */
+    private function drawDashedHorizontalLine($canvas, int $x1, int $y, int $x2, $color): void
+    {
+        $dash = 6;
+        $gap = 4;
+        for ($x = $x1; $x < $x2; $x += $dash + $gap) {
+            $end = min($x + $dash, $x2);
+            imageline($canvas, $x, $y, $end, $y, $color);
         }
     }
 

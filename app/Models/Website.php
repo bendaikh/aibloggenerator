@@ -91,7 +91,15 @@ class Website extends Model
      */
     public function theme()
     {
-        return $this->belongsTo(\App\Models\Theme::class);
+        return $this->belongsTo(Theme::class);
+    }
+
+    /**
+     * Theme slug from theme_id (not the legacy `theme` string column).
+     */
+    public function themeSlug(): ?string
+    {
+        return $this->theme()->value('slug');
     }
 
     /**

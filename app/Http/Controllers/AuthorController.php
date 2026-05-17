@@ -20,7 +20,7 @@ class AuthorController extends Controller
         return Inertia::render('SuperAdmin/Authors', [
             'currentWebsite' => $website,
             'authors' => $authors,
-            'websites' => Website::where('user_id', auth()->id())->get(),
+            'websites' => auth()->user()->accessibleWebsitesQuery()->get(),
         ]);
     }
 

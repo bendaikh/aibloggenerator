@@ -23,7 +23,7 @@ class DomainRequestController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $websites = Website::where('user_id', $user->id)
+        $websites = $user->accessibleWebsitesQuery()
             ->withCount(['articles', 'categories'])
             ->get();
 

@@ -19,7 +19,7 @@ class UserManagementController extends Controller
      */
     public function index(Request $request)
     {
-        $websites = Website::where('user_id', auth()->id())
+        $websites = auth()->user()->accessibleWebsitesQuery()
             ->withCount(['articles', 'categories'])
             ->get();
 

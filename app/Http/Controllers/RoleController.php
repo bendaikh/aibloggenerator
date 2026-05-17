@@ -14,7 +14,7 @@ class RoleController extends Controller
      */
     public function index()
     {
-        $websites = Website::where('user_id', auth()->id())
+        $websites = auth()->user()->accessibleWebsitesQuery()
             ->withCount(['articles', 'categories'])
             ->get();
 

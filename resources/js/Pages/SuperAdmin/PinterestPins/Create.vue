@@ -14,8 +14,14 @@ const props = defineProps({
     articles: {
         type: Array,
         default: () => []
+    },
+    websiteThemeSlug: {
+        type: String,
+        default: null
     }
 });
+
+const isCrochetTheme = computed(() => props.websiteThemeSlug === 'crochet');
 
 const selectedArticle = ref(null);
 const isGeneratingHeadlines = ref(false);
@@ -33,7 +39,7 @@ const form = useForm({
     subheadline_font_size: 22,
     overlay_color: '#000000',
     overlay_opacity: 70,
-    frame_design: 'simple_center',
+    frame_design: props.websiteThemeSlug === 'crochet' ? 'crochet' : 'simple_center',
     domain_name: props.currentWebsite?.domain || (props.currentWebsite?.slug ? props.currentWebsite.slug + '.com' : ''),
 });
 
@@ -60,7 +66,7 @@ const fontOptions = {
 };
 
 // Available frame designs
-const frameDesigns = [
+const baseFrameDesigns = [
     { id: 'simple_center', name: 'Simple Center', description: 'Classic text overlay on images', bgColor: '#000000', textColor: '#ffffff' },
     { id: 'black_christmas', name: 'Black Christmas', description: 'Elegant black with white lines', bgColor: '#000000', textColor: '#ffffff' },
     { id: 'green_dashed', name: 'Green Dashed', description: 'Vibrant green with dashed border', bgColor: '#22c55e', textColor: '#ffffff' },
@@ -70,6 +76,13 @@ const frameDesigns = [
     { id: 'crispy_orange', name: 'Crispy Orange', description: 'Orange banner with yellow accents', bgColor: '#e67e22', textColor: '#ffffff' },
     { id: 'torn_paper', name: 'Torn Paper', description: 'White background with torn edges', bgColor: '#ffffff', textColor: '#000000' },
 ];
+
+const frameDesigns = computed(() => {
+    if (isCrochetTheme.value) {
+        return [...baseFrameDesigns, { id: 'crochet', name: 'Crochet', description: 'Warm craft frame with script title', bgColor: '#F9F7F2', textColor: '#4A3728' }];
+    }
+    return baseFrameDesigns;
+});
 
 // Generate AI headlines
 const generateAIHeadlines = async () => {
@@ -744,6 +757,21 @@ const submitForm = () => {
                                         </svg>
                                     </div>
                                 </button>
+
+                                <button
+                                    v-if="isCrochetTheme"
+                                    type="button"
+                                    @click="form.frame_design = 'crochet'"
+                                    class="relative p-3 rounded-xl border-2 transition-all text-left"
+                                    :class="form.frame_design === 'crochet' ? 'border-pink-500 bg-pink-500/10' : 'border-[#2a2a2a] hover:border-[#3a3a3a] bg-[#0a0a0a]'"
+                                >
+                                    <div class="w-full aspect-[1/2] rounded-lg mb-2 flex flex-col" style="background:#F9F7F2">
+                                        <div class="h-[30%] flex items-center justify-center text-[#4A3728] text-[8px] italic">Crochet</div>
+                                        <div class="h-[50%] bg-rose-200"></div>
+                                        <div class="h-[20%] bg-[#D69A96]"></div>
+                                    </div>
+                                    <p class="text-white text-xs font-medium">Crochet</p>
+                                </button>
                             </div>
                         </div>
 
@@ -780,8 +808,29 @@ const submitForm = () => {
 
                         <!-- Pin Preview (1:2 ratio = 512x1024) -->
                         <div class="relative bg-white rounded-xl overflow-hidden mx-auto" style="aspect-ratio: 1/2; max-width: 256px;">
-                            <!-- Top Image -->
-                            <div class="absolute top-0 left-0 right-0 h-[40.234375%] overflow-hidden">
+                            <!-- Main Image (Crochet) -->
+                            <div 
+                                v-if="form.frame_design === 'crochet'"
+                                class="absolute left-0 right-0 overflow-hidden"
+                                style="top: 31.25%; height: 51.171875%;"
+                            >
+                                <img
+                                    v-if="selectedArticle?.featured_image"
+                                    :src="selectedArticle.featured_image.startsWith('http') ? selectedArticle.featured_image : '/' + selectedArticle.featured_image"
+                                    alt="Main image"
+                                    class="w-full h-full object-cover"
+                                />
+                                <div v-else class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
+                                    <span class="text-gray-500 text-sm">Main Image</span>
+                                </div>
+                            </div>
+
+                            <!-- Top Image (Other designs) -->
+                            <div 
+                                v-if="form.frame_design !== 'crochet'"
+                                class="absolute top-0 left-0 right-0 overflow-hidden"
+                                style="height: 40.234375%;"
+                            >
                                 <img
                                     v-if="selectedArticle?.featured_image"
                                     :src="selectedArticle.featured_image.startsWith('http') ? selectedArticle.featured_image : '/' + selectedArticle.featured_image"
@@ -791,6 +840,40 @@ const submitForm = () => {
                                 <div v-else class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
                                     <span class="text-gray-500 text-sm">Top Image</span>
                                 </div>
+                            </div>
+
+                            <!-- Crochet Header Overlay -->
+                            <div 
+                                v-if="form.frame_design === 'crochet'"
+                                class="absolute top-0 left-0 right-0 z-10 flex flex-col items-center justify-center px-4"
+                                :style="{ 
+                                    height: '31.25%', 
+                                    backgroundColor: previewStyles.overlayBg 
+                                }"
+                            >
+                                <p 
+                                    class="text-center w-full px-1"
+                                    :style="{ 
+                                        color: previewStyles.headlineColor, 
+                                        fontSize: previewStyles.headlineFontSize,
+                                        fontFamily: previewStyles.headlineFontFamily,
+                                        wordWrap: 'break-word',
+                                        lineHeight: '1.2'
+                                    }"
+                                >
+                                    {{ form.headline_text || 'Crochet Pattern' }}
+                                </p>
+                                <div class="w-3/4 h-[1px] border-b border-dashed my-2" :style="{ borderBottomColor: previewStyles.headlineColor }"></div>
+                                <p 
+                                    class="text-center uppercase tracking-wider w-full px-1"
+                                    :style="{ 
+                                        color: previewStyles.subheadlineColor, 
+                                        fontSize: previewStyles.subheadlineFontSize,
+                                        fontFamily: previewStyles.subheadlineFontFamily
+                                    }"
+                                >
+                                    {{ form.subheadline_text || 'EASY PATTERN | CUTE & HANDMADE | PDF TUTORIAL' }}
+                                </p>
                             </div>
 
                             <!-- Text Overlay - Simple Center -->
@@ -1139,8 +1222,45 @@ const submitForm = () => {
                                 </div>
                             </div>
 
+                            <!-- Crochet Footer Overlay -->
+                            <div 
+                                v-if="form.frame_design === 'crochet'"
+                                class="absolute bottom-0 left-0 right-0 z-10 flex flex-col items-center justify-center"
+                                :style="{ height: '17.578125%', backgroundColor: '#D69A96' }"
+                            >
+                                <div class="flex justify-around w-full px-2 mb-4">
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center mb-1 border" :style="{ backgroundColor: previewStyles.overlayBg, borderColor: previewStyles.headlineColor }">
+                                            <svg class="w-4 h-4" :style="{ color: previewStyles.headlineColor }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                                            </svg>
+                                        </div>
+                                        <span class="text-[5px] text-center leading-tight" :style="{ color: previewStyles.headlineColor }">Beginner<br>Friendly</span>
+                                    </div>
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center mb-1 border" :style="{ backgroundColor: previewStyles.overlayBg, borderColor: previewStyles.headlineColor }">
+                                            <svg class="w-4 h-4" :style="{ color: previewStyles.subheadlineColor }" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <span class="text-[5px] text-center leading-tight" :style="{ color: previewStyles.headlineColor }">Perfect for<br>Gifting</span>
+                                    </div>
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center mb-1 border" :style="{ backgroundColor: previewStyles.overlayBg, borderColor: previewStyles.headlineColor }">
+                                            <svg class="w-4 h-4" :style="{ color: previewStyles.headlineColor }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        </div>
+                                        <span class="text-[5px] text-center leading-tight" :style="{ color: previewStyles.headlineColor }">Step-by-Step<br>Tutorial</span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Bottom Image -->
-                            <div class="absolute bottom-0 left-0 right-0 h-[40.234375%] overflow-hidden">
+                            <div 
+                                v-if="form.frame_design !== 'crochet'"
+                                class="absolute bottom-0 left-0 right-0 h-[40.234375%] overflow-hidden"
+                            >
                                 <img
                                     v-if="selectedArticle?.secondary_image || selectedArticle?.featured_image"
                                     :src="(selectedArticle.secondary_image || selectedArticle.featured_image).startsWith('http') ? (selectedArticle.secondary_image || selectedArticle.featured_image) : '/' + (selectedArticle.secondary_image || selectedArticle.featured_image)"
