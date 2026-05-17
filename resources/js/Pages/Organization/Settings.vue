@@ -207,7 +207,7 @@ const saveAssignments = () => {
                     <p class="text-gray-500 text-sm mb-3">Secondary users whose websites this global user can access:</p>
                     <div class="max-h-56 overflow-y-auto space-y-2 border border-[#2a2a2a] rounded-xl p-2 mb-4">
                         <label
-                            v-for="user in localAssignableUsers.filter((u) => !displayGlobalUsers.some((g) => g.id === u.id))"
+                            v-for="user in localAssignableUsers.filter((u) => u.id !== selectedGlobalUserId)"
                             :key="'sec-' + user.id"
                             class="flex items-center gap-3 p-3 rounded-lg hover:bg-[#252525] cursor-pointer"
                         >

@@ -131,13 +131,10 @@ class OrganizationController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name', 'email', 'is_global_user']);
 
-            $usersForGlobalToggle = User::where('id', '!=', $user->id)
-                ->orderBy('name')
+            $usersForGlobalToggle = User::orderBy('name')
                 ->get(['id', 'name', 'email', 'is_global_user']);
 
-            $assignableUsers = User::where('is_global_user', false)
-                ->where('id', '!=', $user->id)
-                ->orderBy('name')
+            $assignableUsers = User::orderBy('name')
                 ->get(['id', 'name', 'email']);
 
             $globalUsersData = [
@@ -234,13 +231,10 @@ class OrganizationController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'is_global_user']);
 
-        $usersForGlobalToggle = User::where('id', '!=', $user->id)
-            ->orderBy('name')
+        $usersForGlobalToggle = User::orderBy('name')
             ->get(['id', 'name', 'email', 'is_global_user']);
 
-        $assignableUsers = User::where('is_global_user', false)
-            ->where('id', '!=', $user->id)
-            ->orderBy('name')
+        $assignableUsers = User::orderBy('name')
             ->get(['id', 'name', 'email']);
 
         return [
