@@ -198,11 +198,8 @@ class User extends Authenticatable
     public function accessibleWebsitesQuery()
     {
         if ($this->isGlobalUser()) {
-            $secondaryUserIds = $this->secondaryUsers()->pluck('users.id');
-
-            if ($secondaryUserIds->isEmpty()) {
-                return Website::query()->whereRaw('0 = 1');
-            }
+            $secondaryUserIds = $this->secondaryUsers()->pluck('users.id')->toArray();
+            $secondaryUserIds[] = $this->id;
 
             return Website::query()->whereIn('user_id', $secondaryUserIds);
         }
@@ -220,11 +217,15 @@ class User extends Authenticatable
             return true;
         }
 
+        if ($this->id === $website->user_id) {
+            return true;
+        }
+
         if ($this->isGlobalUser()) {
             return $this->secondaryUsers()->where('users.id', $website->user_id)->exists();
         }
 
-        return $this->id === $website->user_id;
+        return false;
     }
 
     /**

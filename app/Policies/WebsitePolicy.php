@@ -20,10 +20,6 @@ class WebsitePolicy
      */
     public function update(User $user, Website $website): bool
     {
-        if ($user->isGlobalUser()) {
-            return false;
-        }
-
         return $user->id === $website->user_id || $user->isSuperAdmin();
     }
 
@@ -32,10 +28,6 @@ class WebsitePolicy
      */
     public function delete(User $user, Website $website): bool
     {
-        if ($user->isGlobalUser()) {
-            return false;
-        }
-
         return $user->id === $website->user_id || $user->isSuperAdmin();
     }
 }
