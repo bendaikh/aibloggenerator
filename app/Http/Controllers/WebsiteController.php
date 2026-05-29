@@ -1306,6 +1306,61 @@ HTML;
     }
 
     /**
+     * Update Google Search Console verification settings.
+     */
+    public function updateSearchConsole(Request $request, Website $website)
+    {
+        $this->authorize('update', $website);
+
+        $validated = $request->validate([
+            'google_verification_method' => 'required|string|in:meta_tag,html_file',
+            'google_verification' => 'nullable|string|max:100',
+            'google_verification_file' => 'nullable|string|max:100|regex:/^google[a-f0-9]+\.html$/i',
+            'google_verification_file_content' => 'nullable|string|max:5000',
+        ]);
+
+        if ($validated['google_verification_method'] === 'meta_tag') {
+            $validated['google_verification_file'] = null;
+            $validated['google_verification_file_content'] = null;
+        } else {
+            $validated['google_verification'] = null;
+
+            if (empty($validated['google_verification_file']) || empty($validated['google_verification_file_content'])) {
+                return redirect()->back()
+                    ->withErrors([
+                        'google_verification_file' => 'Both the verification filename and file content are required for HTML file verification.',
+                    ]);
+            }
+        }
+
+        $website->update($validated);
+
+        return redirect()->back()
+            ->with('success', 'Google Search Console settings updated successfully!');
+    }
+
+    /**
+     * Update Google Analytics settings.
+     */
+    public function updateAnalytics(Request $request, Website $website)
+    {
+        $this->authorize('update', $website);
+
+        $validated = $request->validate([
+            'google_analytics_id' => 'nullable|string|max:50|regex:/^(G-|UA-|GT-)?[A-Z0-9-]+$/i',
+            'gtm_id' => 'nullable|string|max:50|regex:/^GTM-[A-Z0-9]+$/i',
+        ]);
+
+        $website->update([
+            'google_analytics_id' => $validated['google_analytics_id'] ?? null,
+            'gtm_id' => $validated['gtm_id'] ?? null,
+        ]);
+
+        return redirect()->back()
+            ->with('success', 'Google Analytics settings updated successfully!');
+    }
+
+    /**
      * Show the SEO settings page.
      */
     public function seo(Website $website): Response

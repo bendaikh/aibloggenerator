@@ -1,5 +1,5 @@
 <script setup>
-import { useForm } from '@inertiajs/vue3';
+import { useForm, Link } from '@inertiajs/vue3';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
 import { Head } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
@@ -425,7 +425,7 @@ Disallow: /register`;
                                 <p class="text-gray-400 text-sm mb-6">Connect your website with search engines to monitor performance, submit sitemaps, and receive indexing notifications.</p>
                                 
                                 <div class="space-y-6">
-                                    <!-- Google Search Console -->
+                                    <!-- Google Search Console - managed in Website Settings -->
                                     <div class="p-4 bg-[#252525] rounded-lg border border-[#3a3a3a]">
                                         <div class="flex items-start gap-4">
                                             <div class="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0">
@@ -438,17 +438,16 @@ Disallow: /register`;
                                             </div>
                                             <div class="flex-1">
                                                 <h3 class="text-white font-medium">Google Search Console</h3>
-                                                <p class="text-gray-400 text-sm mt-1">Verify your site ownership to access Google Search Console features.</p>
-                                                <div class="mt-3">
-                                                    <label class="block text-sm text-gray-400 mb-1">Verification Code</label>
-                                                    <input
-                                                        v-model="form.google_verification"
-                                                        type="text"
-                                                        class="w-full bg-[#1a1a1a] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono"
-                                                        placeholder="e.g., dN3e7F2G8h9..."
-                                                    />
-                                                    <p class="mt-1 text-xs text-gray-500">Paste only the content value from the meta tag.</p>
-                                                </div>
+                                                <p class="text-gray-400 text-sm mt-1">Configure meta tag or HTML file verification in Website Settings.</p>
+                                                <Link
+                                                    :href="route('superadmin.settings', currentWebsite.id)"
+                                                    class="inline-flex items-center gap-2 mt-3 text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
+                                                >
+                                                    Open Search Console settings
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                </Link>
                                             </div>
                                         </div>
                                     </div>
@@ -523,58 +522,29 @@ Disallow: /register`;
                         <div v-show="activeTab === 'analytics'" class="space-y-6">
                             <div class="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] p-4 sm:p-6">
                                 <h2 class="text-lg font-semibold text-white mb-4">Analytics & Tracking</h2>
-                                <p class="text-gray-400 text-sm mb-6">Connect analytics tools to track your website's performance and visitor behavior.</p>
-                                
-                                <div class="space-y-6">
-                                    <!-- Google Analytics -->
-                                    <div class="p-4 bg-[#252525] rounded-lg border border-[#3a3a3a]">
-                                        <div class="flex items-start gap-4">
-                                            <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center shrink-0">
-                                                <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                                    <path d="M22.84 2.998c.646.646.646 1.692 0 2.339l-9.195 9.195a1.655 1.655 0 01-2.339 0l-4.243-4.244a1.654 1.654 0 010-2.338l9.195-9.195c.646-.646 1.693-.646 2.339 0l4.243 4.243z"/>
-                                                    <path d="M12 22a3 3 0 100-6 3 3 0 000 6z"/>
-                                                    <path d="M4 22a3 3 0 100-6 3 3 0 000 6z"/>
-                                                </svg>
-                                            </div>
-                                            <div class="flex-1">
-                                                <h3 class="text-white font-medium">Google Analytics 4 (GA4)</h3>
-                                                <p class="text-gray-400 text-sm mt-1">Track website traffic, user behavior, conversions, and more.</p>
-                                                <div class="mt-3">
-                                                    <label class="block text-sm text-gray-400 mb-1">Measurement ID</label>
-                                                    <input
-                                                        v-model="form.google_analytics_id"
-                                                        type="text"
-                                                        class="w-full bg-[#1a1a1a] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-mono"
-                                                        placeholder="G-XXXXXXXXXX"
-                                                    />
-                                                    <p class="mt-1 text-xs text-gray-500">Find this in Google Analytics under Admin > Data Streams.</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <p class="text-gray-400 text-sm mb-6">Google Analytics and Tag Manager are configured in Website Settings.</p>
 
-                                    <!-- Google Tag Manager -->
-                                    <div class="p-4 bg-[#252525] rounded-lg border border-[#3a3a3a]">
-                                        <div class="flex items-start gap-4">
-                                            <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
-                                                <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                                <div class="p-4 bg-[#252525] rounded-lg border border-[#3a3a3a]">
+                                    <div class="flex items-start gap-4">
+                                        <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center shrink-0">
+                                            <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M22.84 2.998c.646.646.646 1.692 0 2.339l-9.195 9.195a1.655 1.655 0 01-2.339 0l-4.243-4.244a1.654 1.654 0 010-2.338l9.195-9.195c.646-.646 1.693-.646 2.339 0l4.243 4.243z"/>
+                                                <path d="M12 22a3 3 0 100-6 3 3 0 000 6z"/>
+                                                <path d="M4 22a3 3 0 100-6 3 3 0 000 6z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="flex-1">
+                                            <h3 class="text-white font-medium">Google Analytics & Tag Manager</h3>
+                                            <p class="text-gray-400 text-sm mt-1">Set your GA4 measurement ID and GTM container ID in Website Settings.</p>
+                                            <Link
+                                                :href="route('superadmin.settings', currentWebsite.id)"
+                                                class="inline-flex items-center gap-2 mt-3 text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
+                                            >
+                                                Open Analytics settings
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                                 </svg>
-                                            </div>
-                                            <div class="flex-1">
-                                                <h3 class="text-white font-medium">Google Tag Manager</h3>
-                                                <p class="text-gray-400 text-sm mt-1">Manage all your tracking codes in one place without editing code.</p>
-                                                <div class="mt-3">
-                                                    <label class="block text-sm text-gray-400 mb-1">Container ID</label>
-                                                    <input
-                                                        v-model="form.gtm_id"
-                                                        type="text"
-                                                        class="w-full bg-[#1a1a1a] border border-[#3a3a3a] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
-                                                        placeholder="GTM-XXXXXXX"
-                                                    />
-                                                    <p class="mt-1 text-xs text-gray-500">Find this in GTM under Admin > Container Settings.</p>
-                                                </div>
-                                            </div>
+                                            </Link>
                                         </div>
                                     </div>
                                 </div>

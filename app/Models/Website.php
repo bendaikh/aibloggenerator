@@ -38,6 +38,9 @@ class Website extends Model
         // SEO Settings
         'seo_settings',
         'google_verification',
+        'google_verification_method',
+        'google_verification_file',
+        'google_verification_file_content',
         'bing_verification',
         'yandex_verification',
         'robots_txt',
@@ -47,7 +50,14 @@ class Website extends Model
         'geo_settings',
     ];
 
-    protected $appends = ['url', 'logo_url', 'favicon_url'];
+    protected $appends = [
+        'url',
+        'logo_url',
+        'favicon_url',
+        'google_verification_file_url',
+        'is_google_search_console_connected',
+        'is_google_analytics_connected',
+    ];
 
     protected $casts = [
         'theme_settings' => 'array',
@@ -227,6 +237,39 @@ class Website extends Model
 
         // Otherwise, convert relative path to full URL
         return asset($this->logo);
+    }
+
+    /**
+     * Get the public URL for the Google HTML verification file.
+     */
+    public function getGoogleVerificationFileUrlAttribute(): ?string
+    {
+        if ($this->google_verification_method !== 'html_file' || empty($this->google_verification_file)) {
+            return null;
+        }
+
+        return rtrim($this->url, '/') . '/' . $this->google_verification_file;
+    }
+
+    /**
+     * Determine if Google Search Console verification is configured.
+     */
+    public function getIsGoogleSearchConsoleConnectedAttribute(): bool
+    {
+        if ($this->google_verification_method === 'html_file') {
+            return !empty($this->google_verification_file)
+                && !empty($this->google_verification_file_content);
+        }
+
+        return !empty($this->google_verification);
+    }
+
+    /**
+     * Determine if Google Analytics is configured.
+     */
+    public function getIsGoogleAnalyticsConnectedAttribute(): bool
+    {
+        return !empty($this->google_analytics_id) || !empty($this->gtm_id);
     }
 
     /**

@@ -55,6 +55,9 @@ if (!$isLocalDev) {
         // Sitemap and robots.txt
         Route::get('/sitemap.xml', [PublicWebsiteController::class, 'sitemapByDomain'])->name('website.sitemap.subdomain');
         Route::get('/robots.txt', [PublicWebsiteController::class, 'robotsTxtByDomain'])->name('website.robots.subdomain');
+        Route::get('/{verificationFile}', [PublicWebsiteController::class, 'googleVerificationFileByDomain'])
+            ->where('verificationFile', 'google[a-f0-9]+\.html')
+            ->name('website.google_verification.subdomain');
         // Regular articles at root path (must be last to avoid conflicts)
         Route::get('/{article}', [PublicWebsiteController::class, 'showRegularArticleByDomain'])->name('article.show.regular.subdomain');
     });
@@ -281,6 +284,8 @@ $registerMainAppRoutes = function () {
 
         Route::get('/{website}/settings', [WebsiteController::class, 'settings'])->name('superadmin.settings');
         Route::put('/{website}/settings', [WebsiteController::class, 'updateSettings'])->name('superadmin.settings.update');
+        Route::put('/{website}/settings/search-console', [WebsiteController::class, 'updateSearchConsole'])->name('superadmin.settings.search-console.update');
+        Route::put('/{website}/settings/analytics', [WebsiteController::class, 'updateAnalytics'])->name('superadmin.settings.analytics.update');
 
         // SEO Routes
         Route::get('/{website}/seo', [WebsiteController::class, 'seo'])->name('superadmin.seo');
@@ -332,6 +337,9 @@ $registerMainAppRoutes = function () {
     Route::get('/site/{website}/sitemap.xml', [PublicWebsiteController::class, 'sitemap'])->name('website.sitemap');
     Route::get('/site/{website}/robots.txt', [PublicWebsiteController::class, 'robotsTxt'])->name('website.robots');
     Route::get('/site/{website}/ai.txt', [PublicWebsiteController::class, 'aiTxt'])->name('website.ai_txt');
+    Route::get('/site/{website}/{verificationFile}', [PublicWebsiteController::class, 'googleVerificationFile'])
+        ->where('verificationFile', 'google[a-f0-9]+\.html')
+        ->name('website.google_verification');
     // AI API for crawler access
     Route::get('/site/{website}/api/ai/articles', [\App\Http\Controllers\Api\AiArticleController::class, 'index'])->name('website.ai.articles');
     Route::get('/site/{website}/api/ai/articles/{article}', [\App\Http\Controllers\Api\AiArticleController::class, 'show'])->name('website.ai.article');
@@ -391,6 +399,9 @@ if (!$isLocalDev) {
         Route::get('/sitemap.xml', [PublicWebsiteController::class, 'sitemapByDomain'])->name('website.sitemap.custom');
         Route::get('/robots.txt', [PublicWebsiteController::class, 'robotsTxtByDomain'])->name('website.robots.custom');
         Route::get('/ai.txt', [PublicWebsiteController::class, 'aiTxtByDomain'])->name('website.ai_txt.custom');
+        Route::get('/{verificationFile}', [PublicWebsiteController::class, 'googleVerificationFileByDomain'])
+            ->where('verificationFile', 'google[a-f0-9]+\.html')
+            ->name('website.google_verification.custom');
         // AI API for crawler access
         Route::get('/api/ai/articles', [\App\Http\Controllers\Api\AiArticleController::class, 'index'])->name('website.ai.articles.custom');
         Route::get('/api/ai/articles/{article}', [\App\Http\Controllers\Api\AiArticleController::class, 'show'])->name('website.ai.article.custom');

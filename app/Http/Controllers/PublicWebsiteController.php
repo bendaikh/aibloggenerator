@@ -1069,6 +1069,55 @@ class PublicWebsiteController extends Controller
     }
 
     /**
+     * Serve the Google Search Console HTML verification file (legacy route).
+     */
+    public function googleVerificationFile(string $websiteSlug, string $verificationFile)
+    {
+        $website = Website::where('slug', $websiteSlug)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        return $this->serveGoogleVerificationFile($website, $verificationFile);
+    }
+
+    /**
+     * Serve the Google Search Console HTML verification file (subdomain/custom domain).
+     */
+    public function googleVerificationFileByDomain(Request $request, string $verificationFile)
+    {
+        $website = $request->get('website');
+
+        if (!$website) {
+            abort(404);
+        }
+
+        return $this->serveGoogleVerificationFile($website, $verificationFile);
+    }
+
+    /**
+     * Generate the Google Search Console HTML verification file response.
+     */
+    protected function serveGoogleVerificationFile(Website $website, string $verificationFile)
+    {
+        if ($website->google_verification_method !== 'html_file') {
+            abort(404);
+        }
+
+        if (strcasecmp($website->google_verification_file ?? '', $verificationFile) !== 0) {
+            abort(404);
+        }
+
+        $content = trim($website->google_verification_file_content ?? '');
+
+        if ($content === '') {
+            abort(404);
+        }
+
+        return response($content, 200)
+            ->header('Content-Type', 'text/html; charset=UTF-8');
+    }
+
+    /**
      * Generate and serve the sitemap.xml (subdomain/custom domain).
      */
     public function sitemapByDomain(Request $request)

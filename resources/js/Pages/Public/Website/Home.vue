@@ -16,7 +16,7 @@
             <meta v-if="website.pinterest_verification" name="p:domain_verify" :content="website.pinterest_verification" />
             
             <!-- Google Verification -->
-            <meta v-if="website.google_verification" name="google-site-verification" :content="website.google_verification" />
+            <meta v-if="website.google_verification && website.google_verification_method !== 'html_file'" name="google-site-verification" :content="website.google_verification" />
             
             <!-- Bing Verification -->
             <meta v-if="website.bing_verification" name="msvalidate.01" :content="website.bing_verification" />
