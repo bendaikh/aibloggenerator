@@ -31,6 +31,21 @@
         <meta name="p:domain_verify" content="{{ $website->pinterest_verification }}" />
         @endif
 
+        <!-- Google Search Console Verification (meta tag method) -->
+        @if(isset($website) && $website->google_verification && $website->google_verification_method !== 'html_file')
+        <meta name="google-site-verification" content="{{ $website->google_verification }}" />
+        @endif
+
+        <!-- Bing Webmaster Tools Verification -->
+        @if(isset($website) && $website->bing_verification)
+        <meta name="msvalidate.01" content="{{ $website->bing_verification }}" />
+        @endif
+
+        <!-- Yandex Webmaster Verification -->
+        @if(isset($website) && $website->yandex_verification)
+        <meta name="yandex-verification" content="{{ $website->yandex_verification }}" />
+        @endif
+
         <!-- Scripts -->
         @routes
         @vite(['resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"])
