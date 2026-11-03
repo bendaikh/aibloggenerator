@@ -26,55 +26,51 @@ class ImageUploadController extends Controller
 
         $type = $request->input('type', 'general');
         $file = $request->file('image');
-        
-        // Create directory if it doesn't exist
-        $directory = public_path("uploads/images/{$type}");
-        if (!File::isDirectory($directory)) {
-            File::makeDirectory($directory, 0755, true);
-        }
-        
-        // Generate unique filename with .webp extension
-        $filename = Str::uuid() . '.webp';
-        
+
         try {
-            // Create image manager instance
-            $manager = new ImageManager(new Driver());
-            
-            // Load and process the image
-            $image = $manager->read($file->getRealPath());
-            
-            // Convert to WebP format with quality optimization (85% quality is a good balance)
-            // This will significantly reduce file size while maintaining good visual quality
-            $image->toWebp(85)->save($directory . '/' . $filename);
-            
-            // Path relative to public folder
+            // Create directory if it doesn't exist
+            $directory = public_path("uploads/images/{$type}");
+            if (!File::isDirectory($directory)) {
+                File::makeDirectory($directory, 0755, true);
+            }
+
+            // Generate unique filename with .webp extension
+            $filename = Str::uuid() . '.webp';
             $relativePath = "uploads/images/{$type}/{$filename}";
 
-            // Generate the full URL
-            $url = asset($relativePath);
+            try {
+                // Create image manager instance
+                $manager = new ImageManager(new Driver());
+
+                // Load and process the image
+                $image = $manager->read($file->getRealPath());
+
+                // Convert to WebP format with quality optimization (85% quality is a good balance)
+                // This will significantly reduce file size while maintaining good visual quality
+                $image->toWebp(85)->save($directory . '/' . $filename);
+            } catch (\Exception $e) {
+                // Fallback: if WebP conversion fails, save original file
+                // This ensures the upload still works even if image processing fails
+                \Log::warning('WebP conversion failed, saving original: ' . $e->getMessage());
+
+                $originalExtension = $file->getClientOriginalExtension() ?: 'jpg';
+                $fallbackFilename = Str::uuid() . '.' . $originalExtension;
+                $file->move($directory, $fallbackFilename);
+                $relativePath = "uploads/images/{$type}/{$fallbackFilename}";
+            }
 
             return response()->json([
                 'success' => true,
-                'url' => $url,
+                'url' => asset($relativePath),
                 'path' => $relativePath,
             ]);
         } catch (\Exception $e) {
-            // Fallback: if WebP conversion fails, save original file
-            // This ensures the upload still works even if image processing fails
-            \Log::warning('WebP conversion failed, saving original: ' . $e->getMessage());
-            
-            $originalExtension = $file->getClientOriginalExtension();
-            $fallbackFilename = Str::uuid() . '.' . $originalExtension;
-            $file->move($directory, $fallbackFilename);
-            
-            $relativePath = "uploads/images/{$type}/{$fallbackFilename}";
-            $url = asset($relativePath);
+            \Log::error('Image upload failed: ' . $e->getMessage());
 
             return response()->json([
-                'success' => true,
-                'url' => $url,
-                'path' => $relativePath,
-            ]);
+                'success' => false,
+                'message' => 'Upload failed. Please try again.',
+            ], 500);
         }
     }
 

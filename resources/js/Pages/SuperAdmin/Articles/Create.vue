@@ -784,17 +784,19 @@ const uploadImages = async (files, method = 'manual') => {
         formData.append('type', 'article');
 
         try {
-            const response = await fetch(route('image.upload'), {
+            const response = await fetch(route('upload.image'), {
                 method: 'POST',
                 headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
                 },
                 body: formData,
             });
 
-            const data = await response.json();
-            
-            if (data.url) {
+            const data = await response.json().catch(() => ({}));
+
+            if (response.ok && data.url) {
                 uploadedImages.value.push(data.url);
                 // Update appropriate form
                 const targetForm = method === 'manual' ? manualForm : aiForm;
@@ -805,7 +807,10 @@ const uploadImages = async (files, method = 'manual') => {
                     targetForm.secondary_image = data.url;
                 }
             } else {
-                uploadError.value = data.error || 'Upload failed';
+                const validationMessage = data.errors
+                    ? Object.values(data.errors).flat()[0]
+                    : null;
+                uploadError.value = validationMessage || data.message || data.error || 'Upload failed. Please try again.';
             }
         } catch (error) {
             uploadError.value = 'Upload failed. Please try again.';
