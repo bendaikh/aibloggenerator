@@ -784,7 +784,7 @@ const uploadImages = async (files, method = 'manual') => {
         formData.append('type', 'article');
 
         try {
-            const response = await fetch(route('upload.image'), {
+            const response = await fetch('/upload/image', {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
