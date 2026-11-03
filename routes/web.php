@@ -83,7 +83,8 @@ $registerMainAppRoutes = function () {
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
         
         // Image Upload Routes
-        Route::post('/upload/image', [ImageUploadController::class, 'upload'])->name('upload.image');
+        // Named image.upload because the article form calls route('image.upload').
+        Route::post('/upload/image', [ImageUploadController::class, 'upload'])->name('image.upload');
         Route::delete('/upload/image', [ImageUploadController::class, 'destroy'])->name('upload.image.destroy');
     });
 

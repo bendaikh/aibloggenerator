@@ -16,7 +16,7 @@ class ImageUploadTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->postJson(route('upload.image'), [
+        $response = $this->actingAs($user)->postJson(route('image.upload'), [
             'image' => UploadedFile::fake()->image('recipe.jpg', 40, 40),
             'type' => 'article',
         ]);
@@ -33,9 +33,14 @@ class ImageUploadTest extends TestCase
         File::delete(public_path($path));
     }
 
+    public function test_article_form_route_name_points_at_the_upload_endpoint(): void
+    {
+        $this->assertSame(url('/upload/image'), route('image.upload'));
+    }
+
     public function test_guest_cannot_upload_an_image(): void
     {
-        $this->postJson(route('upload.image'), [
+        $this->postJson(route('image.upload'), [
             'image' => UploadedFile::fake()->image('recipe.jpg'),
             'type' => 'article',
         ])->assertUnauthorized();
